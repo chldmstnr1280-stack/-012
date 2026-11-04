@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { motionValue, type MotionValue } from "motion/react";
+import { getData, setProgress, useAppData } from "./data-store";
 
 export type SellyReaction = "touch" | "greet" | "water" | "sun" | "pat" | "cheer";
 
@@ -30,7 +31,7 @@ const SellyContext = createContext<SellyState | null>(null);
 const EXP_PER_LEVEL = 500;
 
 export function SellyProvider({ children }: { children: React.ReactNode }) {
-  const [progress, setProgress] = useState({ level: 7, exp: 322 });
+  const { progress } = useAppData();
   const [reaction, setReaction] = useState<ReactionEvent | null>(null);
   const [immersive, setImmersive] = useState(false);
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
@@ -38,15 +39,14 @@ export function SellyProvider({ children }: { children: React.ReactNode }) {
   const counter = useRef(0);
 
   const addExp = useCallback((amount: number) => {
-    setProgress((p) => {
-      let exp = p.exp + amount;
-      let level = p.level;
-      while (exp >= EXP_PER_LEVEL) {
-        exp -= EXP_PER_LEVEL;
-        level += 1;
-      }
-      return { level, exp };
-    });
+    const p = getData().progress;
+    let exp = p.exp + amount;
+    let level = p.level;
+    while (exp >= EXP_PER_LEVEL) {
+      exp -= EXP_PER_LEVEL;
+      level += 1;
+    }
+    setProgress({ level, exp });
   }, []);
 
   const react = useCallback((type: SellyReaction) => {

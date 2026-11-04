@@ -12,6 +12,8 @@ export type SellyMode = "idle" | "breathing";
 
 interface SellyProps {
   mode?: SellyMode;
+  /** fixed expression (e.g. a sleepy Selly on the report) */
+  pose?: SellyExpression;
   /** Called when the user taps Selly (only in idle mode). */
   onTouch?: () => void;
   className?: string;
@@ -35,7 +37,7 @@ const BURST_FOR: Record<SellyReaction, BurstKind> = {
  *   breather : idle breathing, or scale driven by the breathing session
  *   svg      : body / leaves / live face
  */
-export function Selly({ mode = "idle", onTouch, className }: SellyProps) {
+export function Selly({ mode = "idle", pose, onTouch, className }: SellyProps) {
   const { reaction, breath } = useSelly();
   const reduce = useReducedMotion();
   const [scope, animate] = useAnimate<HTMLDivElement>();
@@ -54,7 +56,7 @@ export function Selly({ mode = "idle", onTouch, className }: SellyProps) {
   const leftSpread = useTransform(breath, [0, 1], [0, -9]);
   const rightSpread = useTransform(breath, [0, 1], [0, 9]);
 
-  const shownExpression: SellyExpression = breathing ? "relaxed" : expression;
+  const shownExpression: SellyExpression = breathing ? "relaxed" : expression === "idle" && pose ? pose : expression;
 
   // Natural blinking with random intervals
   useEffect(() => {

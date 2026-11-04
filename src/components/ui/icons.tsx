@@ -86,3 +86,92 @@ export function LeafBadgeIcon({ className, size = 28 }: P) {
     </svg>
   );
 }
+
+/* ---------- Phase 2: record & cycle icons ---------- */
+
+export function SmileIcon({ className, size = 24 }: P) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
+      <circle cx="12" cy="12" r="9.5" fill="#ffd77e" stroke="#e8b04f" strokeWidth="1.2" />
+      <circle cx="9" cy="10.5" r="1.1" fill="#7a5532" />
+      <circle cx="15" cy="10.5" r="1.1" fill="#7a5532" />
+      <path d="M8.5 14 Q12 17.5 15.5 14" stroke="#7a5532" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      <ellipse cx="7" cy="13.5" rx="1.6" ry="1" fill="#f6a7a0" opacity="0.7" />
+      <ellipse cx="17" cy="13.5" rx="1.6" ry="1" fill="#f6a7a0" opacity="0.7" />
+    </svg>
+  );
+}
+
+export function SproutLeafIcon({ className, size = 24 }: P) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
+      <path d="M12 21 V12" stroke="#6f9a62" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M12 13 C 5 13 3 8 4 4 C 9 4 12 7 12 13Z" fill="#b9d89a" stroke="#6f9a62" strokeWidth="1.2" />
+      <path d="M12 11 C 18 11 21 7 20 3 C 15 3 12 6 12 11Z" fill="#d5e9bd" stroke="#6f9a62" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+export function SneakerIcon({ className, size = 24 }: P) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
+      <path d="M3 15.5 C 3 12 4 9 5.5 8 L 9 10 C 11 11.5 14 12.5 17 13 C 20 13.5 21 15 21 16.5 V17.5 H3Z" fill="#f6e3d8" stroke="#a37a63" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M3 17.5 H21" stroke="#a37a63" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M8.5 11 l1.2 -1.3 M10.6 12 l1.2 -1.3 M12.7 12.8 l1.2 -1.3" stroke="#a37a63" strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function NoteIcon({ className, size = 24 }: P) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
+      <path d="M5 4.5 H15 L19 8.5 V19.5 H5Z" fill="#f8efe2" stroke="#a5866a" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M15 4.5 V8.5 H19" fill="#ead9c2" stroke="#a5866a" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M8 12 H15 M8 15 H13" stroke="#c4a98d" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function DropIcon({ className, size = 24 }: P) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
+      <path d="M12 3 C 15 8 18.5 11 18.5 15 C 18.5 18.6 15.6 21 12 21 C 8.4 21 5.5 18.6 5.5 15 C 5.5 11 9 8 12 3Z" fill="#ee8f99" stroke="#d76a77" strokeWidth="1.2" />
+      <ellipse cx="9.6" cy="14.5" rx="1.3" ry="2.4" fill="#fff" opacity="0.7" />
+    </svg>
+  );
+}
+
+export function EnergyIcon({ className, size = 26 }: P) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
+      <path d="M13.5 2.5 L5.5 13.5 H11 L10 21.5 L18.5 10 H13Z" fill="#ffd36e" stroke="#e1a63a" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function SleepIcon({ className, size = 26 }: P) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
+      <path d="M15.5 3.5 A8.5 8.5 0 1 0 20.5 15 A7 7 0 0 1 15.5 3.5Z" fill="#d9d2f2" stroke="#8f7fd6" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function FocusIcon({ className, size = 26 }: P) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
+      <circle cx="12" cy="13" r="7.5" fill="#fbe0e3" stroke="#d98a95" strokeWidth="1.3" />
+      <path d="M12 9 V13 L14.5 15" stroke="#c46f7b" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+      <path d="M4.5 6 L7 3.8 M19.5 6 L17 3.8" stroke="#d98a95" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function StressIcon({ className, size = 26 }: P) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} aria-hidden>
+      <path d="M7 18 A4 4 0 0 1 6.5 10 A5.5 5.5 0 0 1 17 9 A4.5 4.5 0 0 1 17.5 18Z" fill="#fde3e1" stroke="#df8f8a" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M9 14 q1.5 -1.6 3 0 t3 0" stroke="#df8f8a" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+    </svg>
+  );
+}
