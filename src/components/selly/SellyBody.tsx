@@ -2,6 +2,8 @@
 
 import { motion, type MotionValue } from "motion/react";
 import { sellyArt } from "@/lib/assets";
+import type { StageId } from "@/lib/growth";
+import { Flower } from "@/components/greenhouse/svg-kit";
 import { leafPath } from "@/components/greenhouse/svg-kit";
 
 const BODY = "M120 89 C 162 89 194 119 198 158 C 202 194 178 212 120 212 C 62 212 38 194 42 158 C 46 119 78 89 120 89 Z";
@@ -131,29 +133,77 @@ function Aura({ glow }: { glow: number }) {
  * are separate layers so the leaves can move); falls back to the vector stand-in.
  * The face is always drawn on top by <SellyFace>.
  */
+/** Leaf size per growth stage (seed shows a tiny vector sprout instead). */
+const LEAF_SCALE: Record<StageId, number> = { seed: 0, sprout: 0.6, leaf: 1, bloom: 1 };
+
+const scaleAbout = (x: number, y: number, s: number) => `translate(${x} ${y}) scale(${s}) translate(${-x} ${-y})`;
+
+/** Tiny two-leaf sprout for the seed stage. */
+function SeedSprout({ y }: { y: number }) {
+  const small = leafPath(30, 14);
+  return (
+    <g transform={`translate(120 ${y})`}>
+      <path d="M0 4 Q -1 -4 1 -10" stroke="#7fae63" strokeWidth={3} strokeLinecap="round" fill="none" />
+      <g transform="translate(0 -9) rotate(-48)">
+        <path d={small} fill="url(#sellyLeaf)" />
+      </g>
+      <g transform="translate(1 -9) rotate(42)">
+        <path d={small} fill="url(#sellyLeaf)" />
+      </g>
+    </g>
+  );
+}
+
+/** Flower crown for the bloom stage. */
+function FlowerCrown({ y }: { y: number }) {
+  return (
+    <g transform={`translate(120 ${y})`}>
+      <Flower x={-16} y={2} r={7} color="#f8c3cf" center="#f6d98a" />
+      <Flower x={2} y={-4} r={8.5} color="#fbd6de" center="#f6d98a" />
+      <Flower x={19} y={3} r={6.5} color="#ffffff" center="#f6d98a" />
+      <Flower x={-4} y={8} r={4.5} color="#e8d9f4" center="#f6e3a3" />
+    </g>
+  );
+}
+
 export function SellyBody({
   leftSpread,
   rightSpread,
   perk,
   glow,
+  stage = "leaf",
 }: {
   leftSpread: MotionValue<number>;
   rightSpread: MotionValue<number>;
   perk: number;
   glow: number;
+  stage?: StageId;
 }) {
   if (sellyArt) {
     const [[lx, ly], [rx, ry]] = sellyArt.leafPivots;
+    const ls = LEAF_SCALE[stage];
+    // top of the painted head, used to seat the sprout / crown
+    const headTop = sellyArt.face.eyeY - 37;
     return (
       <g>
         <Aura glow={glow} />
-        <LeafMotion side={-1} spread={leftSpread} perk={perk} origin={[lx / 240, ly / 240]}>
-          <image href={sellyArt.leafLeft} width={240} height={240} />
-        </LeafMotion>
-        <LeafMotion side={1} spread={rightSpread} perk={perk} origin={[rx / 240, ry / 240]}>
-          <image href={sellyArt.leafRight} width={240} height={240} />
-        </LeafMotion>
+        {ls > 0 && (
+          <>
+            <g transform={scaleAbout(lx, ly, ls)}>
+              <LeafMotion side={-1} spread={leftSpread} perk={perk} origin={[lx / 240, ly / 240]}>
+                <image href={sellyArt.leafLeft} width={240} height={240} />
+              </LeafMotion>
+            </g>
+            <g transform={scaleAbout(rx, ry, ls)}>
+              <LeafMotion side={1} spread={rightSpread} perk={perk} origin={[rx / 240, ry / 240]}>
+                <image href={sellyArt.leafRight} width={240} height={240} />
+              </LeafMotion>
+            </g>
+          </>
+        )}
+        {stage === "seed" && <SeedSprout y={headTop + 6} />}
         <image href={sellyArt.body} width={240} height={240} />
+        {stage === "bloom" && <FlowerCrown y={headTop + 4} />}
       </g>
     );
   }

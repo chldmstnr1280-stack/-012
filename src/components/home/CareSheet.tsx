@@ -1,11 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import type { SellyReaction } from "@/lib/selly-store";
+import { useAppData } from "@/lib/data-store";
+import { useToday } from "@/lib/date";
+import { REWARDS } from "@/lib/growth";
 import { HandHeartIcon, SunIcon, WateringCanIcon } from "@/components/ui/icons";
 
-const actions: { type: SellyReaction; label: string; icon: React.ReactNode; tint: string }[] = [
+const actions: { type: "water" | "sun" | "pat"; label: string; icon: React.ReactNode; tint: string }[] = [
   { type: "water", label: "물 주기", icon: <WateringCanIcon size={34} />, tint: "from-[#eef6fa] to-[#dcecf3]" },
   { type: "sun", label: "햇빛 주기", icon: <SunIcon />, tint: "from-[#fff8e6] to-[#fcecc4]" },
   { type: "pat", label: "쓰다듬기", icon: <HandHeartIcon />, tint: "from-[#fff1f2] to-[#fbdde0]" },
@@ -13,6 +16,9 @@ const actions: { type: SellyReaction; label: string; icon: React.ReactNode; tint
 
 /** Floating care panel that sits above the dock while Selly stays visible. */
 export function CareSheet({ open, onClose, onCare }: { open: boolean; onClose: () => void; onCare: (t: SellyReaction) => void }) {
+  const today = useToday();
+  const { daily } = useAppData();
+  const done = (today && daily[today]?.done) || {};
   return (
     <AnimatePresence>
       {open && (
@@ -38,8 +44,17 @@ export function CareSheet({ open, onClose, onCare }: { open: boolean; onClose: (
                 type="button"
                 whileTap={{ scale: 0.93 }}
                 onClick={() => onCare(a.type)}
-                className={`flex h-[86px] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-white bg-gradient-to-b ${a.tint} text-[13px] font-bold text-ink-700 shadow-[0_6px_16px_-8px_rgba(110,88,60,0.35)]`}
+                className={`relative flex h-[86px] flex-col items-center justify-center gap-1.5 rounded-[22px] border border-white bg-gradient-to-b ${a.tint} text-[13px] font-bold text-ink-700 shadow-[0_6px_16px_-8px_rgba(110,88,60,0.35)]`}
               >
+                <span className="absolute right-2 top-2">
+                  {done[a.type] ? (
+                    <span className="grid h-5 w-5 place-items-center rounded-full bg-sage-500 text-white" aria-label="오늘 완료">
+                      <Check size={12} strokeWidth={3} />
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-white/85 px-1.5 py-0.5 text-[10px] font-bold text-sage-700">+{REWARDS[a.type]}</span>
+                  )}
+                </span>
                 {a.icon}
                 {a.label}
               </motion.button>

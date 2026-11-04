@@ -21,6 +21,18 @@ export interface DailyEntry {
   updatedAt: number;
 }
 
+/** Things that grant growth once per day. */
+export const DAILY_TASKS = ["record", "breath", "water", "sun", "pat"] as const;
+export type DailyTask = (typeof DAILY_TASKS)[number];
+
+export interface DailyLog {
+  done: Partial<Record<DailyTask, true>>;
+  /** growth earned from touching Selly today (capped) */
+  touchExp?: number;
+  /** all-tasks bonus already granted */
+  bonus?: true;
+}
+
 export interface AppData {
   version: 1;
   progress: { level: number; exp: number };
@@ -29,10 +41,11 @@ export interface AppData {
   periodDays: DateKey[];
   /** true while the sample data set is loaded */
   demo: boolean;
+  daily: Record<DateKey, DailyLog>;
 }
 
 const KEY = "dear-selly:v1";
-const EMPTY: AppData = { version: 1, progress: { level: 7, exp: 322 }, entries: {}, periodDays: [], demo: false };
+const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {} };
 
 let state: AppData = EMPTY;
 let loaded = false;
@@ -112,6 +125,42 @@ export function setProgress(progress: AppData["progress"]) {
   setData((d) => ({ ...d, progress }));
 }
 
-export function replaceAll(data: Omit<AppData, "version" | "progress">) {
+export function replaceAll(data: Pick<AppData, "entries" | "periodDays" | "demo">) {
   setData((d) => ({ ...d, ...data }));
+}
+
+/** Marks a daily task. Returns true only the first time today (i.e. growth should be granted). */
+export function markDaily(date: DateKey, task: DailyTask): boolean {
+  const log = getData().daily[date];
+  if (log?.done[task]) return false;
+  setData((d) => {
+    const cur = d.daily[date] ?? { done: {} };
+    // keep only the last 60 days of daily logs
+    const keys = Object.keys(d.daily).sort().slice(-59).filter((k) => k !== date);
+    const kept = Object.fromEntries(keys.map((k) => [k, d.daily[k]]));
+    return { ...d, daily: { ...kept, [date]: { ...cur, done: { ...cur.done, [task]: true } } } };
+  });
+  return true;
+}
+
+export const TOUCH_EXP_CAP = 10;
+
+/** Growth for touching Selly, capped per day. Returns how much to grant (0 or 1). */
+export function claimTouchExp(date: DateKey): number {
+  const log = getData().daily[date] ?? { done: {} };
+  if ((log.touchExp ?? 0) >= TOUCH_EXP_CAP) return 0;
+  setData((d) => ({ ...d, daily: { ...d.daily, [date]: { ...log, touchExp: (log.touchExp ?? 0) + 1 } } }));
+  return 1;
+}
+
+/** Grants the all-tasks bonus once per day when every task is done. */
+export function claimDailyBonus(date: DateKey): boolean {
+  const log = getData().daily[date];
+  if (!log || log.bonus || !DAILY_TASKS.every((t) => log.done[t])) return false;
+  setData((d) => ({ ...d, daily: { ...d.daily, [date]: { ...log, bonus: true } } }));
+  return true;
+}
+
+export function resetAll() {
+  setData(() => ({ ...EMPTY }));
 }

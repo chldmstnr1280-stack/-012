@@ -73,7 +73,7 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
   const [activeCond, setActiveCond] = useState<ConditionKey>("energy");
   const [steps, setSteps] = useState<string>(existing?.steps != null ? String(existing.steps) : "");
   const [memo, setMemo] = useState(existing?.memo ?? "");
-  const { showToast, addExp, react } = useSelly();
+  const { showToast, completeTask, react } = useSelly();
   const router = useRouter();
 
   const hasAny = mood != null || Object.keys(condition).length > 0 || steps !== "" || memo.trim() !== "";
@@ -83,15 +83,15 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
       showToast("하나만 골라도 괜찮아요");
       return;
     }
-    const { firstTime } = saveEntry(date, {
+    saveEntry(date, {
       mood,
       condition,
       steps: steps === "" ? undefined : Math.min(200_000, Number(steps)),
       memo: memo.trim() || undefined,
     });
-    if (firstTime && isToday) {
-      addExp(15);
-      showToast("오늘의 기록을 담았어요 · 성장 +15");
+    const exp = isToday ? completeTask("record").exp : 0;
+    if (exp) {
+      showToast(`오늘의 기록을 담았어요 · 성장 +${exp}`);
       react("cheer");
       router.push("/");
     } else {

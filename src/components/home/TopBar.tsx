@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Bell, Settings } from "lucide-react";
 import { useSelly } from "@/lib/selly-store";
 
@@ -18,9 +19,13 @@ export function TopBar() {
         <IconButton label="알림" onClick={() => showToast("알림 기능은 준비 중이에요")}>
           <Bell size={23} fill="white" strokeWidth={1.6} />
         </IconButton>
-        <IconButton label="설정" onClick={() => showToast("설정은 준비 중이에요")}>
+        <Link
+          href="/settings"
+          aria-label="설정"
+          className="grid h-11 w-11 place-items-center rounded-full text-white drop-shadow-[0_1px_3px_rgba(90,70,50,0.45)] transition active:scale-90"
+        >
           <Settings size={24} strokeWidth={1.9} />
-        </IconButton>
+        </Link>
       </div>
     </header>
   );

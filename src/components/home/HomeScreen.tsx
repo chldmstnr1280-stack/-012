@@ -17,21 +17,22 @@ import { GrassMound } from "./GrassMound";
 
 const GREETING = "오늘도\n잘 쉬어가고 있지? ♡";
 const TOUCH_LINES = ["헤헤, 간지러워!", "오늘 하루도\n고생 많았어 ♡", "네가 와줘서 좋아", "천천히 쉬어가도\n괜찮아"];
-const CARE: Record<string, { line: string; exp: number }> = {
-  water: { line: "시원해!\n고마워 ♡", exp: 10 },
-  sun: { line: "따뜻하다…\n마음까지 포근해져", exp: 10 },
-  pat: { line: "에헤헤,\n좋아 ♡", exp: 5 },
+const CARE: Record<"water" | "sun" | "pat", { line: string; again: string }> = {
+  water: { line: "시원해!\n고마워 ♡", again: "오늘은 충분히 마셨어.\n고마워!" },
+  sun: { line: "따뜻하다…\n마음까지 포근해져", again: "햇살 가득 받았어.\n반짝반짝!" },
+  pat: { line: "에헤헤,\n좋아 ♡", again: "또 쓰다듬어 줘서\n행복해 ♡" },
 };
 
 type Mode = "home" | "breathing";
 
 export function HomeScreen() {
-  const { react, addExp, setImmersive, showToast, breath } = useSelly();
+  const { react, completeTask, touchExp, setImmersive, showToast, breath } = useSelly();
   const [mode, setMode] = useState<Mode>("home");
   const [careOpen, setCareOpen] = useState(false);
   const [message, setMessage] = useState(GREETING);
   const touchIndex = useRef(0);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAction = useRef<string | null | undefined>(undefined);
   const haloScale = useTransform(breath, [0, 1], [0.82, 1.12]);
   const haloOpacity = useTransform(breath, [0, 1], [0.45, 0.95]);
 
@@ -41,35 +42,44 @@ export function HomeScreen() {
     if (resetAfter > 0) msgTimer.current = setTimeout(() => setMessage(GREETING), resetAfter);
   }, []);
 
-  // Greeting on first visit
-  useEffect(() => {
-    const t = setTimeout(() => react("greet"), 650);
-    return () => clearTimeout(t);
-  }, [react]);
 
   useEffect(() => () => setImmersive(false), [setImmersive]);
 
   const handleTouch = () => {
     react("touch");
-    addExp(1);
+    touchExp();
     say(TOUCH_LINES[touchIndex.current++ % TOUCH_LINES.length]);
   };
 
   const handleCare = (type: SellyReaction) => {
     react(type);
-    const c = CARE[type];
-    if (c) {
-      addExp(c.exp);
-      say(c.line);
-    }
+    if (type !== "water" && type !== "sun" && type !== "pat") return;
+    const { exp } = completeTask(type);
+    say(exp ? CARE[type].line : CARE[type].again);
+    if (exp) showToast(`성장 +${exp}`);
   };
 
-  const startBreathing = () => {
+  const startBreathing = useCallback(() => {
     setCareOpen(false);
     setMode("breathing");
     setImmersive(true);
     say("편안한 호흡으로\n마음을 가라앉혀요.", 0);
-  };
+  }, [say, setImmersive]);
+  // Greeting on first visit, or jump straight into an action (?do=breathe | care) from the growth screen
+  useEffect(() => {
+    // read once and keep it: effects may run twice in development
+    if (pendingAction.current === undefined) {
+      pendingAction.current = new URLSearchParams(window.location.search).get("do");
+      if (pendingAction.current) window.history.replaceState(null, "", "/");
+    }
+    const action = pendingAction.current;
+    const t = setTimeout(() => {
+      if (action === "breathe") startBreathing();
+      else if (action === "care") setCareOpen(true);
+      else react("greet");
+    }, 650);
+    return () => clearTimeout(t);
+  }, [react, startBreathing]);
 
   const endBreathing = useCallback(
     (completed: boolean) => {
@@ -77,15 +87,15 @@ export function HomeScreen() {
       setImmersive(false);
       breath.set(0);
       if (completed) {
-        addExp(20);
+        const { exp } = completeTask("breath");
         say("잘했어!\n마음이 한결 가벼워졌지? ♡", 5000);
-        showToast("1분 호흡 완료 · 성장 +20");
+        showToast(exp ? `1분 호흡 완료 · 성장 +${exp}` : "1분 호흡 완료 · 오늘도 숨 고르기 성공");
         setTimeout(() => react("cheer"), 300);
       } else {
         say(GREETING, 0);
       }
     },
-    [addExp, breath, react, say, setImmersive, showToast],
+    [completeTask, breath, react, say, setImmersive, showToast],
   );
 
   const onPhase = useCallback(

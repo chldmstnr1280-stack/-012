@@ -6,6 +6,10 @@ import { useSelly, type SellyReaction } from "@/lib/selly-store";
 import { SellyBody, SellyDefs } from "./SellyBody";
 import { SellyFace, type SellyExpression } from "./SellyFace";
 import { VECTOR_FACE, sellyArt } from "@/lib/assets";
+import type { StageId } from "@/lib/growth";
+
+/** Younger stages are a little smaller. */
+const STAGE_SIZE: Record<StageId, number> = { seed: 0.78, sprout: 0.88, leaf: 1, bloom: 1 };
 import { SellyBurst, type BurstKind } from "./SellyEffects";
 
 export type SellyMode = "idle" | "breathing";
@@ -14,6 +18,8 @@ interface SellyProps {
   mode?: SellyMode;
   /** fixed expression (e.g. a sleepy Selly on the report) */
   pose?: SellyExpression;
+  /** growth stage to draw; defaults to the user's current stage */
+  stage?: StageId;
   /** Called when the user taps Selly (only in idle mode). */
   onTouch?: () => void;
   className?: string;
@@ -37,8 +43,9 @@ const BURST_FOR: Record<SellyReaction, BurstKind> = {
  *   breather : idle breathing, or scale driven by the breathing session
  *   svg      : body / leaves / live face
  */
-export function Selly({ mode = "idle", pose, onTouch, className }: SellyProps) {
-  const { reaction, breath } = useSelly();
+export function Selly({ mode = "idle", pose, stage, onTouch, className }: SellyProps) {
+  const { reaction, breath, stage: myStage } = useSelly();
+  const shownStage = stage ?? myStage.id;
   const reduce = useReducedMotion();
   const [scope, animate] = useAnimate<HTMLDivElement>();
   const [expression, setExpression] = useState<SellyExpression>("idle");
@@ -163,9 +170,14 @@ export function Selly({ mode = "idle", pose, onTouch, className }: SellyProps) {
             animate={breathing || reduce ? { scaleX: 1, scaleY: 1 } : { scaleY: [1, 1.022, 1], scaleX: [1, 0.992, 1] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
           >
-            <svg viewBox="0 0 240 240" className="h-full w-full overflow-visible" aria-hidden>
+            <svg
+              viewBox="0 0 240 240"
+              className="h-full w-full overflow-visible transition-transform duration-700"
+              style={{ transform: `scale(${STAGE_SIZE[shownStage]})`, transformOrigin: "50% 90%" }}
+              aria-hidden
+            >
               <SellyDefs />
-              <SellyBody leftSpread={leftSpread} rightSpread={rightSpread} perk={perk} glow={glow} />
+              <SellyBody leftSpread={leftSpread} rightSpread={rightSpread} perk={perk} glow={glow} stage={shownStage} />
               <SellyFace expression={shownExpression} blink={blink} layout={sellyArt?.face ?? VECTOR_FACE} />
             </svg>
           </motion.div>
