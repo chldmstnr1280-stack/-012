@@ -7,6 +7,7 @@
 - **Phase 1** — 인터랙티브 유리온실 홈 화면 (셀리, 터치, 호흡하기, 돌보기)
 - **Phase 2** — 오늘의 기록 · 생리주기 캘린더/주기 분석 · 웰니스 리포트 (기기 내 저장)
 - **Phase 3** — 셀리 육성 루프: 성장 단계 · 오늘의 돌봄 · 레벨업 · 설정
+- **Phase 4** — 앱으로 설치(PWA): 셀리 아이콘 · 전체 화면 실행 · 오프라인 · 설치 안내
 
 ```bash
 npm install
@@ -96,6 +97,15 @@ python3 scripts/extract-assets.py
 | 설정 `/settings` | 내 데이터 현황, JSON 내보내기, 모든 데이터 지우기(확인 창), 앱 정보·안내 |
 
 새 사용자는 **Lv.1 씨앗**부터 시작해요. 기존 사용자는 저장된 레벨을 그대로 유지해요.
+
+## 7. Phase 4 — 앱으로 설치 (PWA)
+
+- `src/app/manifest.ts`: 이름 "디어셀리", standalone, 세로 고정, 바로가기(기록 · 호흡 · 생리주기)
+- 아이콘: `scripts/extract-assets.py`가 시트 원본(얼굴 포함)으로 생성해요. 일반 / 마스커블(안전 영역 80%) / `apple-icon.png` / `icon.png`
+- iOS: `apple-mobile-web-app-*` 메타, 상태바 투명(safe-area 패딩으로 대응)
+- `public/sw.js`: 페이지는 네트워크 우선이고 오프라인이면 캐시를 써요. 빌드 파일과 아트는 캐시 우선이에요. 프로덕션에서만 등록돼요. 그림 에셋을 바꾸면 `VERSION`을 올려 주세요
+- 설치 후에는 `navigator.storage.persist()`로 브라우저가 기기 내 기록을 지우지 않도록 요청해요
+- 설정의 "앱으로 설치하기": 안드로이드는 설치 버튼, iOS는 공유 → 홈 화면에 추가 안내, 설치된 경우 "실행 중" 표시
 
 ![stages](docs/phase3-stages.png)
 ![growth & settings](docs/phase3-growth-settings.png)
