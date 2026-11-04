@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, type MotionValue } from "motion/react";
-import { assets } from "@/lib/assets";
+import { sellyArt } from "@/lib/assets";
 import { leafPath } from "@/components/greenhouse/svg-kit";
 
 const BODY = "M120 89 C 162 89 194 119 198 158 C 202 194 178 212 120 212 C 62 212 38 194 42 158 C 46 119 78 89 120 89 Z";
@@ -56,14 +56,25 @@ export function SellyDefs() {
   );
 }
 
-function Leaf({ side, spread, perk }: { side: -1 | 1; spread: MotionValue<number>; perk: number }) {
-  const baseAngle = side * 34;
+/** Leaf motion: breath spread (outer) + idle sway / perk-up on watering (inner), pivoting at the leaf base. */
+function LeafMotion({
+  side,
+  spread,
+  perk,
+  origin,
+  children,
+}: {
+  side: -1 | 1;
+  spread: MotionValue<number>;
+  perk: number;
+  origin: [number, number];
+  children: React.ReactNode;
+}) {
   return (
-    <g transform={`translate(${120 + side * 11} 98) rotate(${baseAngle})`}>
-      <motion.g style={{ rotate: spread, originX: 0.5, originY: 1 }}>
-        <motion.g
+    <motion.g style={{ rotate: spread, originX: origin[0], originY: origin[1] }}>
+      <motion.g
           key={perk}
-          style={{ originX: 0.5, originY: 1 }}
+          style={{ originX: origin[0], originY: origin[1] }}
           animate={
             perk > 0
               ? { rotate: [0, side * -14, side * 6, 0], scale: [1, 1.08, 1] }
@@ -75,6 +86,16 @@ function Leaf({ side, spread, perk }: { side: -1 | 1; spread: MotionValue<number
               : { duration: 4.2, repeat: Infinity, ease: "easeInOut", delay: side > 0 ? 0.4 : 0 }
           }
         >
+          {children}
+      </motion.g>
+    </motion.g>
+  );
+}
+
+function Leaf({ side, spread, perk }: { side: -1 | 1; spread: MotionValue<number>; perk: number }) {
+  return (
+    <g transform={`translate(${120 + side * 11} 98) rotate(${side * 34})`}>
+      <LeafMotion side={side} spread={spread} perk={perk} origin={[0.5, 1]}>
           <path d={LEAF} fill="url(#sellyLeaf)" />
           <path d={LEAF} fill="url(#sellyLeafShade)" />
           <path d={LEAF} fill="none" stroke="#5d8a48" strokeOpacity={0.45} strokeWidth={1} />
@@ -86,15 +107,29 @@ function Leaf({ side, spread, perk }: { side: -1 | 1; spread: MotionValue<number
             </g>
           ))}
           <path d="M-4 -30 Q -14 -50 -6 -74" stroke="#fff" strokeOpacity={0.35} strokeWidth={3} fill="none" strokeLinecap="round" />
-        </motion.g>
-      </motion.g>
+      </LeafMotion>
     </g>
   );
 }
 
+function Aura({ glow }: { glow: number }) {
+  return (
+    <motion.ellipse
+      cx={120}
+      cy={150}
+      rx={100}
+      ry={86}
+      fill="url(#sellyAura)"
+      animate={{ opacity: 0.7 + glow * 0.3, scale: 1 + glow * 0.06 }}
+      transition={{ duration: 0.8 }}
+    />
+  );
+}
+
 /**
- * Selly's body (vector stand-in). When `assets.sellyBody` is provided, the
- * bitmap is used for body + leaves and only the face stays vector.
+ * Selly's body + leaves. Uses the painted art from `sellyArt` (body and each leaf
+ * are separate layers so the leaves can move); falls back to the vector stand-in.
+ * The face is always drawn on top by <SellyFace>.
  */
 export function SellyBody({
   leftSpread,
@@ -107,22 +142,25 @@ export function SellyBody({
   perk: number;
   glow: number;
 }) {
-  if (assets.sellyBody) {
-    return <image href={assets.sellyBody} x={0} y={0} width={240} height={240} preserveAspectRatio="xMidYMid meet" />;
+  if (sellyArt) {
+    const [[lx, ly], [rx, ry]] = sellyArt.leafPivots;
+    return (
+      <g>
+        <Aura glow={glow} />
+        <LeafMotion side={-1} spread={leftSpread} perk={perk} origin={[lx / 240, ly / 240]}>
+          <image href={sellyArt.leafLeft} width={240} height={240} />
+        </LeafMotion>
+        <LeafMotion side={1} spread={rightSpread} perk={perk} origin={[rx / 240, ry / 240]}>
+          <image href={sellyArt.leafRight} width={240} height={240} />
+        </LeafMotion>
+        <image href={sellyArt.body} width={240} height={240} />
+      </g>
+    );
   }
 
   return (
     <g>
-      {/* aura */}
-      <motion.ellipse
-        cx={120}
-        cy={150}
-        rx={100}
-        ry={86}
-        fill="url(#sellyAura)"
-        animate={{ opacity: 0.7 + glow * 0.3, scale: 1 + glow * 0.06 }}
-        transition={{ duration: 0.8 }}
-      />
+      <Aura glow={glow} />
 
       {/* leaves sit behind the head */}
       <Leaf side={-1} spread={leftSpread} perk={perk} />

@@ -5,6 +5,7 @@ import { motion, useAnimate, useReducedMotion, useTransform } from "motion/react
 import { useSelly, type SellyReaction } from "@/lib/selly-store";
 import { SellyBody, SellyDefs } from "./SellyBody";
 import { SellyFace, type SellyExpression } from "./SellyFace";
+import { VECTOR_FACE, sellyArt } from "@/lib/assets";
 import { SellyBurst, type BurstKind } from "./SellyEffects";
 
 export type SellyMode = "idle" | "breathing";
@@ -163,7 +164,7 @@ export function Selly({ mode = "idle", onTouch, className }: SellyProps) {
             <svg viewBox="0 0 240 240" className="h-full w-full overflow-visible" aria-hidden>
               <SellyDefs />
               <SellyBody leftSpread={leftSpread} rightSpread={rightSpread} perk={perk} glow={glow} />
-              <SellyFace expression={shownExpression} blink={blink} />
+              <SellyFace expression={shownExpression} blink={blink} layout={sellyArt?.face ?? VECTOR_FACE} />
             </svg>
           </motion.div>
         </div>

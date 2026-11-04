@@ -99,7 +99,7 @@ export function HomeScreen() {
   const breathing = mode === "breathing";
 
   return (
-    <main className="relative h-full w-full overflow-hidden" style={{ ["--selly" as string]: "min(64vw, 31dvh, 252px)" }}>
+    <main className="relative h-full w-full overflow-clip" style={{ ["--selly" as string]: "min(70vw, 34dvh, 276px)" }}>
       <GreenhouseBackground dim={breathing} />
 
       <div className="relative z-10 flex h-full flex-col pt-[calc(env(safe-area-inset-top)+18px)]">
@@ -146,7 +146,7 @@ export function HomeScreen() {
           </div>
           <SpeechBubble
             text={message}
-            className={`absolute transition-all duration-500 ${breathing ? "left-1/2 top-2 -translate-x-1/2" : "right-[22px] bottom-[calc(var(--selly)*0.8)]"}`}
+            className={`absolute transition-all duration-500 ${breathing ? "left-1/2 top-2 -translate-x-1/2" : "right-[18px] bottom-[calc(var(--selly)*0.9)]"}`}
           />
         </section>
 

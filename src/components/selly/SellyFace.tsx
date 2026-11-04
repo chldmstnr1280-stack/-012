@@ -1,64 +1,87 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import type { FaceLayout } from "@/lib/assets";
 
 export type SellyExpression = "idle" | "happy" | "relaxed" | "love";
 
-const INK = "#4b3a32";
+const INK = "#5a3a2c";
 
 /**
- * Live vector face. Kept separate from the body so the body can be swapped for
- * bitmap/3D art while blinking & expressions keep working.
- * Coordinates are in Selly's 240×240 art space.
+ * Live vector face, kept separate from the body art so blinking and
+ * expressions work on top of any body (vector, bitmap or, later, 3D).
+ * Features are drawn around (0,0) = midpoint between the eyes, then placed by `layout`.
  */
-export function SellyFace({ expression, blink }: { expression: SellyExpression; blink: boolean }) {
+export function SellyFace({ expression, blink, layout }: { expression: SellyExpression; blink: boolean; layout: FaceLayout }) {
   const happy = expression === "happy" || expression === "love";
+  const { cx, eyeY, eyeDx: d, mouthY, scale: s, cheeks } = layout;
+  const my = mouthY - eyeY;
+  const sw = (w: number) => w * Math.min(s, 1.25);
+  const eye = (x: number) => `translate(${x} 0) scale(${s})`;
+
   return (
-    <g>
-      {/* cheeks */}
-      <motion.g animate={{ opacity: happy ? 0.85 : 0.55 }} transition={{ duration: 0.4 }} filter="url(#sellyCheekBlur)">
-        <ellipse cx={89} cy={164} rx={12} ry={7} fill="#f4a9ad" />
-        <ellipse cx={151} cy={164} rx={12} ry={7} fill="#f4a9ad" />
+    <g transform={`translate(${cx} ${eyeY})`}>
+      {/* cheeks: always for the vector body, only a happy flush on top of art that has its own blush */}
+      <motion.g
+        initial={false}
+        animate={{ opacity: cheeks ? (happy ? 0.85 : 0.55) : happy ? 0.5 : 0 }}
+        transition={{ duration: 0.4 }}
+        filter="url(#sellyCheekBlur)"
+      >
+        <ellipse cx={-d * 1.6} cy={my + 3 * s} rx={11 * s} ry={6.5 * s} fill="#f4a0a6" />
+        <ellipse cx={d * 1.6} cy={my + 3 * s} rx={11 * s} ry={6.5 * s} fill="#f4a0a6" />
       </motion.g>
 
       <AnimatePresence mode="wait" initial={false}>
-        <motion.g
-          key={expression}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
-        >
+        <motion.g key={expression} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }}>
           {expression === "idle" && (
             <>
-              <motion.g
-                animate={{ scaleY: blink ? 0.12 : 1 }}
-                transition={{ duration: 0.09 }}
-                style={{ originX: 0.5, originY: 0.5 }}
-              >
-                <ellipse cx={101} cy={150} rx={4.6} ry={5.6} fill={INK} />
-                <ellipse cx={139} cy={150} rx={4.6} ry={5.6} fill={INK} />
-                <circle cx={102.6} cy={147.8} r={1.6} fill="#fff" />
-                <circle cx={140.6} cy={147.8} r={1.6} fill="#fff" />
+              <motion.g animate={{ scaleY: blink ? 0.1 : 1 }} transition={{ duration: 0.08 }} style={{ originX: 0.5, originY: 0.5 }}>
+                {[-d, d].map((x) => (
+                  <g key={x} transform={eye(x)}>
+                    <ellipse rx={4.2} ry={5.2} fill={INK} />
+                    <circle cx={1.4} cy={-2} r={1.5} fill="#fff" />
+                  </g>
+                ))}
               </motion.g>
-              <path d="M113.5 160.5 Q116.8 165 120 161 Q123.2 165 126.5 160.5" stroke={INK} strokeWidth={2.1} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                transform={`translate(0 ${my}) scale(${s})`}
+                d="M-6.5 -1 Q-3.2 3.6 0 -0.2 Q3.2 3.6 6.5 -1"
+                stroke={INK}
+                strokeWidth={sw(2.1) / s}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </>
           )}
 
           {happy && (
             <>
-              <path d="M93.5 152 Q101 142.5 108.5 152" stroke={INK} strokeWidth={3} fill="none" strokeLinecap="round" />
-              <path d="M131.5 152 Q139 142.5 146.5 152" stroke={INK} strokeWidth={3} fill="none" strokeLinecap="round" />
-              <path d="M112 159.5 Q120 172 128 159.5 Z" fill="#b8625f" stroke={INK} strokeWidth={1.6} strokeLinejoin="round" />
-              <ellipse cx={120} cy={166} rx={4} ry={2.4} fill="#f39ea3" />
+              {[-d, d].map((x) => (
+                <path key={x} transform={eye(x)} d="M-7.5 2.5 Q0 -6.5 7.5 2.5" stroke={INK} strokeWidth={sw(2.6) / s} fill="none" strokeLinecap="round" />
+              ))}
+              <g transform={`translate(0 ${my}) scale(${s})`}>
+                <path d="M-7 -1.5 Q0 10 7 -1.5 Z" fill="#b65d58" stroke={INK} strokeWidth={1.3} strokeLinejoin="round" />
+                <ellipse cx={0} cy={4.2} rx={3.6} ry={2} fill="#f39aa0" />
+              </g>
             </>
           )}
 
           {expression === "relaxed" && (
             <>
-              <path d="M93.5 149 Q101 156 108.5 149" stroke={INK} strokeWidth={2.6} fill="none" strokeLinecap="round" />
-              <path d="M131.5 149 Q139 156 146.5 149" stroke={INK} strokeWidth={2.6} fill="none" strokeLinecap="round" />
-              <path d="M115.5 161 Q120 164.5 124.5 161" stroke={INK} strokeWidth={2} fill="none" strokeLinecap="round" />
+              {[-d, d].map((x) => (
+                <path key={x} transform={eye(x)} d="M-7.5 -1.5 Q0 5 7.5 -1.5" stroke={INK} strokeWidth={sw(2.3) / s} fill="none" strokeLinecap="round" />
+              ))}
+              <path
+                transform={`translate(0 ${my}) scale(${s})`}
+                d="M-6 -1 Q-3 3 0 0 Q3 3 6 -1"
+                stroke={INK}
+                strokeWidth={sw(1.9) / s}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </>
           )}
         </motion.g>

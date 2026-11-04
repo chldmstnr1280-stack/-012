@@ -1,18 +1,25 @@
-import { assets } from "@/lib/assets";
+import { greenhouseArt } from "@/lib/assets";
 import { Books, DEEP_GREENS, Flower, LeafCluster, Lantern, Pot, Vine, mulberry32 } from "./svg-kit";
 import { DustMotes } from "./DustMotes";
 
 /**
  * 2.5D glass greenhouse. Painted as stacked SVG layers (back → front) so each
  * depth plane can later be swapped for bitmap art or a Three.js scene.
- * If `assets.greenhouse` is set, the bitmap is used instead of the vector layers.
+ * If `greenhouseArt` is set, the painted background is used instead of the vector layers.
  */
 export function GreenhouseBackground({ dim = false, anchor = "bottom" }: { dim?: boolean; anchor?: "top" | "bottom" }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      {assets.greenhouse ? (
+      {greenhouseArt ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={assets.greenhouse} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={greenhouseArt}
+          alt=""
+          decoding="async"
+          fetchPriority="high"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ objectPosition: anchor === "top" ? "50% 0%" : "50% 100%" }}
+        />
       ) : (
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 390 844" preserveAspectRatio={anchor === "top" ? "xMidYMin slice" : "xMidYMax slice"}>
           <Defs />

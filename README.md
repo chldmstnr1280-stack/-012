@@ -47,18 +47,26 @@ src/lib/       selly-store (레벨/경험치, 반응 이벤트, 호흡 MotionVal
 - **내비게이션**: 홈 / 기록(임시 기록 UI, 저장하지 않음) / 캘린더·리포트(준비 중 화면)
 - `prefers-reduced-motion` 지원
 
-## 4. 에셋 현황 — ⚠️ 최종 아트가 필요합니다
+## 4. 에셋
 
-원본 레퍼런스는 합성 이미지입니다(셀리 가로 약 140px, 배경에 UI가 합쳐져 있음). 그래서 셀리와 온실을
-고품질로 깔끔하게 분리할 수 없었습니다. 그 대신 현재는 **교체할 수 있는 벡터 대체 에셋**(SVG 셀리,
-레이어드 SVG 온실)으로 모든 기능이 동작합니다. 아래 파일을 받으면 `src/lib/assets.ts`에서 경로만 바꿔
-바로 교체할 수 있습니다.
+원본 아트는 `assets-src/`에 있고, `scripts/extract-assets.py`로 웹용 에셋을 만듭니다.
 
-| 파일 | 사양 |
+```bash
+pip install pillow numpy opencv-python-headless
+python3 scripts/extract-assets.py
+```
+
+| 결과물 | 처리 |
 | --- | --- |
-| `public/assets/selly/selly-body.png` | 투명 배경, 정사각형 1024px 이상, **얼굴(눈·입·볼) 없이** 몸통 + 잎. 캐릭터는 가운데, 발끝이 아래에서 약 12% 위치 (얼굴은 벡터로 올려 표정·깜빡임 유지) |
-| `public/assets/greenhouse/greenhouse-bg.webp` | 1170×2532 이상, UI·캐릭터가 없는 유리온실 배경 |
-| (선택) 표정별 PNG / glTF 3D 모델 | 향후 3D(React Three Fiber) 전환용 |
+| `public/assets/selly/selly-body.png` | 캐릭터 시트의 메인 포즈를 알파로 분리, 반투명 글로우 배경 제거, **눈·입 인페인팅 제거**(볼 터치는 유지) |
+| `public/assets/selly/selly-leaf-left/right.png` | 잎 두 장을 별도 레이어로 분리 → 흔들림, 호흡 시 벌어짐, 물 주기 반응 |
+| `public/assets/greenhouse/greenhouse-bg.webp` | 온실 배경 (하단 흰 여백 제거) |
+| `public/assets/greenhouse/grass-island.png` | 배경의 잔디 패치를 잘라 셀리가 앉는 자리로 사용 |
+
+얼굴은 벡터 레이어(`SellyFace`)로 그 위에 올려 눈 깜빡임과 표정(기본/웃음/편안함)을 유지합니다.
+스크립트가 출력하는 얼굴 위치·잎 회전축 값은 `src/lib/assets.ts`에 들어 있습니다.
+슬롯을 `null`로 바꾸면 벡터 대체 그래픽으로 돌아갑니다.
+다음 단계에서 3D(React Three Fiber)로 바꿀 때는 `SellyBody`만 교체하면 됩니다.
 
 ![flows](docs/phase1-flows.png)
 ![screens](docs/phase1-screens.png)

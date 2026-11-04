@@ -8,7 +8,7 @@ import { GreenhouseBackground } from "@/components/greenhouse/GreenhouseBackgrou
 /** Shared shell for secondary screens: greenhouse light at the top fading into cream. */
 export function SubPage({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <main className="relative h-full overflow-hidden bg-cream-50">
+    <main className="relative h-full overflow-clip bg-cream-50">
       <div className="absolute inset-x-0 top-0 h-[300px] overflow-hidden">
         <GreenhouseBackground anchor="top" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[rgba(253,251,246,0.55)] to-cream-50" />

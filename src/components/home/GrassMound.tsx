@@ -1,4 +1,5 @@
 import { Flower, mulberry32 } from "@/components/greenhouse/svg-kit";
+import { grassIslandArt } from "@/lib/assets";
 
 const rnd = mulberry32(5);
 const BLADES = Array.from({ length: 90 }, () => {
@@ -11,6 +12,17 @@ const BLADES = Array.from({ length: 90 }, () => {
 
 /** Mossy grass island Selly sits on. Sized relative to Selly's box. */
 export function GrassMound() {
+  if (grassIslandArt) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={grassIslandArt}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[90%] w-[170%] max-w-none -translate-x-1/2 -translate-y-1/2"
+      />
+    );
+  }
   return (
     <svg
       aria-hidden
