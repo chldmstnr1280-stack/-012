@@ -12,6 +12,7 @@ import { groupPeriods } from "@/lib/cycle";
 import { toKey } from "@/lib/date";
 import { useSelly } from "@/lib/selly-store";
 import { InstallCard } from "./InstallCard";
+import { ImportBackup } from "./ImportBackup";
 
 export function SettingsScreen() {
   const data = useAppData();
@@ -58,13 +59,14 @@ export function SettingsScreen() {
             </dl>
             <p className="mt-3 text-[12.5px] leading-relaxed text-ink-500">
               모든 기록은 <b className="text-ink-700">이 기기의 브라우저에만</b> 저장되고 서버로 보내지 않아요. 브라우저 데이터를 지우면 기록도 함께 사라지니,
-              필요하면 파일로 보관해 두세요.
+              필요하면 파일로 보관해 두세요. 내보낸 파일은 다른 기기나 홈 화면 앱에서 가져올 수 있어요.
             </p>
             <div className="mt-3 flex flex-col gap-2">
               <button type="button" onClick={exportData} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white text-[14px] font-bold text-sage-700 shadow-[0_4px_12px_-8px_rgba(110,88,60,0.4)]">
                 <Download size={17} />
                 기록 파일로 내보내기
               </button>
+              <ImportBackup />
               <button
                 type="button"
                 onClick={() => setConfirming(true)}
@@ -87,7 +89,7 @@ export function SettingsScreen() {
               <li>· 몸이나 마음이 많이 힘들 때는 가까운 전문가에게 도움을 요청해 주세요.</li>
               <li>· 기기의 &lsquo;동작 줄이기&rsquo; 설정을 켜면 셀리의 움직임도 차분해져요.</li>
             </ul>
-            <p className="mt-3 text-[11px] text-ink-300">버전 0.4.0 · MVP</p>
+            <p className="mt-3 text-[11px] text-ink-300">버전 0.5.0 · MVP</p>
           </SectionCard>
         </div>
       </SubPage>

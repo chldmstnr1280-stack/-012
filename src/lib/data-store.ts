@@ -164,3 +164,8 @@ export function claimDailyBonus(date: DateKey): boolean {
 export function resetAll() {
   setData(() => ({ ...EMPTY }));
 }
+
+/** Replace the whole data set (used by backup import). */
+export function applyData(next: AppData) {
+  setData(() => next);
+}
