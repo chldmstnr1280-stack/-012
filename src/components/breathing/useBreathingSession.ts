@@ -2,75 +2,98 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MotionValue } from "motion/react";
-
-export const INHALE_MS = 4000;
-export const EXHALE_MS = 4000;
-export const SESSION_MS = 60_000;
-const CYCLE = INHALE_MS + EXHALE_MS;
+import { cycleMs, type BreathPattern, type PhaseKind } from "@/lib/breathing";
 
 const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
-export type BreathPhase = "inhale" | "exhale";
+export interface PhaseState {
+  kind: PhaseKind;
+  /** index of the phase inside the cycle — changes even when two "hold"s follow each other */
+  index: number;
+  secondsLeft: number;
+}
+
+function phaseAt(pattern: BreathPattern, elapsed: number) {
+  let t = elapsed % cycleMs(pattern);
+  for (let i = 0; i < pattern.phases.length; i++) {
+    const len = pattern.phases[i].seconds * 1000;
+    if (t < len) return { i, kind: pattern.phases[i].kind, t, len };
+    t -= len;
+  }
+  const last = pattern.phases.length - 1;
+  return { i: last, kind: pattern.phases[last].kind, t: 0, len: pattern.phases[last].seconds * 1000 };
+}
+
+/** 0 = empty lungs, 1 = full. Holds keep the value of the phase before them. */
+function breathValue(kind: PhaseKind, p: number) {
+  if (kind === "inhale") return easeInOutSine(p);
+  if (kind === "exhale") return 1 - easeInOutSine(p);
+  return kind === "hold" ? 1 : 0;
+}
 
 /**
- * 4s in / 4s out breathing timer for a 1 minute session.
- * Writes a 0..1 breath value to `breath` every frame (drives Selly) and only
- * re-renders React when the visible second / phase changes.
+ * Breathing timer for any pattern. Writes the 0..1 breath value every frame
+ * (drives Selly) and re-renders only when the visible second or phase changes.
  */
-export function useBreathingSession(breath: MotionValue<number>, onComplete: () => void) {
+export function useBreathingSession(
+  breath: MotionValue<number>,
+  pattern: BreathPattern,
+  totalMs: number,
+  onComplete: () => void,
+  onCue: (kind: PhaseKind) => void,
+) {
   const [running, setRunning] = useState(true);
-  const [tick, setTick] = useState({ elapsed: 0 });
+  const [elapsed, setElapsed] = useState(0);
   const elapsedRef = useRef(0);
-  const lastSecond = useRef(-1);
-  const completeRef = useRef(onComplete);
+  const lastTick = useRef(-1);
+  const lastPhase = useRef(-1);
+  const cbs = useRef({ onComplete, onCue });
   useEffect(() => {
-    completeRef.current = onComplete;
-  }, [onComplete]);
+    cbs.current = { onComplete, onCue };
+  }, [onComplete, onCue]);
 
   useEffect(() => {
     if (!running) return;
     let raf = 0;
     let last = performance.now();
     const frame = (now: number) => {
-      elapsedRef.current = Math.min(SESSION_MS, elapsedRef.current + (now - last));
+      elapsedRef.current = Math.min(totalMs, elapsedRef.current + (now - last));
       last = now;
       const e = elapsedRef.current;
-      const inCycle = e % CYCLE;
-      const value = inCycle < INHALE_MS ? easeInOutSine(inCycle / INHALE_MS) : 1 - easeInOutSine((inCycle - INHALE_MS) / EXHALE_MS);
-      breath.set(value);
+      const ph = phaseAt(pattern, e);
+      breath.set(breathValue(ph.kind, ph.t / ph.len));
 
-      const sec = Math.floor(e / 250);
-      if (sec !== lastSecond.current) {
-        lastSecond.current = sec;
-        setTick({ elapsed: e });
+      const cycleIndex = Math.floor(e / cycleMs(pattern)) * pattern.phases.length + ph.i;
+      if (cycleIndex !== lastPhase.current) {
+        lastPhase.current = cycleIndex;
+        if (e < totalMs) cbs.current.onCue(ph.kind);
       }
-      if (e >= SESSION_MS) {
+      const tick = Math.floor(e / 250);
+      if (tick !== lastTick.current) {
+        lastTick.current = tick;
+        setElapsed(e);
+      }
+      if (e >= totalMs) {
         breath.set(0);
-        completeRef.current();
+        cbs.current.onComplete();
         return;
       }
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [running, breath]);
+  }, [running, breath, pattern, totalMs]);
 
   const toggle = useCallback(() => setRunning((r) => !r), []);
 
-  const e = tick.elapsed;
-  const inCycle = e % CYCLE;
-  const phase: BreathPhase = inCycle < INHALE_MS ? "inhale" : "exhale";
-  const phaseElapsed = phase === "inhale" ? inCycle : inCycle - INHALE_MS;
-  const phaseDuration = phase === "inhale" ? INHALE_MS : EXHALE_MS;
+  const ph = phaseAt(pattern, elapsed);
+  const phase: PhaseState = { kind: ph.kind, index: ph.i, secondsLeft: Math.max(1, Math.ceil((ph.len - ph.t) / 1000)) };
 
   return {
     running,
     toggle,
     phase,
-    /** seconds left in the current phase, 4 → 1 */
-    phaseSecondsLeft: Math.max(1, Math.ceil((phaseDuration - phaseElapsed) / 1000)),
-    phaseProgress: phaseElapsed / phaseDuration,
-    remainingMs: SESSION_MS - e,
-    sessionProgress: e / SESSION_MS,
+    remainingMs: totalMs - elapsed,
+    sessionProgress: elapsed / totalMs,
   };
 }

@@ -2,11 +2,12 @@
 
 import { motion } from "motion/react";
 import { Pause, Play, X } from "lucide-react";
-import type { BreathPhase } from "./useBreathingSession";
+import { PHASE_LABEL } from "@/lib/breathing";
+import type { PhaseState } from "./useBreathingSession";
 
 interface Props {
-  phase: BreathPhase;
-  phaseSecondsLeft: number;
+  phase: PhaseState;
+  patternName: string;
   remainingMs: number;
   sessionProgress: number;
   running: boolean;
@@ -17,7 +18,7 @@ interface Props {
 const R = 58;
 const C = 2 * Math.PI * R;
 
-export function BreathingControls({ phase, phaseSecondsLeft, remainingMs, sessionProgress, running, onToggle, onStop }: Props) {
+export function BreathingControls({ phase, patternName, remainingMs, sessionProgress, running, onToggle, onStop }: Props) {
   const remaining = Math.ceil(remainingMs / 1000);
   const mm = Math.floor(remaining / 60);
   const ss = String(remaining % 60).padStart(2, "0");
@@ -28,32 +29,19 @@ export function BreathingControls({ phase, phaseSecondsLeft, remainingMs, sessio
         <div className="absolute inset-0 rounded-full bg-[rgba(255,252,246,0.18)] backdrop-blur-sm" />
         <svg className="absolute inset-0 -rotate-90" viewBox="0 0 132 132" aria-hidden>
           <circle cx="66" cy="66" r={R} fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="5" />
-          <circle
-            cx="66"
-            cy="66"
-            r={R}
-            fill="none"
-            stroke="white"
-            strokeWidth="5"
-            strokeLinecap="round"
-            strokeDasharray={`${sessionProgress * C} ${C}`}
-          />
+          <circle cx="66" cy="66" r={R} fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeDasharray={`${sessionProgress * C} ${C}`} />
         </svg>
         <div className="relative text-center text-white [text-shadow:0_1px_4px_rgba(80,60,40,0.4)]" aria-live="polite">
-          <motion.p key={phase} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-[14px] tracking-widest">
-            ·· {phase === "inhale" ? "들숨" : "날숨"} ··
+          <motion.p key={`${phase.index}-${phase.kind}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-[14px] tracking-widest">
+            ·· {PHASE_LABEL[phase.kind]} ··
           </motion.p>
-          <p className="text-[30px] font-bold leading-tight tabular-nums">{phaseSecondsLeft}초</p>
+          <p className="text-[30px] font-bold leading-tight tabular-nums">{phase.secondsLeft}초</p>
+          <p className="text-[10.5px] opacity-85">{patternName}</p>
         </div>
       </div>
 
       <div className="flex w-full max-w-[280px] items-center justify-between">
-        <button
-          type="button"
-          onClick={onStop}
-          aria-label="호흡 종료"
-          className="grid h-12 w-12 place-items-center rounded-full border border-white/50 bg-white/25 text-white backdrop-blur-md active:scale-90"
-        >
+        <button type="button" onClick={onStop} aria-label="호흡 종료" className="grid h-12 w-12 place-items-center rounded-full border border-white/50 bg-white/25 text-white backdrop-blur-md active:scale-90">
           <X size={20} />
         </button>
         <motion.button

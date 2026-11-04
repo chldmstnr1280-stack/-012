@@ -42,10 +42,18 @@ export interface AppData {
   /** true while the sample data set is loaded */
   demo: boolean;
   daily: Record<DateKey, DailyLog>;
+  prefs: Prefs;
+}
+
+export interface Prefs {
+  breathPattern: string;
+  breathMinutes: number;
+  sound: boolean;
+  haptic: boolean;
 }
 
 const KEY = "dear-selly:v1";
-const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {} };
+const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: false, haptic: true } };
 
 let state: AppData = EMPTY;
 let loaded = false;
@@ -58,7 +66,7 @@ function load() {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as AppData;
-      if (parsed?.version === 1) state = { ...EMPTY, ...parsed };
+      if (parsed?.version === 1) state = { ...EMPTY, ...parsed, prefs: { ...EMPTY.prefs, ...parsed.prefs } };
     }
   } catch {
     // storage blocked (private mode etc.) — run in memory
@@ -168,4 +176,8 @@ export function resetAll() {
 /** Replace the whole data set (used by backup import). */
 export function applyData(next: AppData) {
   setData(() => next);
+}
+
+export function setPrefs(patch: Partial<Prefs>) {
+  setData((d) => ({ ...d, prefs: { ...d.prefs, ...patch } }));
 }

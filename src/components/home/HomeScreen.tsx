@@ -5,8 +5,8 @@ import { AnimatePresence, motion, useTransform } from "motion/react";
 import { ChevronLeft } from "lucide-react";
 import { GreenhouseBackground } from "@/components/greenhouse/GreenhouseBackground";
 import { Selly } from "@/components/selly/Selly";
-import { BreathingSession } from "@/components/breathing/BreathingSession";
-import type { BreathPhase } from "@/components/breathing/useBreathingSession";
+import { BreathingPanel } from "@/components/breathing/BreathingPanel";
+import { PHASE_LINE, type PhaseKind } from "@/lib/breathing";
 import { useSelly, type SellyReaction } from "@/lib/selly-store";
 import { TopBar } from "./TopBar";
 import { LevelCard } from "./LevelCard";
@@ -33,6 +33,7 @@ export function HomeScreen() {
   const touchIndex = useRef(0);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAction = useRef<string | null | undefined>(undefined);
+  const breathingRef = useRef(false);
   const haloScale = useTransform(breath, [0, 1], [0.82, 1.12]);
   const haloOpacity = useTransform(breath, [0, 1], [0.45, 0.95]);
 
@@ -61,9 +62,10 @@ export function HomeScreen() {
 
   const startBreathing = useCallback(() => {
     setCareOpen(false);
+    breathingRef.current = true;
     setMode("breathing");
     setImmersive(true);
-    say("편안한 호흡으로\n마음을 가라앉혀요.", 0);
+    say("어떤 호흡으로\n쉬어갈까요?", 0);
   }, [say, setImmersive]);
   // Greeting on first visit, or jump straight into an action (?do=breathe | care) from the growth screen
   useEffect(() => {
@@ -82,14 +84,15 @@ export function HomeScreen() {
   }, [react, startBreathing]);
 
   const endBreathing = useCallback(
-    (completed: boolean) => {
+    (completed: boolean, minutes = 1) => {
+      breathingRef.current = false;
       setMode("home");
       setImmersive(false);
       breath.set(0);
       if (completed) {
         const { exp } = completeTask("breath");
         say("잘했어!\n마음이 한결 가벼워졌지? ♡", 5000);
-        showToast(exp ? `1분 호흡 완료 · 성장 +${exp}` : "1분 호흡 완료 · 오늘도 숨 고르기 성공");
+        showToast(exp ? `${minutes}분 호흡 완료 · 성장 +${exp}` : `${minutes}분 호흡 완료 · 오늘도 숨 고르기 성공`);
         setTimeout(() => react("cheer"), 300);
       } else {
         say(GREETING, 0);
@@ -99,9 +102,12 @@ export function HomeScreen() {
   );
 
   const onPhase = useCallback(
-    (p: BreathPhase, running: boolean) => {
-      if (!running) say("잠시 쉬어가도 괜찮아.\n준비되면 다시 시작해요.", 0);
-      else say(p === "inhale" ? "천천히 숨을\n들이마셔요" : "부드럽게\n내쉬어요", 0);
+    (p: PhaseKind | "ready", running: boolean) => {
+      // a late phase report after the session ended must not overwrite the closing line
+      if (!breathingRef.current) return;
+      if (p === "ready") say("어떤 호흡으로\n쉬어갈까요?", 0);
+      else if (!running) say("잠시 쉬어가도 괜찮아.\n준비되면 다시 시작해요.", 0);
+      else say(PHASE_LINE[p], 0);
     },
     [say],
   );
@@ -165,7 +171,7 @@ export function HomeScreen() {
           <AnimatePresence mode="wait" initial={false}>
             {breathing ? (
               <motion.div key="breath" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
-                <BreathingSession onStop={() => endBreathing(false)} onComplete={() => endBreathing(true)} onPhase={onPhase} />
+                <BreathingPanel onStop={() => endBreathing(false)} onComplete={(m) => endBreathing(true, m)} onPhase={onPhase} />
               </motion.div>
             ) : (
               <motion.div key="dock" className="relative" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>

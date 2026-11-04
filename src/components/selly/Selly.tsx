@@ -153,7 +153,7 @@ export function Selly({ mode = "idle", pose, stage, onTouch, className }: SellyP
       <motion.div
         className="absolute left-1/2 top-[85%] h-[9%] w-[58%] -translate-x-1/2"
         animate={reduce || breathing ? { scaleX: 1 } : { scaleX: [1, 0.93, 1] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        transition={reduce || breathing ? { duration: 0.6, ease: "easeOut" } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         <div className="selly-shadow h-full w-full rounded-[50%] bg-[radial-gradient(closest-side,rgba(84,92,48,0.5),rgba(84,92,48,0))] opacity-60" />
       </motion.div>
@@ -161,14 +161,15 @@ export function Selly({ mode = "idle", pose, stage, onTouch, className }: SellyP
       <motion.div
         className="absolute inset-0"
         animate={reduce || breathing ? { y: 0 } : { y: [0, -7, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        transition={reduce || breathing ? { duration: 0.6, ease: "easeOut" } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         <div className="selly-jumper absolute inset-0" style={{ transformOrigin: "50% 88%" }}>
           <motion.div
             className="absolute inset-0"
             style={breathing ? { scale: breathScale, originX: 0.5, originY: 0.88 } : { originX: 0.5, originY: 0.88 }}
             animate={breathing || reduce ? { scaleX: 1, scaleY: 1 } : { scaleY: [1, 1.022, 1], scaleX: [1, 0.992, 1] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+            // settle once when breathing takes over (a repeating settle would keep wobbling)
+            transition={breathing || reduce ? { duration: 0.6, ease: "easeOut" } : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
           >
             <svg
               viewBox="0 0 240 240"
