@@ -1,12 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Footprints, Hand, MessageCircleHeart, Sofa, Wind } from "lucide-react";
+import { Footprints, Hand, HeartHandshake, MessageCircleHeart, Sofa, Wind } from "lucide-react";
 
-export type SellyMenuAction = "talk" | "pet" | "rest" | "breathe" | "walk";
+export type SellyMenuAction = "talk" | "kindness" | "pet" | "rest" | "breathe" | "walk";
 
 const ITEMS: { id: SellyMenuAction; label: string; icon: React.ReactNode }[] = [
   { id: "talk", label: "이야기하기", icon: <MessageCircleHeart size={18} /> },
+  { id: "kindness", label: "마음 전하기", icon: <HeartHandshake size={18} /> },
   { id: "pet", label: "쓰다듬기", icon: <Hand size={18} /> },
   { id: "rest", label: "함께 쉬기", icon: <Sofa size={18} /> },
   { id: "breathe", label: "호흡하기", icon: <Wind size={18} /> },
@@ -26,7 +27,7 @@ export function SellyMenu({ open, onPick, onClose }: { open: boolean; onPick: (a
             initial={{ opacity: 0, y: 10, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8 }}
-            className="glass absolute inset-x-5 top-[calc(env(safe-area-inset-top)+150px)] z-[56] grid grid-cols-5 gap-0.5 rounded-[24px] p-2"
+            className="glass absolute inset-x-5 top-[calc(env(safe-area-inset-top)+150px)] z-[56] grid grid-cols-3 gap-0.5 rounded-[24px] p-2"
           >
             {ITEMS.map((it) => (
               <button

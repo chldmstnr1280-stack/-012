@@ -31,7 +31,7 @@ export const WALKABLE: WorldPoint[] = [
   { x: 320, y: 948 },
 ];
 
-export type SpotId = "rug" | "window" | "flowers" | "plants" | "lantern" | "door" | "talk" | "close";
+export type SpotId = "rug" | "window" | "flowers" | "plants" | "lantern" | "door" | "talk" | "close" | "kind";
 
 export interface Spot {
   id: SpotId;
@@ -57,6 +57,8 @@ export const SPOTS: Record<SpotId, Spot> = {
   talk: { id: "talk", name: "이야기 자리", at: { x: 425, y: 978 }, facing: 0 },
   // right at the front, as close to the user as she can be
   close: { id: "close", name: "가까이", at: { x: 470, y: 998 }, facing: 0 },
+  // 마음 전하기: left of the cushion and a little back, so a bottom panel leaves her in view
+  kind: { id: "kind", name: "마음 자리", at: { x: 372, y: 905 }, facing: 0 },
   // in front of the glass door (centre of the big window)
   door: { id: "door", name: "온실 문", at: { x: 575, y: 893 }, facing: 0 },
   // small floor lantern by the window

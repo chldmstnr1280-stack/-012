@@ -59,7 +59,7 @@ function Conversation({ onAction, onClose }: { onAction: (a: TalkAction) => void
   const pick = (c: TalkChoice) => {
     playSfx("tap");
     if (c.action) onAction(c.action);
-    if (c.action === "breathe" || c.action === "record" || c.action === "recordPms") return; // these leave the conversation
+    if (c.action === "breathe" || c.action === "record" || c.action === "recordPms" || c.action === "kindness") return; // these leave the conversation
     if (c.next) {
       setNodeId(c.next);
       setLineIdx(0);

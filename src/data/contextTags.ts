@@ -21,7 +21,7 @@ import type { Emotion } from "./moodFlowers";
 export const ONTOLOGY_VERSION = 1;
 
 export type Dimension = "situation" | "state" | "feeling" | "need";
-export type NeedAction = "rest" | "quiet" | "breathe-long" | "breathe-sleep" | "walk" | "talk";
+export type NeedAction = "rest" | "quiet" | "breathe-long" | "breathe-sleep" | "walk" | "talk" | "kindness";
 
 interface Item {
   id: string;
@@ -189,7 +189,7 @@ export const DIMENSIONS = [
         items: [
           { id: "want_calm", label: "마음을 가라앉히고 싶어", action: "breathe-long", selly: "마음을 가라앉히고 싶구나.\n숨을 길게 내쉬어 볼까?" },
           { id: "want_alone", label: "혼자 있고 싶어", action: "quiet", selly: "혼자 있고 싶은 날이구나.\n조용히 곁에만 있을게." },
-          { id: "want_comfort", label: "위로받고 싶어", action: "talk", selly: "위로가 필요한 날이구나.\n나한테 얘기해 줄래?" },
+          { id: "want_comfort", label: "위로받고 싶어", action: "kindness", selly: "위로가 필요한 날이구나.\n나랑 다정한 말 나눠 볼래?" },
           { id: "want_talk", label: "이야기하고 싶어", action: "talk", selly: "이야기하고 싶구나.\n나 여기 있어, 들려줘." },
         ],
       },

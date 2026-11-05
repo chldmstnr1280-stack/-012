@@ -37,6 +37,8 @@ export interface GameData {
   careShown: string[];
   /** let friends see mood flowers in my greenhouse (off by default) */
   shareFlowers?: boolean;
+  /** self-compassion practice: how many times, and the last local date (growth once a day) */
+  kindness?: { total: number; lastDate: string | null };
 }
 
 const EMPTY: GameData = { version: 1, lastVisit: null, finds: [], pendingReturn: null, walkIntroSeen: false, lastWalkGrowth: null, deco: {}, careShown: [] };

@@ -260,10 +260,11 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
 
   /** During a conversation: sit or doze on the cushion, or come close — and stay there. */
   const settle = useCallback(
-    async (where: "cushion" | "close", sleep = false) => {
+    async (where: "cushion" | "close" | "back", sleep = false) => {
       const g = cancel();
       paused.current = true;
-      const spotTo = where === "cushion" ? SPOTS.rug : SPOTS.close;
+      // "back": left of the cushion, higher on screen — clear of a bottom panel and not behind the cushion
+      const spotTo = where === "cushion" ? SPOTS.rug : where === "back" ? SPOTS.kind : SPOTS.close;
       const target = clampToFloor(spotTo.at, layoutRef.current ?? undefined);
       if (Math.hypot(target.x - body.x.get(), target.y - body.y.get()) > 6) {
         setSpot(null);

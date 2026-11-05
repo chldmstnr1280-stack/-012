@@ -22,7 +22,8 @@ export type CareAction =
   | "walk" // 셀리와 산책
   | "talk" // 이야기하기
   | "record" // 오늘의 기록
-  | "record-pms"; // 오늘의 증상 기록
+  | "record-pms" // 오늘의 증상 기록
+  | "kindness"; // 마음 전하기 (자기자비 연습)
 
 export const ACTION_LABEL: Record<CareAction, string> = {
   rest: "함께 쉬기",
@@ -34,6 +35,7 @@ export const ACTION_LABEL: Record<CareAction, string> = {
   talk: "이야기하기",
   record: "기록하기",
   "record-pms": "증상 기록",
+  kindness: "마음 전하기",
 };
 
 export interface CareContext {
@@ -134,7 +136,7 @@ export const CARE_RULES: CareRule[] = [
     id: "sad",
     when: (c) => c.today?.emotion === "sad" || low(c.today?.mood),
     line: "오늘은 내가\n곁에 조금 더 있을게.",
-    actions: ["talk", "rest"],
+    actions: ["kindness", "talk"],
   },
   {
     id: "tired",

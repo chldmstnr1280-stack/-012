@@ -22,6 +22,7 @@ export default defineConfig({
     pullToRefreshEnabled: false,
     overScrollMode: "never",
   },
-  permissions: [],
+  // "소리 내어 말하기" (self-compassion practice): voice level only, nothing recorded
+  permissions: [{ name: "microphone", access: "access" }],
   webBundleDir: "out",
 });

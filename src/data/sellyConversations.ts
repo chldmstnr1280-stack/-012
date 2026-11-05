@@ -20,7 +20,8 @@ export type TalkAction =
   | "comeClose" // Selly comes to the front, close to the user
   | "breathe" // ends the talk and opens breathing
   | "record" // ends the talk and opens today's record
-  | "recordPms"; // ends the talk and opens today's symptom record
+  | "recordPms" // ends the talk and opens today's symptom record
+  | "kindness"; // ends the talk and opens 마음 전하기 (self-compassion practice)
 
 export interface TalkChoice {
   label: string;
@@ -91,6 +92,7 @@ export const TALK: Record<string, TalkNode> = {
     choices: [
       { label: "천천히 숨 쉬어볼래.", icon: "wind", action: "breathe" },
       { label: "생각을 적어볼래.", icon: "pen", action: "record" },
+      { label: "나에게 다정한 말 해 볼래.", icon: "heart", action: "kindness" },
       { label: "그냥 옆에 있어줘.", icon: "heart", next: "tangled-near" },
     ],
   },

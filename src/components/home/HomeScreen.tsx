@@ -21,6 +21,8 @@ import { WALK_LINES } from "@/data/walkingPrompts";
 import { WalkInvite } from "./WalkInvite";
 import { SellyMenu, type SellyMenuAction } from "./SellyMenu";
 import { SellyTalk } from "@/components/talk/SellyTalk";
+import { KindnessPractice, type KindnessReaction } from "@/components/kindness/KindnessPractice";
+import type { PracticeId } from "@/data/selfCompassion";
 import { DecorateTray } from "./DecorateTray";
 import { useSession } from "@/lib/social/useAuth";
 import { markSeen, unseenGifts } from "@/lib/social/api";
@@ -39,7 +41,7 @@ import { SpeechBubble } from "./SpeechBubble";
 import { ActionDock } from "./ActionDock";
 import { CareSheet } from "./CareSheet";
 
-type Mode = "home" | "breathing" | "talk" | "decorate" | "quiet";
+type Mode = "home" | "breathing" | "talk" | "decorate" | "quiet" | "kindness";
 
 /** 가/이 after a Korean name (이 after a final consonant). */
 function josa(name: string) {
@@ -49,7 +51,8 @@ function josa(name: string) {
 }
 
 export function HomeScreen() {
-  const { react, completeTask, touchExp, setImmersive, showToast, breath } = useSelly();
+  const { react, completeTask, touchExp, setImmersive, showToast, breath, addExp } = useSelly();
+  const [kindRecommend, setKindRecommend] = useState<PracticeId | undefined>(undefined);
   const [mode, setMode] = useState<Mode>("home");
   const modeRef = useRef<Mode>("home");
   const measureRef = useRef<() => void>(() => {});
@@ -261,6 +264,48 @@ export function HomeScreen() {
     else if (a === "talk") startTalk();
     else if (a === "record") router.push("/record");
     else if (a === "record-pms") router.push("/record?tab=pms");
+    else if (a === "kindness") startKindness();
+  };
+
+  /** 마음 전하기 — self-compassion practice; recommends the gentle 3-step break on heavier days */
+  const startKindness = () => {
+    setCareOpen(false);
+    setMenuOpen(false);
+    setSuggestion(null);
+    const d = getData();
+    const t = today ? d.entries[today] : undefined;
+    const heavy = !!t && ((t.mood != null && t.mood <= 2) || t.emotion === "sad" || t.emotion === "anxious");
+    const comfort = !!today && (d.dayTags[today]?.tags ?? []).includes("want_comfort");
+    setKindRecommend(heavy || comfort ? "break" : "words");
+    setMode("kindness");
+    setImmersive(true);
+    brainRef.current.engage();
+    brainRef.current.settle("back");
+  };
+  // the first-appearance effect runs once; it reaches the latest version through this ref
+  const startKindnessRef = useRef(startKindness);
+  useEffect(() => {
+    startKindnessRef.current = startKindness;
+  });
+  const endKindness = useCallback(() => {
+    setMode("home");
+    setImmersive(false);
+    brainRef.current.release();
+  }, [setImmersive]);
+  const kindDone = () => {
+    if (!today) return;
+    const k = readGame().kindness ?? { total: 0, lastDate: null };
+    const first = k.lastDate !== today;
+    updateGame(() => ({ kindness: { total: k.total + 1, lastDate: today } }));
+    if (first) {
+      addExp(5);
+      showToast(`다정한 말 연습 ${k.total + 1}번째 · 성장 +5`);
+    } else showToast(`다정한 말 연습 ${k.total + 1}번째`);
+  };
+  const kindReact = (r: KindnessReaction) => {
+    if (r === "cheer") react("cheer");
+    else if (r === "pat") react("pat");
+    else brainRef.current.settle("back");
   };
 
   const startTalk = () => {
@@ -287,6 +332,9 @@ export function HomeScreen() {
     else if (a === "breathe") {
       setMode("home");
       setTimeout(() => startBreathing(), 150);
+    } else if (a === "kindness") {
+      setMode("home");
+      setTimeout(() => startKindness(), 200);
     } else if (a === "record" || a === "recordPms") {
       endTalk();
       setTimeout(() => router.push(a === "record" ? "/record" : "/record?tab=pms"), 250);
@@ -299,6 +347,7 @@ export function HomeScreen() {
     else if (a === "pet") pet();
     else if (a === "rest") brainRef.current.rest();
     else if (a === "breathe") startBreathing();
+    else if (a === "kindness") startKindness();
     else setInviteOpen(true);
   };
 
@@ -369,6 +418,7 @@ export function HomeScreen() {
         react("cheer");
         setTimeout(() => setPetals(false), 6500);
       } else if (action === "breathe") startBreathing();
+      else if (action === "kind") startKindnessRef.current();
       else {
         brainRef.current.start(visit);
         react("greet");
@@ -404,7 +454,7 @@ export function HomeScreen() {
   }, []);
 
   const breathing = mode === "breathing";
-  const talking = mode === "talk";
+  const talking = mode === "talk" || mode === "kindness";
   const decorating = mode === "decorate";
   const quiet = mode === "quiet";
   const ambience = useAmbience();
@@ -485,7 +535,8 @@ export function HomeScreen() {
       </div>
 
       <SellyMenu open={menuOpen && mode === "home"} onPick={handleMenu} onClose={() => setMenuOpen(false)} />
-      <SellyTalk open={talking} onAction={handleTalkAction} onClose={endTalk} />
+      <SellyTalk open={mode === "talk"} onAction={handleTalkAction} onClose={endTalk} />
+      <KindnessPractice open={mode === "kindness"} recommend={kindRecommend} onReact={kindReact} onDone={kindDone} onClose={endKindness} />
       <CareSuggestion rule={mode === "home" && !menuOpen && !inviteOpen ? suggestion : null} onAction={handleCareAction} onDismiss={() => setSuggestion(null)} />
       <AnimatePresence>
         {quiet && (
