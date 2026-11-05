@@ -1,4 +1,4 @@
-import { CONTEXT_TAG_IDS, type ContextTagId } from "@/data/contextTags";
+import { tagsOf, type ContextTagId } from "@/data/contextTags";
 import type { AppData } from "@/lib/data-store";
 import { addDays, type DateKey } from "@/lib/date";
 import { hasSymptomRecord } from "./analysis";
@@ -41,7 +41,8 @@ export function compareTags(data: AppData, today: DateKey): TagSummary {
 
   const rows: TagCompare[] = [];
   const pending: TagSummary["pending"] = [];
-  for (const id of CONTEXT_TAG_IDS) {
+  // situations and body states only: feelings and wants move with symptoms by nature
+  for (const id of [...tagsOf("situation"), ...tagsOf("state")]) {
     const withTag = days.filter((d) => d.tags.has(id)).map((d) => d.max);
     if (!withTag.length) continue;
     const without = days.filter((d) => !d.tags.has(id)).map((d) => d.max);

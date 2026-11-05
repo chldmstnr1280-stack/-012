@@ -11,6 +11,7 @@
 import type { TimeOfDay } from "@/lib/game/behaviorEngine";
 import type { DailyEntry, SymptomDay } from "@/lib/data-store";
 import { SYMPTOM_LABEL, type SymptomId } from "./pmsSymptoms";
+import { TAGS, type ContextTagId } from "./contextTags";
 
 export type CareAction =
   | "rest" // 함께 쉬기 (Selly sits on the cushion)
@@ -55,6 +56,8 @@ export interface CareContext {
   pmsWindow: boolean;
   /** the symptom recorded most often before past periods, if any */
   pastSymptom?: SymptomId;
+  /** what the user said they want today (바람 tags that Selly can answer) */
+  needs?: ContextTagId[];
 }
 
 export interface CareRule {
@@ -74,18 +77,25 @@ const eul = (w: string) => {
 };
 
 export const CARE_RULES: CareRule[] = [
-  {
-    id: "period-tired",
-    when: (c) => c.period && (c.today?.emotion === "tired" || low(c.today?.condition.energy) || low(c.today?.mood)),
-    line: "오늘은 조금 더\n편안하게 쉬어볼까?",
-    actions: ["rest", "breathe-short", "quiet"],
-  },
   // PMS symptoms the user rated themselves today (Phase E)
   {
     id: "pms-low",
     when: (c) => (c.symptoms?.scores.low_mood ?? 0) >= 4 || (c.symptoms?.scores.anxiety ?? 0) >= 4,
     line: "오늘은 내가\n곁에 꼭 붙어 있을게.",
     actions: ["talk", "rest"],
+  },
+  // the user's own stated want comes before any guess
+  {
+    id: "need",
+    when: (c) => !!c.needs?.length,
+    line: (c) => TAGS[c.needs![0]].selly ?? "",
+    actions: [],
+  },
+  {
+    id: "period-tired",
+    when: (c) => c.period && (c.today?.emotion === "tired" || low(c.today?.condition.energy) || low(c.today?.mood)),
+    line: "오늘은 조금 더\n편안하게 쉬어볼까?",
+    actions: ["rest", "breathe-short", "quiet"],
   },
   {
     id: "pms-body",
@@ -186,5 +196,10 @@ export interface PickedSuggestion {
 
 export function pickSuggestion(c: CareContext): PickedSuggestion | null {
   const r = CARE_RULES.find((x) => x.when(c));
-  return r ? { id: r.id, line: typeof r.line === "function" ? r.line(c) : r.line, actions: r.actions } : null;
+  if (!r) return null;
+  if (r.id === "need") {
+    const t = TAGS[c.needs![0]];
+    return { id: `need-${t.id}`, line: t.selly!, actions: [t.action!] };
+  }
+  return { id: r.id, line: typeof r.line === "function" ? r.line(c) : r.line, actions: r.actions };
 }

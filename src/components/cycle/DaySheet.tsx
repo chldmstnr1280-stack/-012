@@ -7,7 +7,7 @@ import { addDays, diffDays, formatMonthDay, formatShort, type DateKey } from "@/
 import { useSelly } from "@/lib/selly-store";
 import type { CycleInfo } from "@/lib/cycle";
 import { setPeriodDays, useAppData, type DailyEntry } from "@/lib/data-store";
-import { CONTEXT_TAG_LABEL } from "@/data/contextTags";
+import { CONTEXT_TAG_LABEL, DIMENSIONS, TAGS } from "@/data/contextTags";
 import { SYMPTOM_LABEL, type SymptomId } from "@/data/pmsSymptoms";
 import { MoodFace, MOODS } from "@/components/ui/MoodFace";
 import { CYCLE_COLORS as C } from "./colors";
@@ -216,7 +216,14 @@ function PmsDayLine({ date }: { date: DateKey }) {
     <Link href={`/record?date=${date}&tab=pms`} className="mt-2 flex items-center gap-2 rounded-2xl bg-white/70 px-4 py-3 text-[12.5px]">
       <span className="min-w-0 flex-1">
         <span className="block text-ink-700">{symText ? `증상: ${symText}` : "증상 기록 없음"}</span>
-        {tags.length > 0 && <span className="block truncate text-ink-500">상황: {tags.map((t) => CONTEXT_TAG_LABEL[t]).join(", ")}</span>}
+        {DIMENSIONS.map((d) => {
+          const these = tags.filter((t) => TAGS[t].dimension === d.id);
+          return these.length ? (
+            <span key={d.id} className="block truncate text-ink-500">
+              {d.label}: {these.map((t) => CONTEXT_TAG_LABEL[t]).join(", ")}
+            </span>
+          ) : null;
+        })}
       </span>
       <span className="shrink-0 font-bold text-sage-700">{sym || tags.length ? "수정" : "기록"}</span>
     </Link>

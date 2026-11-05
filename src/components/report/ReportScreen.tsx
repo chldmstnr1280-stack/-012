@@ -19,6 +19,8 @@ import { BalanceRadar } from "./BalanceRadar";
 import { MoodFlow, rangeLabel } from "./MoodFlow";
 import { DemoBanner } from "./DemoBanner";
 import { PmsReport } from "@/components/pms/PmsReport";
+import { DayPatterns } from "./DayPatterns";
+import { dayPatterns } from "@/lib/dayPatterns";
 
 export function ReportScreen() {
   const today = useToday();
@@ -26,6 +28,7 @@ export function ReportScreen() {
   const [kind, setKind] = useState<RangeKind | "pms">("week");
   const report = useMemo(() => (today && kind !== "pms" ? buildReport(kind, today, data) : null), [kind, today, data]);
   const hasAnyData = Object.keys(data.entries).length > 0;
+  const patterns = useMemo(() => (report ? dayPatterns(data, report.current.days) : null), [report, data]);
 
   return (
     <SubPage title="나의 웰니스 리포트">
@@ -61,6 +64,8 @@ export function ReportScreen() {
                   <SectionCard icon={<SmileIcon />} title="기분 흐름" aside={kind === "all" && report.current.days.length > 60 ? <span className="text-[11.5px] text-ink-300">주별 평균</span> : undefined}>
                     <MoodFlow kind={kind as RangeKind} days={report.current.days} data={data} />
                   </SectionCard>
+
+                  {patterns && <DayPatterns p={patterns} />}
 
                   <div className="grid grid-cols-2 gap-2">
                     <Tile label="기록한 날" value={`${report.current.recordedDays}`} unit={kind === "all" ? "일" : `/ ${report.current.days.length}일`} />

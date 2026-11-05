@@ -3,6 +3,7 @@ import { addDays, type DateKey } from "@/lib/date";
 import type { AppData } from "@/lib/data-store";
 import { pickSuggestion, type CareContext, type PickedSuggestion } from "@/data/careSuggestions";
 import { analysePms, expectedPmsDays, hasSymptomRecord } from "@/lib/pms/analysis";
+import { TAGS } from "@/data/contextTags";
 import type { TimeOfDay } from "./behaviorEngine";
 import { readGame, updateGame } from "./gameStore";
 
@@ -23,6 +24,7 @@ export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): Pi
     symptoms: hasSymptomRecord(todaySym) ? todaySym : undefined,
     pmsWindow: expectedPmsDays(pms, info.nextStart).has(today),
     pastSymptom: pms.repeated[0]?.id,
+    needs: (data.dayTags[today]?.tags ?? []).filter((id) => TAGS[id].dimension === "need" && TAGS[id].action),
   };
   return pickSuggestion(ctx);
 }

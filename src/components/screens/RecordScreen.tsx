@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSelly } from "@/lib/selly-store";
 import { addDays, formatShort, useToday, type DateKey } from "@/lib/date";
-import { CONDITION_KEYS, saveEntry, useAppData, type ConditionKey, type DailyEntry, type Level5 } from "@/lib/data-store";
+import { CONDITION_KEYS, saveEntry, setDayTags, useAppData, type ConditionKey, type DailyEntry, type Level5 } from "@/lib/data-store";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { EnergyIcon, FocusIcon, NoteIcon, SleepIcon, SmileIcon, SneakerIcon, SproutLeafIcon, StressIcon } from "@/components/ui/icons";
 import { MoodFace, MOODS } from "@/components/ui/MoodFace";
@@ -14,6 +14,8 @@ import { SubPage } from "./SubPage";
 import { SymptomForm } from "@/components/pms/SymptomForm";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { EMOTIONS, EMOTION_INFO, flowerArt, type Emotion } from "@/data/moodFlowers";
+import { DimensionCard } from "@/components/pms/ContextTagPicker";
+import type { ContextTagId } from "@/data/contextTags";
 
 const CONDITIONS: Record<ConditionKey, { label: string; icon: React.ReactNode; tint: string; levels: string[] }> = {
   energy: { label: "에너지", icon: <EnergyIcon />, tint: "#fff3d2", levels: ["지쳤어요", "조금 피곤해요", "보통이에요", "괜찮아요", "활기차요"] },
@@ -93,10 +95,19 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
   const [steps, setSteps] = useState<string>(existing?.steps != null ? String(existing.steps) : "");
   const [memo, setMemo] = useState(existing?.memo ?? "");
   const [emotion, setEmotion] = useState<Emotion | undefined>(existing?.emotion);
+  // day ontology (상황 · 상태 · 마음 · 바람) — saved with the rest of the record
+  const [tags, setTags] = useState<Set<ContextTagId>>(() => new Set(data.dayTags[date]?.tags ?? []));
+  const toggleTag = (id: ContextTagId) =>
+    setTags((t) => {
+      const next = new Set(t);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const { showToast, completeTask, react } = useSelly();
   const router = useRouter();
 
-  const hasAny = mood != null || emotion != null || Object.keys(condition).length > 0 || steps !== "" || memo.trim() !== "";
+  const hasAny = mood != null || emotion != null || Object.keys(condition).length > 0 || steps !== "" || memo.trim() !== "" || tags.size > 0;
 
   const save = () => {
     if (!hasAny) {
@@ -111,6 +122,7 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
       steps: steps === "" ? undefined : Math.min(200_000, Number(steps)),
       memo: memo.trim() || undefined,
     });
+    setDayTags(date, [...tags]);
     const exp = isToday ? completeTask("record").exp : 0;
     if (exp) {
       showToast(planted ? `정원에 ${EMOTION_INFO[emotion].flower} 씨앗을 심었어요 🌱 · 성장 +${exp}` : `오늘의 기록을 담았어요 · 성장 +${exp}`);
@@ -172,6 +184,8 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
         <p className="mt-2 text-center text-[11.5px] text-ink-500">어떤 마음이든 똑같이 예쁜 꽃으로 자라요</p>
       </SectionCard>
 
+      <DimensionCard dimension="feeling" value={tags} onToggle={toggleTag} hint="마음을 활기찬 · 편안한 · 날선 · 가라앉은, 네 갈래로 나눴어요. 여러 개 골라도 돼요." />
+
       <SectionCard icon={<SproutLeafIcon />} title="컨디션">
         <div className="grid grid-cols-4 gap-1">
           {CONDITION_KEYS.map((k) => {
@@ -230,6 +244,15 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
           </div>
         </div>
       </SectionCard>
+
+      <DimensionCard dimension="state" value={tags} onToggle={toggleTag} />
+      <DimensionCard dimension="situation" value={tags} onToggle={toggleTag} />
+      <DimensionCard
+        dimension="need"
+        value={tags}
+        onToggle={toggleTag}
+        hint="원하는 걸 골라 두면, 셀리가 그에 맞춰 함께해 줄게요. 상황·상태·마음·바람은 이 기기에만 저장돼요."
+      />
 
       <SectionCard icon={<SneakerIcon />} title="활동">
         <label className="flex items-center gap-3">
