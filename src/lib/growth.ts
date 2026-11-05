@@ -36,3 +36,6 @@ export const REWARDS = {
   pat: 5,
   bonus: 20,
 } as const;
+
+/** Younger stages are a little smaller (applies to every Selly drawing). */
+export const STAGE_SIZE: Record<StageId, number> = { seed: 0.78, sprout: 0.88, leaf: 1, bloom: 1 };

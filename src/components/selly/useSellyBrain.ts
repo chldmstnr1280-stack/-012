@@ -220,6 +220,27 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
     [cancel, layoutRef, moveTo, next, say, set, wait],
   );
 
+  /** "함께 쉬기": walk to the cushion, sit (or doze off) and stay a while. */
+  const rest = useCallback(
+    async (line = "같이 쉬자 ♡", stayMs = 16000) => {
+      if (paused.current) return;
+      const g = cancel();
+      say(line, 3200);
+      const seat = SPOTS.rug.at;
+      if (Math.hypot(seat.x - body.x.get(), seat.y - body.y.get()) > 6) {
+        setSpot(null);
+        set("walking");
+        if (!(await moveTo(seat, g))) return;
+      }
+      setSpot(SPOTS.rug);
+      setFacing(0);
+      set("sitting");
+      if (!(await wait(stayMs, g))) return;
+      next();
+    },
+    [body, cancel, moveTo, next, say, set, wait],
+  );
+
   /** Breathing takes over: float Selly to a calm spot above the controls, and back after. */
   const setBreathing = useCallback(
     async (on: boolean, screen?: { x: number; y: number }) => {
@@ -254,7 +275,7 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
     [stopMotion],
   );
 
-  return { body, state, facing, spot, bubble, say, start, interact, walkTo, setBreathing };
+  return { body, state, facing, spot, bubble, say, start, interact, walkTo, rest, setBreathing };
 }
 
 export type SellyBrain = ReturnType<typeof useSellyBrain>;

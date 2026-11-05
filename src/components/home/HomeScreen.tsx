@@ -9,6 +9,9 @@ import { useSellyBrain } from "@/components/selly/useSellyBrain";
 import { BreathingPanel } from "@/components/breathing/BreathingPanel";
 import { PHASE_LINE, type PhaseKind } from "@/lib/breathing";
 import { useSelly, type SellyReaction } from "@/lib/selly-store";
+import { useRouter } from "next/navigation";
+import { useAppData } from "@/lib/data-store";
+import type { ObjectId } from "@/data/greenhouseObjects";
 import { computeLayout, type WorldLayout } from "@/lib/game/world";
 import { registerVisit } from "@/lib/game/gameStore";
 import { CARE_LINES, TOUCH_LINES } from "@/data/sellyDialogues";
@@ -27,6 +30,9 @@ export function HomeScreen() {
   /** breathing-mode caption (in the home mode Selly speaks through her own bubble) */
   const [caption, setCaption] = useState("어떤 호흡으로\n쉬어갈까요?");
   const touchIndex = useRef(0);
+  const router = useRouter();
+  const { entries } = useAppData();
+  const moodDays = Object.values(entries).filter((e) => e.mood != null).length;
   const pendingAction = useRef<string | null | undefined>(undefined);
   const breathingRef = useRef(false);
   const started = useRef(false);
@@ -80,6 +86,21 @@ export function HomeScreen() {
     const { exp } = completeTask(type);
     brain.interact(exp ? CARE_LINES[type].first : CARE_LINES[type].again, 4200);
     if (exp) showToast(`성장 +${exp}`);
+  };
+
+  const handleObject = (id: ObjectId) => {
+    const b = brainRef.current;
+    if (id === "cushion") {
+      b.rest();
+      return;
+    }
+    if (id === "orb") {
+      startBreathing();
+      return;
+    }
+    // a short word from Selly, then open the page
+    b.interact(id === "calendar" ? "달력 같이 볼까?" : "오늘 마음은\n어떤 색이야?", 1200);
+    setTimeout(() => router.push(id === "calendar" ? "/calendar" : "/record"), 550);
   };
 
   const startBreathing = useCallback(() => {
@@ -156,6 +177,8 @@ export function HomeScreen() {
             haloScale={haloScale}
             haloOpacity={haloOpacity}
             onTouchSelly={handleTouch}
+            onObject={handleObject}
+            moodDays={moodDays}
           />
         )}
 

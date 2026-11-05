@@ -25,10 +25,10 @@ export const FLOOR_FRONT_Y = 1000;
 export const WALKABLE: WorldPoint[] = [
   { x: 335, y: 892 },
   { x: 700, y: 892 },
-  { x: 785, y: 950 },
-  { x: 805, y: 1000 },
-  { x: 255, y: 1000 },
-  { x: 285, y: 948 },
+  { x: 760, y: 945 },
+  { x: 765, y: 1000 },
+  { x: 370, y: 1000 },
+  { x: 320, y: 948 },
 ];
 
 export type SpotId = "rug" | "window" | "flowers" | "plants" | "lantern";
@@ -46,15 +46,15 @@ export interface Spot {
 
 export const SPOTS: Record<SpotId, Spot> = {
   // the moss rug cut from the painted floor — Selly's resting place
-  rug: { id: "rug", name: "이끼 방석", at: { x: 530, y: 985 }, facing: 0 },
+  rug: { id: "rug", name: "꽃 쿠션", at: { x: 585, y: 948 }, facing: 0 },
   // bright patch of stone floor in front of the big window
-  window: { id: "window", name: "창가", at: { x: 520, y: 900 }, facing: 0 },
+  window: { id: "window", name: "창가", at: { x: 430, y: 897 }, facing: 0 },
   // pink & white flowers behind the book stack, left
-  flowers: { id: "flowers", name: "꽃밭", at: { x: 345, y: 925 }, facing: -1, focus: { x: 300, y: 860 } },
+  flowers: { id: "flowers", name: "꽃밭", at: { x: 385, y: 912 }, facing: -1, focus: { x: 300, y: 860 } },
   // flowering plants by the table, right
-  plants: { id: "plants", name: "화분", at: { x: 760, y: 975 }, facing: 1, focus: { x: 880, y: 940 } },
+  plants: { id: "plants", name: "기분 꽃", at: { x: 712, y: 978 }, facing: 1, focus: { x: 792, y: 930 } },
   // small floor lantern by the window
-  lantern: { id: "lantern", name: "작은 랜턴", at: { x: 640, y: 905 }, facing: 1, focus: { x: 665, y: 860 } },
+  lantern: { id: "lantern", name: "작은 랜턴", at: { x: 650, y: 900 }, facing: 1, focus: { x: 665, y: 860 } },
 };
 
 /** Depth: how big Selly is at a given y (relative to her base size). */

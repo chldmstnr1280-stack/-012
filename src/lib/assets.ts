@@ -46,3 +46,19 @@ export const greenhouseArt: string | null = "/assets/greenhouse/greenhouse-bg.we
 
 /** Grass patch cut from the painted floor; Selly sits on it. */
 export const grassIslandArt: string | null = greenhouseArt ? "/assets/greenhouse/grass-island.png" : null;
+
+/** Painted Selly poses used by the greenhouse for walking / sitting / sleeping. */
+export const sellyPoses: {
+  walk: string;
+  sit: string;
+  sleep: string;
+  /** leafless versions for the seed stage, with where the seedling sits (fractions of the image) */
+  bare: { sit: string; sleep: string };
+  head: { sit: [number, number]; sleep: [number, number] };
+} | null = {
+  walk: "/assets/selly/pose-walk.png",
+  sit: "/assets/selly/pose-sit.png",
+  sleep: "/assets/selly/pose-sleep.png",
+  bare: { sit: "/assets/selly/pose-sit-bare.png", sleep: "/assets/selly/pose-sleep-bare.png" },
+  head: { sit: [0.52, 0.235], sleep: [0.64, 0.18] },
+};

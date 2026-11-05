@@ -6,10 +6,7 @@ import { useSelly, type SellyReaction } from "@/lib/selly-store";
 import { SellyBody, SellyDefs } from "./SellyBody";
 import { SellyFace, type SellyExpression } from "./SellyFace";
 import { VECTOR_FACE, sellyArt } from "@/lib/assets";
-import type { StageId } from "@/lib/growth";
-
-/** Younger stages are a little smaller. */
-const STAGE_SIZE: Record<StageId, number> = { seed: 0.78, sprout: 0.88, leaf: 1, bloom: 1 };
+import { STAGE_SIZE, type StageId } from "@/lib/growth";
 import { SellyBurst, type BurstKind } from "./SellyEffects";
 
 export type SellyMode = "idle" | "breathing";
