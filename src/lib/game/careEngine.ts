@@ -1,13 +1,16 @@
 import { analyzeCycle, currentPhase } from "@/lib/cycle";
 import { addDays, type DateKey } from "@/lib/date";
 import type { AppData } from "@/lib/data-store";
-import { pickSuggestion, type CareContext, type CareRule } from "@/data/careSuggestions";
+import { pickSuggestion, type CareContext, type PickedSuggestion } from "@/data/careSuggestions";
+import { analysePms, expectedPmsDays, hasSymptomRecord } from "@/lib/pms/analysis";
 import type { TimeOfDay } from "./behaviorEngine";
 import { readGame, updateGame } from "./gameStore";
 
 /** Build the context from the on-device record and pick today's suggestion (or null). */
-export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): CareRule | null {
+export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): PickedSuggestion | null {
   const info = analyzeCycle(data.periodDays, today);
+  const pms = analysePms(data.periodDays, data.symptoms, today, info.nextStart);
+  const todaySym = data.symptoms[today];
   const phase = currentPhase(info, today);
   const soon = !!info.nextStart && info.nextStart > today && info.nextStart <= addDays(today, 2);
   const ctx: CareContext = {
@@ -17,6 +20,9 @@ export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): Ca
     periodSoon: soon,
     breathedToday: !!data.daily[today]?.done.breath,
     walkedToday: readGame().lastWalkGrowth === today,
+    symptoms: hasSymptomRecord(todaySym) ? todaySym : undefined,
+    pmsWindow: expectedPmsDays(pms, info.nextStart).has(today),
+    pastSymptom: pms.repeated[0]?.id,
   };
   return pickSuggestion(ctx);
 }
@@ -25,7 +31,7 @@ export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): Ca
  * Show at most one suggestion per day, plus one more if the day's record changes
  * what Selly would say. Only an opaque marker is stored (no wellness data).
  */
-export function shouldShow(today: DateKey, rule: CareRule): boolean {
+export function shouldShow(today: DateKey, rule: PickedSuggestion): boolean {
   const g = readGame();
   const key = `${today}:${hash(rule.id)}`;
   if (g.careShown.includes(key)) return false;
@@ -33,7 +39,7 @@ export function shouldShow(today: DateKey, rule: CareRule): boolean {
   return true;
 }
 
-export function markShown(today: DateKey, rule: CareRule) {
+export function markShown(today: DateKey, rule: PickedSuggestion) {
   updateGame((g) => ({ careShown: [...g.careShown.filter((k) => k >= addDays(today, -3)), `${today}:${hash(rule.id)}`] }));
 }
 

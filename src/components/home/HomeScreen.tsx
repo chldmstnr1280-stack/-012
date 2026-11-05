@@ -27,7 +27,7 @@ import { markSeen, unseenGifts } from "@/lib/social/api";
 import { GIFT_INFO, GIFT_MESSAGES } from "@/data/gifts";
 import { CareSuggestion } from "./CareSuggestion";
 import { markShown, shouldShow, suggestionFor } from "@/lib/game/careEngine";
-import type { CareAction, CareRule } from "@/data/careSuggestions";
+import type { CareAction, PickedSuggestion } from "@/data/careSuggestions";
 import { getData, setPrefs } from "@/lib/data-store";
 import { currentTimeOfDay } from "@/lib/game/ambience";
 import { playSfx } from "@/lib/sound/sfx";
@@ -76,7 +76,7 @@ export function HomeScreen() {
   const [petals, setPetals] = useState(false);
   const [deco, setDeco] = useState<Record<string, string>>({});
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
-  const [suggestion, setSuggestion] = useState<CareRule | null>(null);
+  const [suggestion, setSuggestion] = useState<PickedSuggestion | null>(null);
   const careChecked = useRef(false);
   const session = useSession();
   const giftsChecked = useRef(false);
@@ -238,6 +238,7 @@ export function HomeScreen() {
     } else if (a === "walk") setInviteOpen(true);
     else if (a === "talk") startTalk();
     else if (a === "record") router.push("/record");
+    else if (a === "record-pms") router.push("/record?tab=pms");
   };
 
   const startTalk = () => {
@@ -264,9 +265,9 @@ export function HomeScreen() {
     else if (a === "breathe") {
       setMode("home");
       setTimeout(() => startBreathing(), 150);
-    } else if (a === "record") {
+    } else if (a === "record" || a === "recordPms") {
       endTalk();
-      setTimeout(() => router.push("/record"), 250);
+      setTimeout(() => router.push(a === "record" ? "/record" : "/record?tab=pms"), 250);
     }
   };
 

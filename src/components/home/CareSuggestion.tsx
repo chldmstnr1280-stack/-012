@@ -2,10 +2,10 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
-import { ACTION_LABEL, type CareAction, type CareRule } from "@/data/careSuggestions";
+import { ACTION_LABEL, type CareAction, type PickedSuggestion } from "@/data/careSuggestions";
 
 /** "셀리의 제안" — a gentle, dismissible suggestion card near the top of the greenhouse. */
-export function CareSuggestion({ rule, onAction, onDismiss }: { rule: CareRule | null; onAction: (a: CareAction) => void; onDismiss: () => void }) {
+export function CareSuggestion({ rule, onAction, onDismiss }: { rule: PickedSuggestion | null; onAction: (a: CareAction) => void; onDismiss: () => void }) {
   return (
     <AnimatePresence>
       {rule && (

@@ -19,7 +19,8 @@ export type TalkAction =
   | "nap" // Selly curls up on the cushion
   | "comeClose" // Selly comes to the front, close to the user
   | "breathe" // ends the talk and opens breathing
-  | "record"; // ends the talk and opens today's record
+  | "record" // ends the talk and opens today's record
+  | "recordPms"; // ends the talk and opens today's symptom record
 
 export interface TalkChoice {
   label: string;
@@ -53,6 +54,7 @@ export const TALK: Record<string, TalkNode> = {
       { label: "조금 지쳤어.", icon: "leaf", next: "tired" },
       { label: "마음이 복잡해.", icon: "cloud", next: "tangled" },
       { label: "그냥 쉬고 싶어.", icon: "moon", next: "rest" },
+      { label: "몸이 좀 불편해.", icon: "wind", next: "body" },
     ],
   },
 
@@ -104,5 +106,42 @@ export const TALK: Record<string, TalkNode> = {
     ],
   },
   "rest-quiet": { say: ["쉿… 편히 쉬어. ♡"], closeLabel: "응 ♡" },
+
+  /* ---------- 몸이 좀 불편해 (PMS, Phase E) — listens only; no advice about the body ---------- */
+  body: {
+    say: ["그랬구나. 어떤 게 제일 힘들어?"],
+    action: "comeClose",
+    choices: [
+      { label: "몸 여기저기가 아파.", icon: "cloud", next: "body-ache" },
+      { label: "몸이 무겁고 피곤해.", icon: "leaf", next: "tired" },
+      { label: "자꾸 예민해져.", icon: "wind", next: "body-tense" },
+      { label: "말로 하기 어려워.", icon: "heart", next: "body-vague" },
+    ],
+  },
+  "body-ache": {
+    say: ["많이 불편하겠다.", "오늘은 무리하지 말고, 나랑 같이 쉬자."],
+    action: "rest",
+    choices: [
+      { label: "증상 기록해 둘래.", icon: "pen", action: "recordPms" },
+      { label: "그냥 쉴래.", icon: "moon", next: "rest-quiet" },
+    ],
+  },
+  "body-tense": {
+    say: ["작은 일에도 마음이 쉽게 출렁이는 날이 있지.", "네가 이상한 게 아니야. 숨 한 번 길게 내쉬어 볼까?"],
+    action: "comfort",
+    choices: [
+      { label: "숨 고를래.", icon: "wind", action: "breathe" },
+      { label: "증상 기록해 둘래.", icon: "pen", action: "recordPms" },
+      { label: "그냥 옆에 있어줘.", icon: "heart", next: "tangled-near" },
+    ],
+  },
+  "body-vague": {
+    say: ["응, 꼭 말로 설명하지 않아도 돼.", "적어 두면 다음 주기에 같이 돌아볼 수 있어."],
+    action: "comfort",
+    choices: [
+      { label: "증상 기록해 둘래.", icon: "pen", action: "recordPms" },
+      { label: "오늘은 쉴래.", icon: "moon", next: "rest" },
+    ],
+  },
 };
 

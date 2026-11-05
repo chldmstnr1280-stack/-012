@@ -9,7 +9,8 @@
  * Rules are checked top to bottom; the first match is shown, at most once a day.
  */
 import type { TimeOfDay } from "@/lib/game/behaviorEngine";
-import type { DailyEntry } from "@/lib/data-store";
+import type { DailyEntry, SymptomDay } from "@/lib/data-store";
+import { SYMPTOM_LABEL, type SymptomId } from "./pmsSymptoms";
 
 export type CareAction =
   | "rest" // 함께 쉬기 (Selly sits on the cushion)
@@ -19,7 +20,8 @@ export type CareAction =
   | "breathe-sleep" // 4-7-8 호흡
   | "walk" // 셀리와 산책
   | "talk" // 이야기하기
-  | "record"; // 오늘의 기록
+  | "record" // 오늘의 기록
+  | "record-pms"; // 오늘의 증상 기록
 
 export const ACTION_LABEL: Record<CareAction, string> = {
   rest: "함께 쉬기",
@@ -30,6 +32,7 @@ export const ACTION_LABEL: Record<CareAction, string> = {
   walk: "같이 산책",
   talk: "이야기하기",
   record: "기록하기",
+  "record-pms": "증상 기록",
 };
 
 export interface CareContext {
@@ -43,17 +46,32 @@ export interface CareContext {
   /** what has already happened today */
   breathedToday: boolean;
   walkedToday: boolean;
+  /** today's own PMS symptom record, if any */
+  symptoms?: SymptomDay;
+  /**
+   * today falls where the user's own past records usually showed symptoms
+   * (≥ 2 analysed cycles; reference only — it never says how they feel today)
+   */
+  pmsWindow: boolean;
+  /** the symptom recorded most often before past periods, if any */
+  pastSymptom?: SymptomId;
 }
 
 export interface CareRule {
   id: string;
   when: (c: CareContext) => boolean;
-  line: string;
+  line: string | ((c: CareContext) => string);
   actions: CareAction[];
 }
 
 const low = (v?: number) => v != null && v <= 2;
 const high = (v?: number) => v != null && v >= 4;
+/** a symptom the user rated 심함(3) or more today */
+const strong = (c: CareContext, ids: SymptomId[]) => !!c.symptoms && !c.symptoms.none && ids.some((id) => (c.symptoms!.scores[id] ?? 0) >= 3);
+const eul = (w: string) => {
+  const ch = w.charCodeAt(w.length - 1);
+  return `${w}${ch >= 0xac00 && ch <= 0xd7a3 && (ch - 0xac00) % 28 ? "을" : "를"}`;
+};
 
 export const CARE_RULES: CareRule[] = [
   {
@@ -61,6 +79,31 @@ export const CARE_RULES: CareRule[] = [
     when: (c) => c.period && (c.today?.emotion === "tired" || low(c.today?.condition.energy) || low(c.today?.mood)),
     line: "오늘은 조금 더\n편안하게 쉬어볼까?",
     actions: ["rest", "breathe-short", "quiet"],
+  },
+  // PMS symptoms the user rated themselves today (Phase E)
+  {
+    id: "pms-low",
+    when: (c) => (c.symptoms?.scores.low_mood ?? 0) >= 4 || (c.symptoms?.scores.anxiety ?? 0) >= 4,
+    line: "오늘은 내가\n곁에 꼭 붙어 있을게.",
+    actions: ["talk", "rest"],
+  },
+  {
+    id: "pms-body",
+    when: (c) => strong(c, ["cramps", "headache", "bloating", "breast_tenderness"]),
+    line: "몸이 많이 불편한 날이구나.\n오늘은 같이 천천히 쉬자.",
+    actions: ["rest", "breathe-short"],
+  },
+  {
+    id: "pms-tense",
+    when: (c) => strong(c, ["irritability", "anxiety", "mood_swings", "sensitivity"]),
+    line: "마음이 많이 예민한 날이구나.\n숨을 길게 한 번 내쉬어 볼까?",
+    actions: ["breathe-long", "talk"],
+  },
+  {
+    id: "pms-tired",
+    when: (c) => strong(c, ["fatigue", "sleep_problems", "hard_daily_tasks"]),
+    line: "몸이 무거운 날이네.\n오늘은 천천히 가도 돼.",
+    actions: ["rest", "quiet"],
   },
   {
     id: "sleep-low",
@@ -106,6 +149,16 @@ export const CARE_RULES: CareRule[] = [
     actions: ["rest", "breathe-short"],
   },
   {
+    id: "pms-window",
+    // only the user's own history: what was recorded around this time before, never a guess about today
+    when: (c) => c.pmsWindow && !c.symptoms && c.tod !== "night",
+    line: (c) =>
+      c.pastSymptom
+        ? `지난 주기엔 이맘때\n${eul(SYMPTOM_LABEL[c.pastSymptom])} 기록했었어. 오늘은 어때?`
+        : "지난 주기엔 이맘때\n증상을 기록했었어. 오늘은 어때?",
+    actions: ["record-pms", "walk"],
+  },
+  {
     id: "period-soon",
     when: (c) => c.periodSoon,
     line: "요즘 몸을 조금 더\n따뜻하게 챙겨주자.",
@@ -125,6 +178,13 @@ export const CARE_RULES: CareRule[] = [
   },
 ];
 
-export function pickSuggestion(c: CareContext): CareRule | null {
-  return CARE_RULES.find((r) => r.when(c)) ?? null;
+export interface PickedSuggestion {
+  id: string;
+  line: string;
+  actions: CareAction[];
+}
+
+export function pickSuggestion(c: CareContext): PickedSuggestion | null {
+  const r = CARE_RULES.find((x) => x.when(c));
+  return r ? { id: r.id, line: typeof r.line === "function" ? r.line(c) : r.line, actions: r.actions } : null;
 }
