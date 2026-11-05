@@ -12,6 +12,7 @@ import { EnergyIcon, FocusIcon, NoteIcon, SleepIcon, SmileIcon, SneakerIcon, Spr
 import { MoodFace, MOODS } from "@/components/ui/MoodFace";
 import { SubPage } from "./SubPage";
 import { SymptomForm } from "@/components/pms/SymptomForm";
+import { NutritionForm } from "@/components/nutrition/NutritionForm";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { EMOTIONS, EMOTION_INFO, flowerArt, type Emotion } from "@/data/moodFlowers";
 import { DimensionCard } from "@/components/pms/ContextTagPicker";
@@ -27,17 +28,17 @@ const CONDITIONS: Record<ConditionKey, { label: string; icon: React.ReactNode; t
 export function RecordScreen() {
   const today = useToday();
   const [date, setDate] = useState<DateKey | null>(null);
-  const [tab, setTab] = useState<"day" | "pms">("day");
+  const [tab, setTab] = useState<"day" | "pms" | "care">("day");
 
   // initial date: ?date=YYYY-MM-DD (from the calendar) or today
   useEffect(() => {
     if (!today || date) return;
     const q = new URLSearchParams(window.location.search).get("date");
     const valid = q && /^\d{4}-\d{2}-\d{2}$/.test(q) && q <= today ? q : today;
-    const wantPms = new URLSearchParams(window.location.search).get("tab") === "pms";
+    const wantTab = new URLSearchParams(window.location.search).get("tab");
     const t = setTimeout(() => {
       setDate(valid);
-      if (wantPms) setTab("pms");
+      if (wantTab === "pms" || wantTab === "care") setTab(wantTab);
     }, 0);
     return () => clearTimeout(t);
   }, [today, date]);
@@ -74,10 +75,17 @@ export function RecordScreen() {
               options={[
                 { value: "day", label: "하루 기록" },
                 { value: "pms", label: "PMS 증상" },
+                { value: "care", label: "물·영양제" },
               ]}
             />
           </div>
-          {tab === "day" ? <RecordForm key={date} date={date} isToday={date === today} /> : <SymptomForm key={date} date={date} isFuture={date > today} />}
+          {tab === "day" ? (
+            <RecordForm key={date} date={date} isToday={date === today} />
+          ) : tab === "pms" ? (
+            <SymptomForm key={date} date={date} isFuture={date > today} />
+          ) : (
+            <NutritionForm key={date} date={date} isFuture={date > today} />
+          )}
         </>
       ) : (
         <div className="h-[420px]" />

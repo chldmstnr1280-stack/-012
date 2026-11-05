@@ -34,7 +34,7 @@ import { getData, setPrefs } from "@/lib/data-store";
 import { currentTimeOfDay } from "@/lib/game/ambience";
 import { playSfx } from "@/lib/sound/sfx";
 import type { TalkAction } from "@/data/sellyConversations";
-import { CARE_LINES, TOUCH_LINES } from "@/data/sellyDialogues";
+import { CARE_LINES, TOUCH_LINES, pick } from "@/data/sellyDialogues";
 import { TopBar } from "./TopBar";
 import { LevelCard } from "./LevelCard";
 import { SpeechBubble } from "./SpeechBubble";
@@ -368,6 +368,19 @@ export function HomeScreen() {
     if (exp) showToast(`성장 +${exp}`);
   };
 
+  /** the user drank a cup: Selly waters her plants too; the goal gets a little celebration */
+  const handleDrink = (cups: number, goal: number) => {
+    playSfx("water");
+    if (cups === goal) {
+      react("cheer");
+      brain.interact("오늘 물 목표 달성!\n나도 촉촉해졌어 💧", 4200);
+      showToast("💧 오늘 물 목표를 채웠어요!");
+    } else {
+      react("water");
+      brain.interact(pick(["꿀꺽꿀꺽! 나도 한 모금 💧", "물 마셨구나, 잘했어!", "촉촉해지는 기분이야~", "온실도 같이 촉촉해졌어!"]), 3200);
+    }
+  };
+
   const handleObject = (id: ObjectId) => {
     const b = brainRef.current;
     if (id === "cushion") {
@@ -527,7 +540,7 @@ export function HomeScreen() {
             ) : (
               <motion.div key="dock" className="relative" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
                 <ActionDock onBreathe={startBreathing} onCare={() => setCareOpen((o) => !o)} />
-                <CareSheet open={careOpen} onClose={() => setCareOpen(false)} onCare={handleCare} />
+                <CareSheet open={careOpen} onClose={() => setCareOpen(false)} onCare={handleCare} onDrink={handleDrink} />
               </motion.div>
             )}
           </AnimatePresence>

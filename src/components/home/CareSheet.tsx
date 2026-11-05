@@ -1,9 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Check, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import type { SellyReaction } from "@/lib/selly-store";
-import { useAppData } from "@/lib/data-store";
+import { addWater, useAppData } from "@/lib/data-store";
+import { DEFAULT_WATER_GOAL } from "@/data/nutrition";
 import { useToday } from "@/lib/date";
 import { REWARDS } from "@/lib/growth";
 import { HandHeartIcon, SunIcon, WateringCanIcon } from "@/components/ui/icons";
@@ -15,9 +16,11 @@ const actions: { type: "water" | "sun" | "pat"; label: string; icon: React.React
 ];
 
 /** Floating care panel that sits above the dock while Selly stays visible. */
-export function CareSheet({ open, onClose, onCare }: { open: boolean; onClose: () => void; onCare: (t: SellyReaction) => void }) {
+export function CareSheet({ open, onClose, onCare, onDrink }: { open: boolean; onClose: () => void; onCare: (t: SellyReaction) => void; onDrink: (cups: number, goal: number) => void }) {
   const today = useToday();
-  const { daily } = useAppData();
+  const { daily, water, prefs } = useAppData();
+  const cups = (today && water[today]) || 0;
+  const goal = prefs.waterGoal ?? DEFAULT_WATER_GOAL;
   const done = (today && daily[today]?.done) || {};
   return (
     <AnimatePresence>
@@ -36,6 +39,29 @@ export function CareSheet({ open, onClose, onCare }: { open: boolean; onClose: (
             <button type="button" onClick={onClose} aria-label="닫기" className="grid h-9 w-9 place-items-center rounded-full bg-white/70 text-ink-500 active:scale-90">
               <X size={18} />
             </button>
+          </div>
+          {/* the user's own water — Selly waters her plants with every cup */}
+          <div className="mb-2.5 flex items-center gap-3 rounded-[20px] border border-white bg-gradient-to-b from-[#eef6fa] to-[#dcecf3] px-3.5 py-2.5">
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-bold text-ink-700">나도 물 마시기 💧</span>
+              <span className="mt-1 flex gap-[3px]" aria-label={`오늘 ${cups}컵, 목표 ${goal}컵`}>
+                {Array.from({ length: goal }, (_, i) => (
+                  <span key={i} className={`h-2 flex-1 rounded-full ${i < cups ? "bg-[#7fb6d0]" : "bg-white/80"}`} />
+                ))}
+              </span>
+            </span>
+            <span className="text-[13px] font-bold tabular-nums text-[#3f7590]">
+              {cups}/{goal}
+            </span>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.9 }}
+              aria-label="물 한 컵 마셨어요"
+              onClick={() => today && onDrink(addWater(today, 1), goal)}
+              className="flex h-10 items-center gap-1 rounded-full bg-white px-3 text-[13px] font-bold text-[#3f7590] shadow-sm"
+            >
+              <Plus size={15} /> 1컵
+            </motion.button>
           </div>
           <div className="grid grid-cols-3 gap-2.5">
             {actions.map((a) => (

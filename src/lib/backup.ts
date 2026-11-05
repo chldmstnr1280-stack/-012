@@ -1,6 +1,7 @@
 import { EMOTIONS, type Emotion } from "@/data/moodFlowers";
 import { IMPACT_IDS, ONSET_IDS, SYMPTOM_IDS, type OnsetId, type Score } from "@/data/pmsSymptoms";
-import type { DayTags, PmsProfile, SymptomDay } from "./data-store";
+import type { DayTags, PmsProfile, Supplement, SymptomDay } from "./data-store";
+import { NUTRIENT_IDS, SUPP_TIME_IDS, type NutrientId, type SuppTime } from "@/data/nutrition";
 import { CONTEXT_TAG_IDS, type ContextTagId } from "@/data/contextTags";
 import {
   CONDITION_KEYS,
@@ -83,8 +84,18 @@ function cleanDaily(v: unknown): DailyLog | null {
 
 export type ParsedBackup = Pick<
   AppData,
-  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps"
+  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog"
 >;
+
+/** Validates an untrusted supplement: short name, known nutrients and times. */
+export function cleanSupplement(v: unknown): Supplement | null {
+  if (!isObj(v) || typeof v.id !== "string" || !/^[a-z0-9]{2,24}$/.test(v.id) || typeof v.name !== "string") return null;
+  const name = v.name.trim().slice(0, 40);
+  if (!name) return null;
+  const nutrients = Array.isArray(v.nutrients) ? [...new Set(v.nutrients.filter((n): n is NutrientId => NUTRIENT_IDS.includes(n as NutrientId)))] : [];
+  const times = Array.isArray(v.times) ? [...new Set(v.times.filter((t): t is SuppTime => SUPP_TIME_IDS.includes(t as SuppTime)))] : [];
+  return { id: v.id, name, nutrients, times, active: v.active !== false, createdAt: typeof v.createdAt === "number" ? v.createdAt : 0 };
+}
 
 /** Validates an untrusted profile / recap: known symptoms 0–4, known onset. */
 export function cleanPattern(v: unknown): PmsProfile | null {
@@ -191,6 +202,8 @@ export function parseBackup(
     !(isObj(raw.symptoms) && Object.keys(raw.symptoms).length) &&
     !(isObj(raw.dayTags) && Object.keys(raw.dayTags).length) &&
     !isObj(raw.pmsProfile) &&
+    !(Array.isArray(raw.supplements) && raw.supplements.length) &&
+    !(isObj(raw.water) && Object.keys(raw.water).length) &&
     progress.level === 1 &&
     progress.exp === 0
   ) {
@@ -212,6 +225,18 @@ export function parseBackup(
       if (d) dayTags[k] = d;
     }
   }
+  const water: ParsedBackup["water"] = {};
+  if (isObj(raw.water))
+    for (const [k, v] of Object.entries(raw.water)) if (isDate(k) && Number.isInteger(v) && (v as number) > 0 && (v as number) <= 30) water[k] = v as number;
+  const supplements = (Array.isArray(raw.supplements) ? raw.supplements : []).map(cleanSupplement).filter((x): x is Supplement => !!x).slice(0, 50);
+  const suppIds = new Set(supplements.map((x) => x.id));
+  const suppLog: ParsedBackup["suppLog"] = {};
+  if (isObj(raw.suppLog))
+    for (const [k, v] of Object.entries(raw.suppLog)) {
+      if (!isDate(k) || !Array.isArray(v)) continue;
+      const keys = v.filter((x): x is string => typeof x === "string" && suppIds.has(x.split("@")[0]) && SUPP_TIME_IDS.includes(x.split("@")[1] as SuppTime));
+      if (keys.length) suppLog[k] = [...new Set(keys)];
+    }
   const pmsProfile = cleanPattern(raw.pmsProfile) ?? undefined;
   const cycleRecaps: ParsedBackup["cycleRecaps"] = {};
   if (isObj(raw.cycleRecaps)) {
@@ -233,7 +258,7 @@ export function parseBackup(
   }
   return {
     ok: true,
-    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps },
+    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog },
   };
 }
 
@@ -269,6 +294,11 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
   const cycleRecaps = { ...cur.cycleRecaps };
   for (const [k, r] of Object.entries(inc.cycleRecaps))
     if (!cycleRecaps[k] || r.updatedAt > cycleRecaps[k].updatedAt) cycleRecaps[k] = r;
+  const water = { ...inc.water, ...cur.water };
+  for (const [k, v] of Object.entries(inc.water)) water[k] = Math.max(v, cur.water[k] ?? 0);
+  const supplements = [...cur.supplements, ...inc.supplements.filter((x) => !cur.supplements.some((c) => c.id === x.id))];
+  const suppLog = { ...cur.suppLog };
+  for (const [k, v] of Object.entries(inc.suppLog)) suppLog[k] = [...new Set([...(cur.suppLog[k] ?? []), ...v])];
   const pmsProfile =
     inc.pmsProfile && (!cur.pmsProfile || inc.pmsProfile.updatedAt > cur.pmsProfile.updatedAt) ? inc.pmsProfile : cur.pmsProfile;
   return {
@@ -281,6 +311,9 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
     dayTags,
     cycleRecaps,
     pmsProfile,
+    water,
+    supplements,
+    suppLog,
     cycleContext: { ...inc.cycleContext, ...cur.cycleContext },
     demo: false,
   };

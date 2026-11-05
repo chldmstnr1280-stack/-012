@@ -5,6 +5,7 @@ import type { DateKey } from "./date";
 import type { Emotion } from "@/data/moodFlowers";
 import type { ImpactId, OnsetId, Score, SymptomId } from "@/data/pmsSymptoms";
 import type { ContextTagId } from "@/data/contextTags";
+import type { NutrientId, SuppTime } from "@/data/nutrition";
 import { afterPersist } from "@/lib/platform";
 
 /**
@@ -74,6 +75,17 @@ export interface CycleRecap {
   updatedAt: number;
 }
 
+/** A supplement the user takes (their own words; the app never suggests one). */
+export interface Supplement {
+  id: string;
+  name: string;
+  nutrients: NutrientId[];
+  times: SuppTime[];
+  /** false = no longer taking it (kept so past check-ins still have a name) */
+  active: boolean;
+  createdAt: number;
+}
+
 /** Optional context that changes how a cycle should be read (never required). */
 export interface CycleContext {
   hormonalContraception?: "yes" | "no" | "unsure";
@@ -98,6 +110,11 @@ export interface AppData {
   pmsProfile?: PmsProfile;
   /** per-cycle look-back, keyed by period start */
   cycleRecaps: Record<DateKey, CycleRecap>;
+  /** cups of water per day */
+  water: Record<DateKey, number>;
+  supplements: Supplement[];
+  /** taken per day: "supplementId@time" */
+  suppLog: Record<DateKey, string[]>;
 }
 
 export interface Prefs {
@@ -114,10 +131,12 @@ export interface Prefs {
   sfxVolume: number;
   /** greenhouse mood: follow the device clock, or a fixed time of day */
   ambience: "auto" | "morning" | "day" | "evening" | "night";
+  /** daily water goal in cups (200 ml) */
+  waterGoal?: number;
 }
 
 const KEY = "dear-selly:v1";
-const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, symptoms: {}, cycleContext: {}, dayTags: {}, cycleRecaps: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
+const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, symptoms: {}, cycleContext: {}, dayTags: {}, cycleRecaps: {}, water: {}, supplements: [], suppLog: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
 
 let state: AppData = EMPTY;
 let loaded = false;
@@ -304,6 +323,44 @@ export function setCycleRecap(start: DateKey, r: Omit<CycleRecap, "updatedAt"> |
     if (r) next[start] = { ...r, updatedAt: Date.now() };
     else delete next[start];
     return { ...d, cycleRecaps: next };
+  });
+}
+
+/** Adds (or removes, with a negative delta) cups of water; returns the new count. */
+export function addWater(date: DateKey, delta: number): number {
+  const next = Math.max(0, Math.min(30, (getData().water[date] ?? 0) + delta));
+  setData((d) => {
+    const water = { ...d.water };
+    if (next) water[date] = next;
+    else delete water[date];
+    return { ...d, water };
+  });
+  return next;
+}
+
+export function saveSupplement(sp: Omit<Supplement, "id" | "createdAt"> & { id?: string }) {
+  setData((d) => {
+    const existing = sp.id ? d.supplements.find((x) => x.id === sp.id) : undefined;
+    const item: Supplement = existing
+      ? { ...existing, ...sp, id: existing.id }
+      : { ...sp, id: `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, createdAt: Date.now() };
+    return { ...d, supplements: existing ? d.supplements.map((x) => (x.id === item.id ? item : x)) : [...d.supplements, item] };
+  });
+}
+
+/** Stop taking a supplement: hidden from today's list, kept for past days. */
+export function retireSupplement(id: string) {
+  setData((d) => ({ ...d, supplements: d.supplements.map((x) => (x.id === id ? { ...x, active: false } : x)) }));
+}
+
+export function toggleSuppTaken(date: DateKey, key: string) {
+  setData((d) => {
+    const cur = d.suppLog[date] ?? [];
+    const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+    const suppLog = { ...d.suppLog };
+    if (next.length) suppLog[date] = next;
+    else delete suppLog[date];
+    return { ...d, suppLog };
   });
 }
 
