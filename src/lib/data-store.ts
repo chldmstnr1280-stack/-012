@@ -5,6 +5,7 @@ import type { DateKey } from "./date";
 import type { Emotion } from "@/data/moodFlowers";
 import type { ImpactId, OnsetId, Score, SymptomId } from "@/data/pmsSymptoms";
 import type { ContextTagId } from "@/data/contextTags";
+import { afterPersist } from "@/lib/platform";
 
 /**
  * On-device data store (Phase 2). Everything lives in this browser's
@@ -138,7 +139,9 @@ function load() {
 
 function persist() {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(state));
+    const json = JSON.stringify(state);
+    window.localStorage.setItem(KEY, json);
+    afterPersist(KEY, json);
   } catch {
     // ignore: data stays in memory for this session
   }

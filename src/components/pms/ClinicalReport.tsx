@@ -9,6 +9,7 @@ import { addDays, formatMonthDay, toKey, useToday, type DateKey } from "@/lib/da
 import { useAppData, type AppData } from "@/lib/data-store";
 import { PRE_DAYS, type CycleMemory } from "@/lib/pms/analysis";
 import { buildClinical, markFor, type ClinicalSummary, type Mark } from "@/lib/pms/clinical";
+import { IS_TOSS } from "@/lib/platform";
 
 /**
  * Printable summary of the user's own PMS records to show a clinician.
@@ -37,9 +38,9 @@ export function ClinicalReport() {
   return createPortal(
     <div className="print-root fixed inset-0 z-[80] overflow-auto bg-[#e9e4da] pb-10">
       <div className="no-print sticky top-0 z-10 flex items-center gap-2 bg-[#f7f2ea]/95 px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)+10px)] shadow-[0_4px_14px_-10px_rgba(80,60,40,0.5)] backdrop-blur">
-        <Link href="/report" aria-label="리포트로 돌아가기" className="grid h-10 w-10 place-items-center rounded-full text-ink-500 active:bg-white">
+{!IS_TOSS && (<Link href="/report" aria-label="리포트로 돌아가기" className="grid h-10 w-10 place-items-center rounded-full text-ink-500 active:bg-white">
           <ChevronLeft size={24} />
-        </Link>
+        </Link>)}
         <label className="flex items-center gap-1.5 text-[12.5px] text-ink-500">
           최근
           <select value={count} onChange={(e) => setCount(Number(e.target.value))} className="rounded-lg bg-white px-2 py-1.5 text-[13px] text-ink-700">
@@ -50,6 +51,7 @@ export function ClinicalReport() {
             ))}
           </select>
         </label>
+        {!IS_TOSS && (
         <button
           type="button"
           onClick={() => window.print()}
@@ -57,9 +59,12 @@ export function ClinicalReport() {
         >
           <Printer size={16} /> PDF로 저장·인쇄
         </button>
+        )}
       </div>
       <p className="no-print mx-auto mt-2 max-w-[420px] px-4 text-center text-[11.5px] leading-relaxed text-ink-500">
-        인쇄 창에서 ‘PDF로 저장’을 고르면 파일로 저장돼요. 이 문서는 이 기기에서만 만들어져요.
+        {IS_TOSS
+          ? "토스 앱에서는 PDF 저장을 준비 중이에요. 진료 때 이 화면을 보여 주세요. 이 문서는 이 기기에서만 만들어져요."
+          : "인쇄 창에서 ‘PDF로 저장’을 고르면 파일로 저장돼요. 이 문서는 이 기기에서만 만들어져요."}
       </p>
       <article
         className="paper mx-auto mt-3 bg-white p-[28px] text-[11px] leading-snug text-[#2c2620] shadow-[0_10px_30px_-12px_rgba(60,40,20,0.4)]"

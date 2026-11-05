@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Bell, Music2, Paintbrush, Settings } from "lucide-react";
 import { setPrefs, useAppData } from "@/lib/data-store";
 import { useSelly } from "@/lib/selly-store";
+import { IS_TOSS } from "@/lib/platform";
 
 export function TopBar({ onDecorate }: { onDecorate?: () => void }) {
   const { showToast } = useSelly();
@@ -36,6 +37,7 @@ export function TopBar({ onDecorate }: { onDecorate?: () => void }) {
           <Music2 size={22} strokeWidth={1.9} className={prefs.music ? "" : "opacity-60"} />
           {!prefs.music && <span aria-hidden className="absolute h-[2px] w-7 rotate-45 rounded-full bg-white" />}
         </button>
+        {!IS_TOSS && (
         <Link
           href="/friends"
           aria-label="친구 · 받은 선물"
@@ -43,6 +45,7 @@ export function TopBar({ onDecorate }: { onDecorate?: () => void }) {
         >
           <Bell size={23} fill="white" strokeWidth={1.6} />
         </Link>
+        )}
         <Link
           href="/settings"
           aria-label="설정"

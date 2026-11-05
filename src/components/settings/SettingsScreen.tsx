@@ -17,6 +17,7 @@ import { ImportBackup } from "./ImportBackup";
 import { SoundCard } from "./SoundCard";
 import { AmbienceCard } from "./AmbienceCard";
 import { HealthSyncCard } from "./HealthSyncCard";
+import { IS_TOSS } from "@/lib/platform";
 
 export function SettingsScreen() {
   const data = useAppData();
@@ -27,7 +28,20 @@ export function SettingsScreen() {
   const recordDays = Object.keys(data.entries).length;
   const periods = groupPeriods(data.periodDays).length;
 
-  const exportData = () => {
+  const exportData = async () => {
+    if (IS_TOSS) {
+      try {
+        const { File: TossFile } = await import("@apps-in-toss/web-framework");
+        const bytes = new TextEncoder().encode(JSON.stringify(getData(), null, 2));
+        let bin = "";
+        bytes.forEach((b) => (bin += String.fromCharCode(b)));
+        await TossFile.saveBase64({ data: btoa(bin), fileName: `dear-selly-${toKey(new Date())}.json`, mimeType: "application/json" });
+        showToast("기록 파일을 저장했어요");
+      } catch {
+        showToast("파일을 만들지 못했어요");
+      }
+      return;
+    }
     try {
       const blob = new Blob([JSON.stringify(getData(), null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -46,8 +60,9 @@ export function SettingsScreen() {
     <>
       <SubPage title="설정">
         <div className="flex flex-col gap-3">
-          <InstallCard />
+          {!IS_TOSS && <InstallCard />}
 
+          {!IS_TOSS && (
           <Link
             href="/share"
             className="glass flex items-center justify-between rounded-[22px] px-4 py-3.5 text-[14.5px] font-bold text-ink-700 active:scale-[0.99]"
@@ -55,6 +70,7 @@ export function SettingsScreen() {
             <span>💌 온실 나누기</span>
             <span className="text-[12px] font-normal text-ink-500">엽서 · 구경 링크 →</span>
           </Link>
+          )}
 
           <AmbienceCard />
 
@@ -74,8 +90,17 @@ export function SettingsScreen() {
               ))}
             </dl>
             <p className="mt-3 text-[12.5px] leading-relaxed text-ink-500">
-              모든 기록은 <b className="text-ink-700">이 기기의 브라우저에만</b> 저장되고 서버로 보내지 않아요. 브라우저 데이터를 지우면 기록도 함께 사라지니,
-              필요하면 파일로 보관해 두세요. 내보낸 파일은 다른 기기나 홈 화면 앱에서 가져올 수 있어요.
+              {IS_TOSS ? (
+                <>
+                  모든 기록은 <b className="text-ink-700">이 기기의 토스 앱 안에만</b> 저장되고 서버로 보내지 않아요. 필요하면 파일로 보관해 두세요. 내보낸 파일은 다른 기기에서
+                  가져올 수 있어요.
+                </>
+              ) : (
+                <>
+                  모든 기록은 <b className="text-ink-700">이 기기의 브라우저에만</b> 저장되고 서버로 보내지 않아요. 브라우저 데이터를 지우면 기록도 함께 사라지니,
+                  필요하면 파일로 보관해 두세요. 내보낸 파일은 다른 기기나 홈 화면 앱에서 가져올 수 있어요.
+                </>
+              )}
             </p>
             <div className="mt-3 flex flex-col gap-2">
               <button type="button" onClick={exportData} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white text-[14px] font-bold text-sage-700 shadow-[0_4px_12px_-8px_rgba(110,88,60,0.4)]">
@@ -94,7 +119,7 @@ export function SettingsScreen() {
             </div>
           </SectionCard>
 
-          <HealthSyncCard />
+          {!IS_TOSS && <HealthSyncCard />}
 
           <SectionCard icon={<SproutLeafIcon />} title="Dear Selly">
             <p className="font-script text-[26px] leading-tight text-sage-700">Held, not healed.</p>

@@ -1,0 +1,27 @@
+import { defineConfig } from "@apps-in-toss/web-framework/config";
+
+/**
+ * Apps in Toss mini-app config. `appName` must match the app registered in the
+ * Apps in Toss console exactly (it also forms the intoss://{appName} deep link).
+ * Build: `npm run build:toss` → static export in `out/` → `dear-selly.ait`.
+ */
+export default defineConfig({
+  appName: "dear-selly",
+  brand: {
+    primaryColor: "#7EA47A",
+  },
+  navigationBar: {
+    withBackButton: true,
+    withHomeButton: false,
+    withTitle: true,
+    theme: "light",
+  },
+  webView: {
+    allowsInlineMediaPlayback: true,
+    bounces: false,
+    pullToRefreshEnabled: false,
+    overScrollMode: "never",
+  },
+  permissions: [],
+  webBundleDir: "out",
+});

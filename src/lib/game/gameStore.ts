@@ -1,5 +1,7 @@
 "use client";
 
+import { afterPersist } from "@/lib/platform";
+
 /**
  * Game-world storage (separate from wellness records on purpose).
  * Holds only playful, non-sensitive state: last visit, later garden layout & items.
@@ -63,7 +65,9 @@ function read(): GameData {
 
 function write(d: GameData) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(d));
+    const json = JSON.stringify(d);
+    localStorage.setItem(KEY, json);
+    afterPersist(KEY, json);
   } catch {
     // ignore
   }

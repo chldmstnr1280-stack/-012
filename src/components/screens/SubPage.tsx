@@ -5,6 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { motion } from "motion/react";
 import { GreenhouseBackground } from "@/components/greenhouse/GreenhouseBackground";
 import { useAmbience } from "@/lib/game/ambience";
+import { IS_TOSS } from "@/lib/platform";
 
 /** Shared shell for secondary screens: greenhouse roof at the top fading into cream, large centred title. */
 export function SubPage({ title, children }: { title: string; children: React.ReactNode }) {
@@ -17,9 +18,10 @@ export function SubPage({ title, children }: { title: string; children: React.Re
       </div>
       <div className="relative z-10 flex h-full flex-col pt-[calc(env(safe-area-inset-top)+10px)]">
         <header className="relative flex h-[88px] shrink-0 items-end justify-center px-4 pb-2">
-          <Link href="/" aria-label="홈으로" className="absolute left-2 top-0 grid h-11 w-11 place-items-center rounded-full text-white drop-shadow-[0_1px_3px_rgba(80,60,40,0.5)]">
+          {/* Toss build: the Toss navigation bar has the back button */}
+          {!IS_TOSS && <Link href="/" aria-label="홈으로" className="absolute left-2 top-0 grid h-11 w-11 place-items-center rounded-full text-white drop-shadow-[0_1px_3px_rgba(80,60,40,0.5)]">
             <ChevronLeft size={28} />
-          </Link>
+          </Link>}
           <h1 className="text-[23px] font-bold tracking-tight text-ink-700 [text-shadow:0_1px_10px_rgba(255,250,240,0.9)]">{title}</h1>
         </header>
         <motion.div

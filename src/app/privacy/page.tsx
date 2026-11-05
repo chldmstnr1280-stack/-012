@@ -1,4 +1,5 @@
 import { SubPage } from "@/components/screens/SubPage";
+import { IS_TOSS } from "@/lib/platform";
 
 export const metadata = { title: "개인정보 처리방침 · Dear Selly" };
 
@@ -13,12 +14,22 @@ const sections: [string, string[]][] = [
   ["8. 문의", ["개인정보 관련 문의: [운영자 연락처 이메일]"]],
 ];
 
+/** Toss build: no Kakao login, no server storage — everything stays on the device (and the Toss app's storage). */
+const tossSections: [string, string[]][] = [
+  ["1. 저장되는 정보와 위치", ["기분·컨디션·메모·걸음 수 기록, 생리주기, PMS 증상 기록, 평소 PMS 패턴과 주기별 돌아보기, 하루 맥락(상황·상태·마음·바람), 셀리 성장, 온실 꾸미기, 설정은 이용자의 기기(토스 앱 안의 미니앱 저장소)에만 저장됩니다.", "토스 버전에서는 로그인, 친구 기능, 서버 백업을 제공하지 않으며, 기록을 디어셀리 서버로 보내지 않습니다."]],
+  ["2. 이용 목적", ["이용자 본인의 기록 확인, 리포트, 셀리의 맞춤 제안 등 미니앱 기능 제공에만 쓰입니다. 모든 계산은 기기 안에서 이루어집니다."]],
+  ["3. 보관 기간과 파기", ["설정의 '모든 데이터 지우기'로 언제든 즉시 삭제할 수 있습니다. 설정에서 기록을 파일로 내보낼 수 있습니다."]],
+  ["4. 외부 링크", ["관리 카드의 출처(NHS, ACOG, 보건복지부) 링크와 상담 전화(109, 119)는 기기의 브라우저·전화 앱으로 열립니다."]],
+  ["5. 문의", ["개인정보 관련 문의: [운영자 연락처 이메일]"]],
+];
+
 export default function PrivacyPage() {
+  const list = IS_TOSS ? tossSections : sections;
   return (
     <SubPage title="개인정보 처리방침">
       <div className="glass rounded-[26px] p-5 text-[13px] leading-relaxed text-ink-500">
-        <p className="mb-3 text-ink-700">디어셀리는 기록을 이용자의 기기 안에 두는 것을 원칙으로 하며, 친구 기능에 필요한 최소한의 정보만 서버에 저장합니다.</p>
-        {sections.map(([h, items]) => (
+        <p className="mb-3 text-ink-700">{IS_TOSS ? "디어셀리 토스 버전은 모든 기록을 이용자의 기기 안에만 둡니다." : "디어셀리는 기록을 이용자의 기기 안에 두는 것을 원칙으로 하며, 친구 기능에 필요한 최소한의 정보만 서버에 저장합니다."}</p>
+        {list.map(([h, items]) => (
           <section key={h} className="mt-4">
             <h2 className="mb-1 text-[14px] font-bold text-ink-700">{h}</h2>
             <ul className="list-disc space-y-1 pl-4">

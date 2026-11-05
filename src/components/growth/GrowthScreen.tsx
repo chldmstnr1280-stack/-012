@@ -14,6 +14,7 @@ import { EXP_PER_LEVEL, REWARDS, STAGES, nextStage } from "@/lib/growth";
 import { greenhouseArt, grassIslandArt } from "@/lib/assets";
 import { EMOTIONS, EMOTION_INFO, flowerArt } from "@/data/moodFlowers";
 import { plantedFlowers } from "@/lib/garden";
+import { IS_TOSS } from "@/lib/platform";
 
 const TASKS: Record<DailyTask, { label: string; icon: React.ReactNode; tint: string; href: string }> = {
   record: { label: "오늘의 기록 남기기", icon: <JournalIcon size={24} />, tint: "#f6ecdc", href: "/record" },
@@ -62,6 +63,7 @@ export function GrowthScreen() {
           </div>
         </section>
 
+        {!IS_TOSS && (
         <Link
           href="/share"
           className="glass flex items-center justify-between rounded-[22px] px-4 py-3 text-[14px] font-bold text-ink-700 active:scale-[0.99]"
@@ -69,6 +71,7 @@ export function GrowthScreen() {
           <span>💌 친구에게 셀리 보여주기</span>
           <span className="text-[12px] font-normal text-ink-500">엽서 · 온실 링크 →</span>
         </Link>
+        )}
 
         {/* stage track */}
         <section className="glass rounded-[26px] px-3 pb-4 pt-4" aria-label="성장 단계">

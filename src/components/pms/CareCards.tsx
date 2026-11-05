@@ -8,6 +8,7 @@ import { SproutLeafIcon } from "@/components/ui/icons";
 import { SEE_A_DOCTOR, SOURCES, type Source } from "@/data/careEvidence";
 import { SYMPTOM_LABEL } from "@/data/pmsSymptoms";
 import type { CarePick } from "@/lib/pms/care";
+import { openExternal } from "@/lib/platform";
 
 /**
  * Evidence-based care cards (Phase C). Content comes only from the cited
@@ -114,7 +115,7 @@ function SourceList({ items }: { items: { id: Source["id"]; quote: string }[] })
           const s = SOURCES[id];
           return (
             <li key={id}>
-              <a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-bold text-sage-700 underline underline-offset-2">
+              <a href={s.url} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); void openExternal(s.url); }} className="inline-flex items-center gap-1 font-bold text-sage-700 underline underline-offset-2">
                 {s.org} — {s.title}
                 <ExternalLink size={11} />
               </a>

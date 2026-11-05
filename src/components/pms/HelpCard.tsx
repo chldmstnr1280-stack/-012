@@ -2,6 +2,7 @@
 
 import { Phone } from "lucide-react";
 import { CRISIS_LINES, SAFETY_SOURCES } from "@/data/safety";
+import { openExternal } from "@/lib/platform";
 
 /**
  * Where to reach a person right now. Shown softly — the app never asks about
@@ -19,6 +20,10 @@ export function HelpCard({ lead, id }: { lead?: string; id?: string }) {
           <li key={l.number}>
             <a
               href={`tel:${l.number}`}
+              onClick={(e) => {
+                e.preventDefault();
+                void openExternal(`tel:${l.number}`);
+              }}
               className="flex h-[58px] flex-col items-center justify-center rounded-2xl bg-white text-center shadow-[0_4px_12px_-8px_rgba(110,88,60,0.45)] active:bg-[#f7efe4]"
               aria-label={`${l.name} ${l.number}에 전화하기, ${l.note}`}
             >
@@ -37,7 +42,7 @@ export function HelpCard({ lead, id }: { lead?: string; id?: string }) {
         <ul className="mt-1 flex flex-col gap-1">
           {SAFETY_SOURCES.map((s) => (
             <li key={s.url}>
-              <a href={s.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+              <a href={s.url} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); void openExternal(s.url); }} className="underline underline-offset-2">
                 {s.org} — {s.title}
               </a>{" "}
               ({s.date}, 확인 {s.accessed})

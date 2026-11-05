@@ -458,3 +458,24 @@ python3 scripts/extract-assets.py
   - 리포트 › PMS › **다음 주기 미리 보기**, 캘린더의 ‘PMS 예상(참고)’ 칸, 셀리의 말(“평소엔 이맘때쯤 피로가 있다고 했지” / “지난번엔 …있었다고 했지” / “지난 주기엔 …기록했었어”)이 모두 같은 예측을 써요.
 - 진료용 요약 PDF에 ‘사용자가 기억해 답한 패턴’(평소 + 최근 4주기 돌아보기)을 매일 기록과 구분해서 넣었어요.
 - 저장: 기기 + 백업 파일(`cleanPattern`으로 검증). 서버 백업에는 아직 포함하지 않았어요.
+
+## 26. 앱인토스(토스 미니앱) 빌드
+
+같은 코드에서 웹 버전과 토스 미니앱 버전을 빌드해요. `NEXT_PUBLIC_PLATFORM=toss`이면 토스용이에요 (`src/lib/platform/index.ts`의 `IS_TOSS`).
+
+```bash
+npm run build:toss   # 정적 export(out/) → dear-selly.ait
+```
+
+- **설정:** `apps-in-toss.config.ts` — `appName`은 앱인토스 콘솔에 등록한 앱 이름과 **정확히 같아야** 해요(지금 `dear-selly`). 토스 내비게이션 바(뒤로가기·제목), 라이트 테마, 바운스·당겨서 새로고침 끔.
+- **정책 대응** (서비스 오픈 정책 · 비게임 출시 가이드 기준)
+  - SSR 금지 → 정적 export(`output: "export"`, `trailingSlash`). 토스 빌드에서는 `cacheComponents`/`partialPrefetching`을 꺼요(정적 export와 함께 쓸 수 없음). manifest는 `public/manifest.webmanifest` 정적 파일로 바꿨어요.
+  - 로그인은 토스 로그인만 → 카카오 로그인·친구(`/friends`), 서버 백업(HealthSync·동의 카드)을 토스 빌드에서 뺐어요.
+  - 자사 사이트로 가는 공유 링크 금지 → 엽서·구경 링크(`/share`, `/visit`)와 진입 버튼을 뺐어요(`NotInToss`).
+  - 자사 앱 설치 유도 금지 → PWA 서비스워커·‘홈 화면에 추가’ 안내를 뺐어요.
+  - 토스 뒤로가기와 자체 뒤로가기가 함께 보이면 안 됨 → `SubPage`·진료 요약의 자체 뒤로가기 버튼을 숨겨요.
+  - 확대·축소 끔(viewport), 라이트 모드.
+  - 외부 링크(NHS·ACOG·보건복지부 출처, 109·119 전화)는 `openExternal` → `Device.openURL`.
+- **기록 보존:** 토스 웹뷰의 localStorage가 유지된다는 보장이 없어서, 저장할 때마다 토스 기기 저장소(`Storage`)에도 써 두고(`afterPersist` → `startTossMirror`), 시작할 때 먼저 불러와요(`PlatformGate` → `hydrateFromToss`). 토스 앱 밖(샌드박스·브라우저)에서는 localStorage만 써요.
+- **기록 파일 내보내기**는 토스에서 `File.saveBase64`로 저장. **진료용 요약 PDF**는 토스에서 인쇄가 안 되므로 화면 보기만 (PDF 저장은 다음 단계).
+- 웹 빌드(`npm run build`)는 그대로예요.
