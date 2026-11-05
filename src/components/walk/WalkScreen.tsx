@@ -17,6 +17,8 @@ import { useSelly } from "@/lib/selly-store";
 import { playSfx } from "@/lib/sound/sfx";
 import { unlock } from "@/lib/sound/engine";
 import { pick } from "@/data/sellyDialogues";
+import { missionOfTheDay, type WalkMission } from "@/data/walkMissions";
+import { savePhoto, takePhoto } from "@/lib/walk/photos";
 
 const DURATIONS: { label: string; min: number | null }[] = [
   { label: "5분", min: 5 },
@@ -29,6 +31,12 @@ const fmt = (ms: number) => {
   const s = Math.max(0, Math.round(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
+
+/** a new mission photo record (id from the time it was taken) */
+function newPhoto(mission: string, dataUrl: string) {
+  const at = Date.now();
+  return { id: `${at.toString(36)}-${mission}`, mission, date: toKey(new Date(at)), dataUrl, at };
+}
 
 function rollFinds(minutes: number): FindKind[] {
   const n = Math.max(1, Math.min(5, 1 + Math.floor(minutes / 4)));
@@ -50,6 +58,15 @@ export function WalkScreen() {
   const [line, setLine] = useState<{ id: number; text: string } | null>(null);
   const [summary, setSummary] = useState<{ minutes: number; steps: number | null; finds: FindKind[]; text: string } | null>(null);
   const lineId = useRef(0);
+  // walk mission (optional): today's suggestion, can be swapped or skipped
+  const [missionOffset, setMissionOffset] = useState(0);
+  const [missionOff, setMissionOff] = useState(false);
+  const [mission, setMission] = useState<WalkMission | null>(null);
+  const [missionResult, setMissionResult] = useState<{ found: boolean; photo?: string } | null>(null);
+  const [sheet, setSheet] = useState(false);
+  const [shooting, setShooting] = useState(false);
+  const reminded = useRef(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   const cue = useCallback(() => {
     playSfx("greet");
@@ -72,6 +89,7 @@ export function WalkScreen() {
       if (q === "free") setMinutes(null);
       else if (q && [5, 10, 15].includes(Number(q))) setMinutes(Number(q));
       setFirstTime(!readGame().walkIntroSeen);
+      setMission(missionOfTheDay(toKey(new Date()), currentTimeOfDay() === "night"));
     }, 0);
     return () => {
       clearTimeout(t);
@@ -86,7 +104,65 @@ export function WalkScreen() {
     const access = await s.start(minutes ?? null);
     say(pick(WALK_LINES.start));
     if (access !== "granted") showToast("마음 산책으로 함께 걸을게요 🌿");
+    if (mission && !missionOff) setTimeout(() => say(`${mission.emoji} 오늘의 미션!\n${mission.intro}`, 7000), 4600);
   };
+
+  const shuffleMission = () => {
+    const next = missionOffset + 1;
+    setMissionOffset(next);
+    setMission(missionOfTheDay(toKey(new Date()), time === "night", next));
+    setMissionOff(false);
+  };
+
+  /** A mission is done (found or not — both count). Logged right away, growth once a day. */
+  const completeMission = (found: boolean, photo?: string) => {
+    if (!mission) return;
+    const today = toKey(new Date());
+    setMissionResult({ found, photo });
+    setSheet(false);
+    playSfx("cheer");
+    say(found ? mission.done : mission.notFound ?? mission.done, 5000);
+    const g = readGame();
+    const growth = g.lastMissionGrowth !== today;
+    updateGame((d) => ({
+      missions: [...(d.missions ?? []), { id: mission.id, date: today, found, ...(photo ? { photo } : {}) }].slice(-100),
+      lastMissionGrowth: growth ? today : d.lastMissionGrowth,
+    }));
+    if (growth) {
+      addExp(5);
+      showToast(`${mission.emoji} 미션 완료 · 성장 +5`);
+    } else showToast(`${mission.emoji} 미션 완료`);
+  };
+
+  const shoot = async () => {
+    if (!mission) return;
+    setShooting(true);
+    try {
+      const dataUrl = await takePhoto();
+      if (!dataUrl) return;
+      const photo = newPhoto(mission.id, dataUrl);
+      await savePhoto(photo);
+      const id = photo.id;
+      completeMission(true, id);
+      setPhotoUrl(dataUrl);
+    } catch {
+      showToast("사진을 저장하지 못했어요");
+    } finally {
+      setShooting(false);
+    }
+  };
+
+  // a gentle reminder about halfway (or after 4 min of a free walk), once
+  const activeMission = mission && !missionOff ? mission : null;
+  useEffect(() => {
+    if (s.phase !== "walking" || !activeMission || missionResult || reminded.current) return;
+    const at = s.targetMs ? s.targetMs * 0.45 : 240_000;
+    if (s.elapsed >= at) {
+      reminded.current = true;
+      const t = setTimeout(() => say(`${activeMission.emoji} 미션 기억나?\n${activeMission.title}!`, 5000), 0);
+      return () => clearTimeout(t);
+    }
+  }, [s.phase, s.elapsed, s.targetMs, activeMission, missionResult, say]);
 
   // prompts from the session → Selly's bubble
   useEffect(() => {
@@ -184,6 +260,76 @@ export function WalkScreen() {
         </div>
       )}
 
+      {/* mission chip + sheet */}
+      {s.phase === "walking" && !pocket && activeMission && (
+        <button
+          type="button"
+          onClick={() => setSheet(true)}
+          className="glass absolute bottom-[calc(env(safe-area-inset-bottom)+22px)] left-1/2 z-50 flex h-11 -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full px-4 text-[13.5px] font-bold text-ink-700 active:scale-95"
+        >
+          <span aria-hidden>{activeMission.emoji}</span>
+          {activeMission.title}
+          {missionResult && <span className="ml-0.5 rounded-full bg-sage-500 px-1.5 text-[11px] text-white">완료</span>}
+        </button>
+      )}
+      <AnimatePresence>
+        {sheet && activeMission && (
+          <motion.section
+            role="dialog"
+            aria-label={`산책 미션: ${activeMission.title}`}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            className="absolute inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+20px)] z-[55] rounded-[28px] border border-white/80 bg-[rgba(253,250,243,0.97)] p-5 shadow-[0_20px_50px_-20px_rgba(60,40,20,0.5)]"
+          >
+            <button type="button" aria-label="닫기" onClick={() => setSheet(false)} className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full text-ink-300 active:bg-[#f3ece2]">
+              <X size={17} />
+            </button>
+            <p className="text-center text-[30px]" aria-hidden>
+              {activeMission.emoji}
+            </p>
+            <p className="text-center text-[17px] font-bold text-ink-700">{activeMission.title}</p>
+            <p className="mt-1.5 break-keep text-center text-[13px] leading-relaxed text-ink-500">{activeMission.guide}</p>
+            {missionResult ? (
+              <div className="mt-3 flex flex-col items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {photoUrl && <img src={photoUrl} alt={`${activeMission.title} 사진`} className="max-h-48 rounded-2xl object-cover shadow-sm" />}
+                <p className="text-[13px] font-bold text-sage-700">미션 완료! 🎉</p>
+              </div>
+            ) : activeMission.kind === "photo" ? (
+              <div className="mt-3 flex flex-col gap-1.5">
+                <p className="rounded-2xl bg-[#fff7ea] px-3 py-2 text-center text-[12px] font-bold text-[#8a6224]">걸으면서 찍지 말고, 잠깐 멈춰 서서 찍어요</p>
+                <button
+                  type="button"
+                  disabled={shooting}
+                  onClick={shoot}
+                  className="h-12 rounded-full bg-gradient-to-b from-[#9cc095] to-[#7ea47a] text-[15px] font-bold text-white disabled:opacity-60"
+                >
+                  📷 멈춰서 찍기
+                </button>
+                <button type="button" onClick={() => completeMission(false)} className="text-[12.5px] text-ink-500 underline underline-offset-4">
+                  사진 없이 눈에만 담았어
+                </button>
+                <p className="text-center text-[11px] text-ink-300">사진은 이 기기에만 저장되고, 어디에도 보내지 않아요.</p>
+              </div>
+            ) : activeMission.kind === "find" ? (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => completeMission(true)} className="h-12 rounded-full bg-gradient-to-b from-[#9cc095] to-[#7ea47a] text-[14px] font-bold text-white">
+                  찾았어!
+                </button>
+                <button type="button" onClick={() => completeMission(false)} className="h-12 rounded-full bg-white text-[14px] font-bold text-ink-500 shadow-sm">
+                  오늘은 못 찾았어
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => completeMission(true)} className="mt-3 h-12 w-full rounded-full bg-gradient-to-b from-[#9cc095] to-[#7ea47a] text-[15px] font-bold text-white">
+                다 했어
+              </button>
+            )}
+          </motion.section>
+        )}
+      </AnimatePresence>
+
       {/* intro */}
       <AnimatePresence>
         {s.phase === "intro" && (
@@ -214,6 +360,27 @@ export function WalkScreen() {
                 );
               })}
             </div>
+            {mission && (
+              <div className={`mt-3 rounded-2xl px-4 py-3 ${missionOff ? "bg-white/50" : "bg-[#fff7ea]"}`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-[22px]" aria-hidden>
+                    {mission.emoji}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[11px] font-bold text-[#b0813c]">오늘의 산책 미션</span>
+                    <span className={`block text-[14.5px] font-bold ${missionOff ? "text-ink-300 line-through" : "text-ink-700"}`}>{mission.title}</span>
+                  </span>
+                </div>
+                <div className="mt-2 flex gap-1.5">
+                  <button type="button" onClick={shuffleMission} className="h-8 flex-1 rounded-full bg-white text-[12px] font-bold text-ink-500">
+                    다른 미션
+                  </button>
+                  <button type="button" aria-pressed={missionOff} onClick={() => setMissionOff((o) => !o)} className="h-8 flex-1 rounded-full bg-white text-[12px] font-bold text-ink-500">
+                    {missionOff ? "미션 하기" : "미션 없이 걷기"}
+                  </button>
+                </div>
+              </div>
+            )}
             <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
               휴대폰 움직임으로 걸음을 대략 어림해요(정확한 만보기는 아니에요). 허용하지 않아도 <b className="text-ink-700">마음 산책</b>으로 함께 걸어요.
               {!wake.supported && " 이 기기에서는 화면이 꺼질 수 있지만, 산책 시간은 계속 흘러요."}
@@ -266,6 +433,17 @@ export function WalkScreen() {
               ))}
             </ul>
             <p className="mt-2 text-[11.5px] text-ink-300">발견한 것들은 온실에 놓아둘게요</p>
+            {activeMission && (
+              <div className="mt-3 flex items-center gap-3 rounded-2xl bg-[#fff7ea] px-3 py-2.5 text-left">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {photoUrl ? <img src={photoUrl} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" /> : <span className="text-[26px]">{activeMission.emoji}</span>}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[11px] font-bold text-[#b0813c]">오늘의 미션</span>
+                  <span className="block text-[13.5px] font-bold text-ink-700">{activeMission.title}</span>
+                </span>
+                <span className="shrink-0 text-[12px] font-bold text-ink-500">{missionResult ? (missionResult.found ? "완료 ✓" : "완료 · 다음에 또!") : "다음 산책에서"}</span>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => router.push("/")}
