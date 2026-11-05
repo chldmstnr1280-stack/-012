@@ -464,10 +464,10 @@ python3 scripts/extract-assets.py
 같은 코드에서 웹 버전과 토스 미니앱 버전을 빌드해요. `NEXT_PUBLIC_PLATFORM=toss`이면 토스용이에요 (`src/lib/platform/index.ts`의 `IS_TOSS`).
 
 ```bash
-npm run build:toss   # 정적 export(out/) → dear-selly.ait
+npm run build:toss   # 정적 export(out/) → dearselly.ait
 ```
 
-- **설정:** `apps-in-toss.config.ts` — `appName`은 앱인토스 콘솔에 등록한 앱 이름과 **정확히 같아야** 해요(지금 `dear-selly`). 토스 내비게이션 바(뒤로가기·제목), 라이트 테마, 바운스·당겨서 새로고침 끔.
+- **설정:** `apps-in-toss.config.ts` — `appName`은 앱인토스 콘솔에 등록한 앱 이름과 **정확히 같아야** 해요(지금 `dearselly`, 한 번 등록하면 못 바꿈). 토스 내비게이션 바(뒤로가기·제목), 라이트 테마, 바운스·당겨서 새로고침 끔.
 - **정책 대응** (서비스 오픈 정책 · 비게임 출시 가이드 기준)
   - SSR 금지 → 정적 export(`output: "export"`, `trailingSlash`). 토스 빌드에서는 `cacheComponents`/`partialPrefetching`을 꺼요(정적 export와 함께 쓸 수 없음). manifest는 `public/manifest.webmanifest` 정적 파일로 바꿨어요.
   - 로그인은 토스 로그인만 → 카카오 로그인·친구(`/friends`), 서버 백업(HealthSync·동의 카드)을 토스 빌드에서 뺐어요.
