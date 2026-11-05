@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { SubPage } from "@/components/screens/SubPage";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { analyzeCycle } from "@/lib/cycle";
-import { analysePms, expectedPmsDays, hasSymptomRecord } from "@/lib/pms/analysis";
+import { analysePms, hasSymptomRecord } from "@/lib/pms/analysis";
+import { forecastPms } from "@/lib/pms/forecast";
 import { fromKey, useToday, type DateKey } from "@/lib/date";
 import { useAppData } from "@/lib/data-store";
 import { DemoBanner } from "@/components/report/DemoBanner";
@@ -35,8 +36,8 @@ export function CalendarScreen() {
     [data.symptoms],
   );
   const pmsWindow = useMemo(
-    () => (today ? expectedPmsDays(analysePms(data.periodDays, data.symptoms, today, info.nextStart), info.nextStart) : new Set<DateKey>()),
-    [data.periodDays, data.symptoms, today, info.nextStart],
+    () => (today ? forecastPms(data, info, analysePms(data.periodDays, data.symptoms, today, info.nextStart)).window : new Set<DateKey>()),
+    [data, today, info],
   );
 
   const month: MonthCursor | null = cursor ?? (today ? { year: fromKey(today).getFullYear(), month: fromKey(today).getMonth() } : null);

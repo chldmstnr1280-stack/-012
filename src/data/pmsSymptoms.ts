@@ -54,3 +54,18 @@ export const IMPACT_IDS = IMPACT_ITEMS.map((i) => i.id) as ImpactId[];
 
 export type Score = 0 | 1 | 2 | 3 | 4;
 export const SCORE_LABEL = ["없음", "가벼움", "보통", "심함", "매우 심함"] as const;
+
+/**
+ * When symptoms usually start before a period — the user's own estimate.
+ * `days` is the far end of the range, so a reference window covers it.
+ */
+export const ONSET_OPTIONS = [
+  { id: "d1_2", label: "1~2일 전", days: 2 },
+  { id: "d3_5", label: "3~5일 전", days: 5 },
+  { id: "d6_9", label: "6~9일 전", days: 9 },
+  { id: "d10", label: "10일 이상 전", days: 12 },
+  { id: "unsure", label: "잘 모르겠어", days: null },
+] as const;
+export type OnsetId = (typeof ONSET_OPTIONS)[number]["id"];
+export const ONSET_IDS = ONSET_OPTIONS.map((o) => o.id) as OnsetId[];
+export const onsetDays = (id?: OnsetId | null): number | null => ONSET_OPTIONS.find((o) => o.id === id)?.days ?? null;

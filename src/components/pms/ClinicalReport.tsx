@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, Printer } from "lucide-react";
-import { IMPACT_ITEMS, SYMPTOM_LABEL, type ImpactId, type SymptomId } from "@/data/pmsSymptoms";
+import { IMPACT_ITEMS, ONSET_OPTIONS, SYMPTOM_IDS, SYMPTOM_LABEL, type ImpactId, type SymptomId } from "@/data/pmsSymptoms";
 import { addDays, formatMonthDay, toKey, useToday, type DateKey } from "@/lib/date";
 import { useAppData, type AppData } from "@/lib/data-store";
 import { PRE_DAYS, type CycleMemory } from "@/lib/pms/analysis";
@@ -140,9 +140,11 @@ function Paper({ s, data, today }: { s: ClinicalSummary; data: AppData; today: D
         </div>
       </Section>
 
+      <RecallSection data={data} />
+
       {s.cycles.length ? (
         <>
-          <Section title={`2. 주기별 요약 (최근 ${s.cycles.length}주기)`}>
+          <Section title={`2. 주기별 요약 — 매일 기록 (최근 ${s.cycles.length}주기)`}>
             <table className="w-full border-collapse text-[10.5px]">
               <thead>
                 <tr className="border-b border-[#2c2620] text-left align-bottom">
@@ -293,5 +295,56 @@ function DayTable({ c, s, data }: { c: CycleMemory; s: ClinicalSummary; data: Ap
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** What the user recalled (usual pattern + per-cycle look-backs) — kept apart from daily records. */
+function RecallSection({ data }: { data: AppData }) {
+  const recaps = Object.entries(data.cycleRecaps)
+    .sort(([a], [b]) => (a < b ? 1 : -1))
+    .slice(0, 4);
+  const cols: { key: string; label: string; p: { symptoms: Partial<Record<SymptomId, number>>; onset?: string } }[] = [
+    ...(data.pmsProfile ? [{ key: "profile", label: "평소", p: data.pmsProfile }] : []),
+    ...recaps.map(([k, r]) => ({ key: k, label: `${k} 주기`, p: r })),
+  ];
+  if (!cols.length) return null;
+  const rows = SYMPTOM_IDS.filter((id) => cols.some((c) => (c.p.symptoms[id] ?? 0) >= 1));
+  const onsetLabel = (o?: string) => ONSET_OPTIONS.find((x) => x.id === o)?.label ?? "–";
+  return (
+    <Section title="사용자가 기억해 답한 패턴">
+      <p className="mb-1.5 text-[10px] text-[#6b6157]">
+        ‘평소’는 사용자가 처음에 답한 평소 패턴, ‘○○ 주기’는 그 생리가 시작된 뒤 돌아보며 답한 것입니다. 매일 기록이 아닌 회상 응답입니다.
+      </p>
+      <table className="w-full border-collapse text-[10.5px]">
+        <thead>
+          <tr className="border-b border-[#2c2620] text-left">
+            <th className="py-1 font-bold">항목</th>
+            {cols.map((c) => (
+              <th key={c.key} className="font-bold tabular-nums">
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-b border-[#e6dfd4]">
+            <td className="py-0.5">증상 시작</td>
+            {cols.map((c) => (
+              <td key={c.key}>{onsetLabel(c.p.onset)}</td>
+            ))}
+          </tr>
+          {rows.map((id) => (
+            <tr key={id} className="border-b border-[#e6dfd4]">
+              <td className="py-0.5">{SYMPTOM_LABEL[id]}</td>
+              {cols.map((c) => (
+                <td key={c.key} className="tabular-nums">
+                  {c.p.symptoms[id] ?? "·"}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Section>
   );
 }

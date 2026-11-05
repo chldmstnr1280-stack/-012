@@ -2,6 +2,7 @@ import type { CycleInfo } from "@/lib/cycle";
 import { diffDays, formatMonthDay, type DateKey } from "@/lib/date";
 import { CYCLE_COLORS as C } from "./colors";
 import { CycleContextCard } from "./CycleContextCard";
+import { PmsProfileCard } from "@/components/pms/PmsProfileCard";
 
 function StatTile({ label, value, unit, note }: { label: string; value: string; unit?: string; note?: string }) {
   return (
@@ -91,6 +92,7 @@ export function CycleAnalysis({ info, today }: { info: CycleInfo; today: DateKey
         )}
       </section>
 
+      <PmsProfileCard />
       <CycleContextCard />
 
       <p className="px-2 text-center text-[11.5px] leading-relaxed text-ink-300">

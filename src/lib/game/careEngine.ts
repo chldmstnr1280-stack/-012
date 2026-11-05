@@ -2,7 +2,8 @@ import { analyzeCycle, currentPhase } from "@/lib/cycle";
 import { addDays, type DateKey } from "@/lib/date";
 import type { AppData } from "@/lib/data-store";
 import { pickSuggestion, type CareContext, type PickedSuggestion } from "@/data/careSuggestions";
-import { analysePms, expectedPmsDays, hasSymptomRecord } from "@/lib/pms/analysis";
+import { analysePms, hasSymptomRecord } from "@/lib/pms/analysis";
+import { forecastPms } from "@/lib/pms/forecast";
 import { TAGS } from "@/data/contextTags";
 import type { TimeOfDay } from "./behaviorEngine";
 import { readGame, updateGame } from "./gameStore";
@@ -12,6 +13,7 @@ export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): Pi
   const info = analyzeCycle(data.periodDays, today);
   const pms = analysePms(data.periodDays, data.symptoms, today, info.nextStart);
   const todaySym = data.symptoms[today];
+  const fc = forecastPms(data, info, pms);
   const phase = currentPhase(info, today);
   const soon = !!info.nextStart && info.nextStart > today && info.nextStart <= addDays(today, 2);
   const ctx: CareContext = {
@@ -22,8 +24,9 @@ export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): Pi
     breathedToday: !!data.daily[today]?.done.breath,
     walkedToday: readGame().lastWalkGrowth === today,
     symptoms: hasSymptomRecord(todaySym) ? todaySym : undefined,
-    pmsWindow: expectedPmsDays(pms, info.nextStart).has(today),
-    pastSymptom: pms.repeated[0]?.id,
+    pmsWindow: fc.window.has(today),
+    pastSymptom: fc.symptoms[0]?.id,
+    pmsBasis: fc.symptomSource ?? fc.onsetSource ?? undefined,
     needs: (data.dayTags[today]?.tags ?? []).filter((id) => TAGS[id].dimension === "need" && TAGS[id].action),
   };
   return pickSuggestion(ctx);

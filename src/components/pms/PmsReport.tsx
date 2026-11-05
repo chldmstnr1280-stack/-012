@@ -8,12 +8,15 @@ import { SproutLeafIcon } from "@/components/ui/icons";
 import { Selly } from "@/components/selly/Selly";
 import { SYMPTOM_LABEL, type SymptomId } from "@/data/pmsSymptoms";
 import { analyzeCycle } from "@/lib/cycle";
-import { formatMonthDay, type DateKey } from "@/lib/date";
+import { addDays, formatMonthDay, type DateKey } from "@/lib/date";
 import type { AppData } from "@/lib/data-store";
 import { analysePms, PRE_DAYS, type CycleMemory, type DayCell } from "@/lib/pms/analysis";
 import { sellyPmsLine } from "@/lib/pms/insight";
 import { focusSymptoms, pickCare } from "@/lib/pms/care";
 import { CareCards } from "./CareCards";
+import { ForecastCard } from "./ForecastCard";
+import { forecastPms } from "@/lib/pms/forecast";
+import { groupPeriods } from "@/lib/cycle";
 import { TagReport } from "./TagReport";
 import { compareTags } from "@/lib/pms/tags";
 import { HelpCard } from "./HelpCard";
@@ -34,6 +37,13 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
   const single = p.cycles.length === 1 ? p.cycles[0] : null;
   const care = useMemo(() => pickCare(focusSymptoms(p), p.enough), [p]);
   const tagSummary = useMemo(() => compareTags(data, today), [data, today]);
+  const forecast = useMemo(() => forecastPms(data, info, p), [data, info, p]);
+  // the latest logged period (started in the last 3 weeks) that has neither a look-back nor enough daily records
+  const recapDue = useMemo(() => {
+    const last = groupPeriods(data.periodDays).filter((x) => x.start <= today).pop();
+    if (!last || last.start < addDays(today, -21) || data.cycleRecaps[last.start]) return null;
+    return p.cycles.some((c) => c.start === last.start) ? null : last.start;
+  }, [data.periodDays, data.cycleRecaps, today, p.cycles]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -49,6 +59,8 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
           </p>
         </div>
       </section>
+
+      <ForecastCard f={forecast} today={today} hasProfile={!!data.pmsProfile} recapDue={recapDue} />
 
       {info.irregular && p.cycles.length > 0 && (
         <p className="flex items-start gap-2 rounded-2xl bg-[#fff6e8] px-4 py-3 text-[12.5px] leading-relaxed text-[#7a5a14]">

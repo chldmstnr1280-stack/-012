@@ -54,8 +54,10 @@ export interface CareContext {
    * (≥ 2 analysed cycles; reference only — it never says how they feel today)
    */
   pmsWindow: boolean;
-  /** the symptom recorded most often before past periods, if any */
+  /** the symptom most expected before the next period, if any */
   pastSymptom?: SymptomId;
+  /** where that expectation comes from — Selly says it the way the user told it */
+  pmsBasis?: "records" | "recaps" | "profile";
   /** what the user said they want today (바람 tags that Selly can answer) */
   needs?: ContextTagId[];
 }
@@ -71,10 +73,11 @@ const low = (v?: number) => v != null && v <= 2;
 const high = (v?: number) => v != null && v >= 4;
 /** a symptom the user rated 심함(3) or more today */
 const strong = (c: CareContext, ids: SymptomId[]) => !!c.symptoms && !c.symptoms.none && ids.some((id) => (c.symptoms!.scores[id] ?? 0) >= 3);
-const eul = (w: string) => {
+const hasJong = (w: string) => {
   const ch = w.charCodeAt(w.length - 1);
-  return `${w}${ch >= 0xac00 && ch <= 0xd7a3 && (ch - 0xac00) % 28 ? "을" : "를"}`;
+  return ch >= 0xac00 && ch <= 0xd7a3 && (ch - 0xac00) % 28 !== 0;
 };
+const eul = (w: string) => `${w}${hasJong(w) ? "을" : "를"}`;
 
 export const CARE_RULES: CareRule[] = [
   // PMS symptoms the user rated themselves today (Phase E)
@@ -162,10 +165,12 @@ export const CARE_RULES: CareRule[] = [
     id: "pms-window",
     // only the user's own history: what was recorded around this time before, never a guess about today
     when: (c) => c.pmsWindow && !c.symptoms && c.tod !== "night",
-    line: (c) =>
-      c.pastSymptom
-        ? `지난 주기엔 이맘때\n${eul(SYMPTOM_LABEL[c.pastSymptom])} 기록했었어. 오늘은 어때?`
-        : "지난 주기엔 이맘때\n증상을 기록했었어. 오늘은 어때?",
+    line: (c) => {
+      const what = c.pastSymptom ? SYMPTOM_LABEL[c.pastSymptom] : null;
+      if (c.pmsBasis === "profile") return what ? `평소엔 이맘때쯤\n${what}${hasJong(what) ? "이" : "가"} 있다고 했지. 오늘은 어때?` : "평소엔 이맘때쯤\n몸이 달라진다고 했지. 오늘은 어때?";
+      if (c.pmsBasis === "recaps") return what ? `지난번엔 이맘때\n${what}${hasJong(what) ? "이" : "가"} 있었다고 했지. 오늘은 어때?` : "지난번엔 이맘때\n증상이 있었다고 했지. 오늘은 어때?";
+      return what ? `지난 주기엔 이맘때\n${eul(what)} 기록했었어. 오늘은 어때?` : "지난 주기엔 이맘때\n증상을 기록했었어. 오늘은 어때?";
+    },
     actions: ["record-pms", "walk"],
   },
   {

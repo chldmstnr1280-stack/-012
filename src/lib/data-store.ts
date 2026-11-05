@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import type { DateKey } from "./date";
 import type { Emotion } from "@/data/moodFlowers";
-import type { ImpactId, Score, SymptomId } from "@/data/pmsSymptoms";
+import type { ImpactId, OnsetId, Score, SymptomId } from "@/data/pmsSymptoms";
 import type { ContextTagId } from "@/data/contextTags";
 
 /**
@@ -56,6 +56,23 @@ export interface DayTags {
   updatedAt: number;
 }
 
+/**
+ * The user's own answer to "how is PMS usually for you?" (pre-question).
+ * A self-report used only until the daily records can speak for themselves.
+ */
+export interface PmsProfile {
+  symptoms: Partial<Record<SymptomId, Score>>;
+  onset?: OnsetId;
+  updatedAt: number;
+}
+
+/** Looking back on one cycle ("이번 생리 전엔 어땠어?"), keyed by the logged period start. */
+export interface CycleRecap {
+  symptoms: Partial<Record<SymptomId, Score>>;
+  onset?: OnsetId;
+  updatedAt: number;
+}
+
 /** Optional context that changes how a cycle should be read (never required). */
 export interface CycleContext {
   hormonalContraception?: "yes" | "no" | "unsure";
@@ -76,6 +93,10 @@ export interface AppData {
   cycleContext: CycleContext;
   /** what happened on a day (context tags) */
   dayTags: Record<DateKey, DayTags>;
+  /** usual PMS pattern, as the user described it */
+  pmsProfile?: PmsProfile;
+  /** per-cycle look-back, keyed by period start */
+  cycleRecaps: Record<DateKey, CycleRecap>;
 }
 
 export interface Prefs {
@@ -95,7 +116,7 @@ export interface Prefs {
 }
 
 const KEY = "dear-selly:v1";
-const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, symptoms: {}, cycleContext: {}, dayTags: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
+const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, symptoms: {}, cycleContext: {}, dayTags: {}, cycleRecaps: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
 
 let state: AppData = EMPTY;
 let loaded = false;
@@ -268,6 +289,19 @@ export function setDayTags(date: DateKey, tags: ContextTagId[]) {
     return { ...d, dayTags: next };
   });
   healthListeners.forEach((l) => l({ kind: "context", date, day }));
+}
+
+export function setPmsProfile(p: Omit<PmsProfile, "updatedAt">) {
+  setData((d) => ({ ...d, pmsProfile: { ...p, updatedAt: Date.now() } }));
+}
+
+export function setCycleRecap(start: DateKey, r: Omit<CycleRecap, "updatedAt"> | null) {
+  setData((d) => {
+    const next = { ...d.cycleRecaps };
+    if (r) next[start] = { ...r, updatedAt: Date.now() };
+    else delete next[start];
+    return { ...d, cycleRecaps: next };
+  });
 }
 
 /** Removes a day's symptom record: the day goes back to "not recorded". */

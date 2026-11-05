@@ -200,6 +200,7 @@ function Body({ date, today, info, periodDays, entry, onClose }: { date: DateKey
         )}
       </div>
 
+      {!future && <RecapLink date={date} periodDays={periodDays} />}
       {!future && <PmsDayLine date={date} />}
     </div>
   );
@@ -226,6 +227,23 @@ function PmsDayLine({ date }: { date: DateKey }) {
         })}
       </span>
       <span className="shrink-0 font-bold text-sage-700">{sym || tags.length ? "수정" : "기록"}</span>
+    </Link>
+  );
+}
+
+/** On a logged period start: "이번 생리 전엔 어땠어?" (a look-back for that cycle). */
+function RecapLink({ date, periodDays }: { date: DateKey; periodDays: Set<DateKey> }) {
+  const data = useAppData();
+  const isStart = periodDays.has(date) && !periodDays.has(addDays(date, -1)) && !periodDays.has(addDays(date, -2));
+  if (!isStart) return null;
+  const done = !!data.cycleRecaps[date];
+  return (
+    <Link href={`/pms/recap?start=${date}`} className="mt-2 flex items-center gap-2 rounded-2xl bg-[#fdf3f4] px-4 py-3 text-[12.5px]">
+      <span className="min-w-0 flex-1 text-[#9c3f4d]">
+        <b>{done ? "이번 주기 돌아보기 완료" : "이번 생리 전엔 어땠어?"}</b>
+        <span className="block text-ink-500">{done ? "눌러서 고칠 수 있어요" : "평소 패턴과 달랐던 것만 고르면 돼요"}</span>
+      </span>
+      <span className="shrink-0 font-bold text-[#9c3f4d]">{done ? "수정" : "돌아보기"}</span>
     </Link>
   );
 }

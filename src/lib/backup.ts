@@ -1,6 +1,6 @@
 import { EMOTIONS, type Emotion } from "@/data/moodFlowers";
-import { IMPACT_IDS, SYMPTOM_IDS, type Score } from "@/data/pmsSymptoms";
-import type { DayTags, SymptomDay } from "./data-store";
+import { IMPACT_IDS, ONSET_IDS, SYMPTOM_IDS, type OnsetId, type Score } from "@/data/pmsSymptoms";
+import type { DayTags, PmsProfile, SymptomDay } from "./data-store";
 import { CONTEXT_TAG_IDS, type ContextTagId } from "@/data/contextTags";
 import {
   CONDITION_KEYS,
@@ -83,8 +83,23 @@ function cleanDaily(v: unknown): DailyLog | null {
 
 export type ParsedBackup = Pick<
   AppData,
-  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags"
+  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps"
 >;
+
+/** Validates an untrusted profile / recap: known symptoms 0–4, known onset. */
+export function cleanPattern(v: unknown): PmsProfile | null {
+  if (!isObj(v)) return null;
+  const symptoms: PmsProfile["symptoms"] = {};
+  if (isObj(v.symptoms))
+    for (const id of SYMPTOM_IDS) {
+      const sc = score(v.symptoms[id]);
+      if (sc != null) symptoms[id] = sc;
+    }
+  const onset = ONSET_IDS.includes(v.onset as OnsetId) ? (v.onset as OnsetId) : undefined;
+  if (!Object.keys(symptoms).length && !onset) return null;
+  const at = typeof v.updatedAt === "number" && Number.isFinite(v.updatedAt) ? v.updatedAt : 0;
+  return { symptoms, ...(onset ? { onset } : {}), updatedAt: at };
+}
 
 /** Validates an untrusted day-tags record: known tags only, no duplicates. */
 export function cleanDayTags(v: unknown): DayTags | null {
@@ -175,6 +190,7 @@ export function parseBackup(
     !periodDays.length &&
     !(isObj(raw.symptoms) && Object.keys(raw.symptoms).length) &&
     !(isObj(raw.dayTags) && Object.keys(raw.dayTags).length) &&
+    !isObj(raw.pmsProfile) &&
     progress.level === 1 &&
     progress.exp === 0
   ) {
@@ -196,6 +212,15 @@ export function parseBackup(
       if (d) dayTags[k] = d;
     }
   }
+  const pmsProfile = cleanPattern(raw.pmsProfile) ?? undefined;
+  const cycleRecaps: ParsedBackup["cycleRecaps"] = {};
+  if (isObj(raw.cycleRecaps)) {
+    for (const [k, v] of Object.entries(raw.cycleRecaps)) {
+      if (!isDate(k)) continue;
+      const r = cleanPattern(v);
+      if (r) cycleRecaps[k] = r;
+    }
+  }
   const cycleContext: ParsedBackup["cycleContext"] = {};
   if (
     isObj(raw.cycleContext) &&
@@ -208,7 +233,7 @@ export function parseBackup(
   }
   return {
     ok: true,
-    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags },
+    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps },
   };
 }
 
@@ -241,6 +266,11 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
   const dayTags = { ...cur.dayTags };
   for (const [k, d] of Object.entries(inc.dayTags))
     if (!dayTags[k] || d.updatedAt > dayTags[k].updatedAt) dayTags[k] = d;
+  const cycleRecaps = { ...cur.cycleRecaps };
+  for (const [k, r] of Object.entries(inc.cycleRecaps))
+    if (!cycleRecaps[k] || r.updatedAt > cycleRecaps[k].updatedAt) cycleRecaps[k] = r;
+  const pmsProfile =
+    inc.pmsProfile && (!cur.pmsProfile || inc.pmsProfile.updatedAt > cur.pmsProfile.updatedAt) ? inc.pmsProfile : cur.pmsProfile;
   return {
     ...cur,
     entries,
@@ -249,6 +279,8 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
     daily,
     symptoms,
     dayTags,
+    cycleRecaps,
+    pmsProfile,
     cycleContext: { ...inc.cycleContext, ...cur.cycleContext },
     demo: false,
   };
