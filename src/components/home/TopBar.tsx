@@ -10,14 +10,14 @@ export function TopBar() {
   const { prefs } = useAppData();
   return (
     <header className="flex items-center justify-between px-5">
-      <h1 className="text-glow flex items-baseline font-script text-[38px] leading-none text-white">
+      <h1 className="text-glow flex items-baseline whitespace-nowrap font-script text-[clamp(28px,9.4vw,38px)] leading-none text-white">
         Dear Selly
         <svg viewBox="0 0 24 22" className="ml-1 h-[20px] w-[22px] -translate-y-0.5" aria-hidden>
           <path d="M12 19.5 C 5.5 14.5 2 11.2 2 7.4 C 2 4.6 4.2 2.5 6.9 2.5 C 8.9 2.5 10.9 3.7 12 5.6 C 13.1 3.7 15.1 2.5 17.1 2.5 C 19.8 2.5 22 4.6 22 7.4 C 22 11.2 18.5 14.5 12 19.5Z" fill="none" stroke="white" strokeWidth="1.7" />
         </svg>
         <span className="sr-only">디어셀리</span>
       </h1>
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-0.5">
         <button
           type="button"
           aria-label={prefs.music ? "배경 음악 끄기" : "배경 음악 켜기"}

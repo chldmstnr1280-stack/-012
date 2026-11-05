@@ -23,6 +23,10 @@ interface SellyProps {
   /** Called when the user taps Selly (only in idle mode). */
   onTouch?: () => void;
   className?: string;
+  /** stop the idle float (while walking, sitting or sleeping) */
+  still?: boolean;
+  /** where the eyes look: -1 left … 1 right */
+  look?: number;
 }
 
 const BURST_FOR: Record<SellyReaction, BurstKind> = {
@@ -43,7 +47,7 @@ const BURST_FOR: Record<SellyReaction, BurstKind> = {
  *   breather : idle breathing, or scale driven by the breathing session
  *   svg      : body / leaves / live face
  */
-export function Selly({ mode = "idle", pose, stage, onTouch, className }: SellyProps) {
+export function Selly({ mode = "idle", pose, stage, onTouch, className, still = false, look = 0 }: SellyProps) {
   const { reaction, breath, stage: myStage } = useSelly();
   const shownStage = stage ?? myStage.id;
   const reduce = useReducedMotion();
@@ -160,8 +164,8 @@ export function Selly({ mode = "idle", pose, stage, onTouch, className }: SellyP
 
       <motion.div
         className="absolute inset-0"
-        animate={reduce || breathing ? { y: 0 } : { y: [0, -7, 0] }}
-        transition={reduce || breathing ? { duration: 0.6, ease: "easeOut" } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        animate={reduce || breathing || still ? { y: 0 } : { y: [0, -7, 0] }}
+        transition={reduce || breathing || still ? { duration: 0.6, ease: "easeOut" } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >
         <div className="selly-jumper absolute inset-0" style={{ transformOrigin: "50% 88%" }}>
           <motion.div
@@ -179,7 +183,7 @@ export function Selly({ mode = "idle", pose, stage, onTouch, className }: SellyP
             >
               <SellyDefs />
               <SellyBody leftSpread={leftSpread} rightSpread={rightSpread} perk={perk} glow={glow} stage={shownStage} />
-              <SellyFace expression={shownExpression} blink={blink} layout={sellyArt?.face ?? VECTOR_FACE} />
+              <SellyFace expression={shownExpression} blink={blink} layout={sellyArt?.face ?? VECTOR_FACE} look={look} />
             </svg>
           </motion.div>
         </div>

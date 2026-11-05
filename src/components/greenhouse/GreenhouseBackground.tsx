@@ -7,7 +7,16 @@ import { DustMotes } from "./DustMotes";
  * depth plane can later be swapped for bitmap art or a Three.js scene.
  * If `greenhouseArt` is set, the painted background is used instead of the vector layers.
  */
-export function GreenhouseBackground({ dim = false, anchor = "bottom" }: { dim?: boolean; anchor?: "top" | "bottom" }) {
+export function GreenhouseBackground({
+  dim = false,
+  anchor = "bottom",
+  placement,
+}: {
+  dim?: boolean;
+  anchor?: "top" | "bottom";
+  /** exact placement of the painted image (world layout on the home screen) */
+  placement?: { s: number; ox: number; oy: number };
+}) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       {greenhouseArt ? (
@@ -17,8 +26,12 @@ export function GreenhouseBackground({ dim = false, anchor = "bottom" }: { dim?:
           alt=""
           decoding="async"
           fetchPriority="high"
-          className="absolute inset-0 h-full w-full object-cover"
-          style={{ objectPosition: anchor === "top" ? "50% 0%" : "50% 100%" }}
+          className={placement ? "absolute max-w-none" : "absolute inset-0 h-full w-full object-cover"}
+          style={
+            placement
+              ? { left: placement.ox, top: placement.oy, width: 1086 * placement.s, height: 1301 * placement.s }
+              : { objectPosition: anchor === "top" ? "50% 0%" : "50% 100%" }
+          }
         />
       ) : (
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 390 844" preserveAspectRatio={anchor === "top" ? "xMidYMin slice" : "xMidYMax slice"}>

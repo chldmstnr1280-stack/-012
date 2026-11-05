@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { mulberry32 } from "./svg-kit";
 
 const rnd = mulberry32(2024);
@@ -16,10 +16,9 @@ const MOTES = Array.from({ length: 22 }, (_, i) => ({
 
 /** Slow floating light particles drifting through the sun beams. */
 export function DustMotes() {
-  const reduce = useReducedMotion();
-  if (reduce) return null;
+  // hidden by CSS for reduced motion, so server and client markup always match
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 motion-reduce:hidden">
       {MOTES.map((m) => (
         <motion.span
           key={m.id}

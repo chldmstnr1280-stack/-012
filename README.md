@@ -10,6 +10,7 @@
 - **Phase 4** — 앱으로 설치(PWA): 셀리 아이콘 · 전체 화면 실행 · 오프라인 · 설치 안내, 기록 파일 가져오기
 - **Phase 5** — 호흡하기 고도화: 패턴 4종 · 1/3/5분 · 멈춤 단계 · 소리/진동 신호
 - **Phase 6** — 소리: 배경 음악 "온실 오르골" · 셀리 효과음
+- **Living Greenhouse 2.0 · Phase A** — 살아 있는 셀리: 자율 행동 상태 머신 · 온실 바닥 이동 · 시간대별 행동
 
 ```bash
 npm install
@@ -129,6 +130,30 @@ python3 scripts/extract-assets.py
 - 고친 버그: 호흡 중 셀리가 미세하게 흔들리던 문제(반복 설정이 남아 있던 원인), 세션 종료 직후 완료 문구가 덮이던 문제
 
 ![breathing](docs/phase5-breathing.png)
+
+## 10. Living Greenhouse 2.0 — Phase A: 살아 있는 셀리
+
+사용자가 아무것도 하지 않아도 셀리가 온실에서 스스로 생활해요.
+
+| 파일 | 역할 |
+| --- | --- |
+| `src/data/greenhouseWorld.ts` | 월드 데이터. 좌표는 **배경 그림 픽셀(1086×1301)** 이에요. 볼록 다각형 이동 영역(책 더미·테이블 다리·앞쪽 꽃 회피), 장소(방석·창가·꽃밭·화분·랜턴), 원근 크기 |
+| `src/data/sellyDialogues.ts` | 규칙 기반 대사(인사·터치·돌봄·행동별 혼잣말·부르기·깨우기). 데이터만 추가하면 늘어나요 |
+| `src/lib/game/world.ts` | 화면 ↔ 월드 좌표 변환. 바닥 앞쪽 가장자리를 홈 버튼 바로 위에 맞추는 배치 계산, 이동 영역 보정 |
+| `src/lib/game/behaviorEngine.ts` | 상태(idle · walking · looking_at_flower · watering · sunbathing · sitting · sleeping · greeting · interacting · breathing)와 활동 선택. 시간대별 가중치, 같은 활동 연속 금지 |
+| `src/lib/game/gameStore.ts` | 게임 저장소(**웰니스 기록과 분리**). 지금은 마지막 방문만 저장해요. 오랜만에 와도 반갑게만 인사하고 벌칙은 없어요 |
+| `src/components/selly/useSellyBrain.ts` | 상태 머신. 한 번에 한 활동만 실행해요. 걷기(통통 튀는 걸음, 방향 전환), 떠오르기(호흡), 상호작용 시 즉시 중단했다가 다시 시작 |
+| `src/components/greenhouse/GreenhouseWorld.tsx` | 월드 렌더링. 원근 크기, 따라다니는 말풍선, 잠자기 Zz, 화분 돌보기 물방울, 앉기와 잠들기 자세, 호흡 후광, 바닥 터치로 셀리 부르기 |
+
+- 시간대(기기 현지 시간) 가중치
+  - 아침: 창가 햇볕
+  - 낮: 산책·꽃 구경·화분
+  - 저녁: 방석에 앉기·랜턴
+  - 밤: 잠자기
+- 동작 줄이기 설정: 걸어 다니지 않고 방석에서 앉기·잠자기·바라보기만 해요
+- 향후 3D: 월드 좌표 (x, y)를 3D 바닥 평면 (x, z)로 옮기면 돼요. 행동 엔진과 대사 데이터는 그대로 써요
+
+![living greenhouse](docs/living-greenhouse-phaseA.png)
 
 ## 9. Phase 6 — 소리 (`src/lib/sound/`)
 

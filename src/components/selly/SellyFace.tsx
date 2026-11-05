@@ -12,7 +12,7 @@ const INK = "#5a3a2c";
  * expressions work on top of any body (vector, bitmap or, later, 3D).
  * Features are drawn around (0,0) = midpoint between the eyes, then placed by `layout`.
  */
-export function SellyFace({ expression, blink, layout }: { expression: SellyExpression; blink: boolean; layout: FaceLayout }) {
+export function SellyFace({ expression, blink, layout, look = 0 }: { expression: SellyExpression; blink: boolean; layout: FaceLayout; look?: number }) {
   const happy = expression === "happy" || expression === "love";
   const { cx, eyeY, eyeDx: d, mouthY, scale: s, cheeks } = layout;
   const my = mouthY - eyeY;
@@ -20,7 +20,7 @@ export function SellyFace({ expression, blink, layout }: { expression: SellyExpr
   const eye = (x: number) => `translate(${x} 0) scale(${s})`;
 
   return (
-    <g transform={`translate(${cx} ${eyeY})`}>
+    <motion.g initial={false} animate={{ x: cx + look * 4 * s, y: eyeY }} transition={{ type: "spring", stiffness: 120, damping: 18 }}>
       {/* cheeks: always for the vector body, only a happy flush on top of art that has its own blush */}
       <motion.g
         initial={false}
@@ -86,6 +86,6 @@ export function SellyFace({ expression, blink, layout }: { expression: SellyExpr
           )}
         </motion.g>
       </AnimatePresence>
-    </g>
+    </motion.g>
   );
 }
