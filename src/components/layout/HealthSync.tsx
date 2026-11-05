@@ -12,7 +12,7 @@ export function HealthSync() {
     if (!uid || !syncWanted()) return;
     let alive = true;
     consentState(uid).then((s) => {
-      if (alive && s === "yes") startSync(uid);
+      if (alive && (s === "yes" || s === "partial")) startSync(uid, s === "yes");
     });
     return () => {
       alive = false;

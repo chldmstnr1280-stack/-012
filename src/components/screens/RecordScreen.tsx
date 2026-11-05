@@ -251,7 +251,7 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
         dimension="need"
         value={tags}
         onToggle={toggleTag}
-        hint="원하는 걸 골라 두면, 셀리가 그에 맞춰 함께해 줄게요. 상황·상태·마음·바람은 이 기기에만 저장돼요."
+        hint="원하는 걸 골라 두면, 셀리가 그에 맞춰 함께해 줄게요. 상황·상태·마음·바람은 이 기기에 저장되고, 건강 기록 백업에 동의했을 때만 내 계정에 보관돼요."
       />
 
       <SectionCard icon={<SneakerIcon />} title="활동">

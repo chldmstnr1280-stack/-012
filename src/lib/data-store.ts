@@ -50,7 +50,7 @@ export interface SymptomDay {
   updatedAt: number;
 }
 
-/** Context tags for one day ("오늘의 상황"). Device + backup file only; never synced to the server. */
+/** Day context (상황 · 상태 · 마음 · 바람). Device + backup file; on the server only with the consent version that covers it. */
 export interface DayTags {
   tags: ContextTagId[];
   updatedAt: number;
@@ -236,7 +236,12 @@ export function addSteps(date: DateKey, steps: number) {
 
 /* ---------- PMS records (Phase A) ---------- */
 
-type HealthListener = (change: { kind: "symptoms"; date: DateKey; day: SymptomDay | null } | { kind: "period"; days: DateKey[]; on: boolean }) => void;
+type HealthListener = (
+  change:
+    | { kind: "symptoms"; date: DateKey; day: SymptomDay | null }
+    | { kind: "period"; days: DateKey[]; on: boolean }
+    | { kind: "context"; date: DateKey; day: DayTags | null },
+) => void;
 const healthListeners = new Set<HealthListener>();
 /** Lets the optional server sync follow record changes (nothing listens unless the user opted in). */
 export function onHealthChange(l: HealthListener) {
@@ -252,12 +257,17 @@ export function saveSymptoms(date: DateKey, day: Omit<SymptomDay, "updatedAt">) 
 
 /** Sets the context tags of a day; an empty list removes the day. */
 export function setDayTags(date: DateKey, tags: ContextTagId[]) {
+  const prev = getData().dayTags[date];
+  if (!prev && !tags.length) return;
+  if (prev && prev.tags.length === tags.length && prev.tags.every((t) => tags.includes(t))) return; // unchanged
+  const day: DayTags | null = tags.length ? { tags, updatedAt: Date.now() } : null;
   setData((d) => {
     const next = { ...d.dayTags };
-    if (tags.length) next[date] = { tags, updatedAt: Date.now() };
+    if (day) next[date] = day;
     else delete next[date];
     return { ...d, dayTags: next };
   });
+  healthListeners.forEach((l) => l({ kind: "context", date, day }));
 }
 
 /** Removes a day's symptom record: the day goes back to "not recorded". */

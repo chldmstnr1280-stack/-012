@@ -111,7 +111,7 @@ export function ContextTagPicker({ date }: { date: DateKey }) {
     <SectionCard icon={<SproutLeafIcon />} title="오늘의 상황" aside={<span className="text-[11px] text-ink-300">선택 · 여러 개 가능</span>}>
       <TagChips dimension="situation" groups={["event", "habit"]} value={on} onToggle={toggle} />
       <p className="mt-2.5 text-[11px] leading-relaxed text-ink-300">
-        ‘하루 기록’의 상황과 같은 기록이에요. 리포트에서 상황이 있던 날과 없던 날의 증상을 나란히 보여 줘요. 이 기기와 백업 파일에만 저장되고, 서버로 보내지 않아요.
+        ‘하루 기록’의 상황과 같은 기록이에요. 리포트에서 상황이 있던 날과 없던 날의 증상을 나란히 보여 줘요. 건강 기록 백업에 동의한 경우에만 내 계정에 보관돼요.
       </p>
     </SectionCard>
   );
