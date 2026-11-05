@@ -31,9 +31,11 @@ export interface GameData {
   lastWalkGrowth: string | null;
   /** greenhouse decorations: slot id → item id */
   deco: Record<string, string>;
+  /** which care suggestions were shown ("date:opaque-id"), so Selly doesn't repeat herself */
+  careShown: string[];
 }
 
-const EMPTY: GameData = { version: 1, lastVisit: null, finds: [], pendingReturn: null, walkIntroSeen: false, lastWalkGrowth: null, deco: {} };
+const EMPTY: GameData = { version: 1, lastVisit: null, finds: [], pendingReturn: null, walkIntroSeen: false, lastWalkGrowth: null, deco: {}, careShown: [] };
 
 export function readGame(): GameData {
   return read();

@@ -22,6 +22,11 @@ import { WalkInvite } from "./WalkInvite";
 import { SellyMenu, type SellyMenuAction } from "./SellyMenu";
 import { SellyTalk } from "@/components/talk/SellyTalk";
 import { DecorateTray } from "./DecorateTray";
+import { CareSuggestion } from "./CareSuggestion";
+import { markShown, shouldShow, suggestionFor } from "@/lib/game/careEngine";
+import type { CareAction, CareRule } from "@/data/careSuggestions";
+import { getData, setPrefs } from "@/lib/data-store";
+import { currentTimeOfDay } from "@/lib/game/ambience";
 import { playSfx } from "@/lib/sound/sfx";
 import type { TalkAction } from "@/data/sellyConversations";
 import { CARE_LINES, TOUCH_LINES } from "@/data/sellyDialogues";
@@ -31,7 +36,7 @@ import { SpeechBubble } from "./SpeechBubble";
 import { ActionDock } from "./ActionDock";
 import { CareSheet } from "./CareSheet";
 
-type Mode = "home" | "breathing" | "talk" | "decorate";
+type Mode = "home" | "breathing" | "talk" | "decorate" | "quiet";
 
 export function HomeScreen() {
   const { react, completeTask, touchExp, setImmersive, showToast, breath } = useSelly();
@@ -61,6 +66,8 @@ export function HomeScreen() {
   const [petals, setPetals] = useState(false);
   const [deco, setDeco] = useState<Record<string, string>>({});
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [suggestion, setSuggestion] = useState<CareRule | null>(null);
+  const careChecked = useRef(false);
   const haloScale = useTransform(breath, [0, 1], [0.82, 1.12]);
   const haloOpacity = useTransform(breath, [0, 1], [0.45, 0.95]);
 
@@ -144,6 +151,55 @@ export function HomeScreen() {
   const saveDeco = (next: Record<string, string>) => {
     setDeco(next);
     updateGame(() => ({ deco: next }));
+  };
+
+  // Selly's suggestion for today: once, a little after she has said hello
+  useEffect(() => {
+    if (!today || !layout || careChecked.current) return;
+    careChecked.current = true;
+    setTimeout(() => {
+      if (modeRef.current !== "home") return;
+      const rule = suggestionFor(getData(), today, currentTimeOfDay());
+      if (rule && shouldShow(today, rule)) {
+        markShown(today, rule);
+        setSuggestion(rule);
+      }
+    }, 6500);
+  }, [today, layout]);
+
+  // a suggestion never lingers: it slips away if left alone
+  useEffect(() => {
+    if (!suggestion) return;
+    const t = setTimeout(() => setSuggestion(null), 25000);
+    return () => clearTimeout(t);
+  }, [suggestion]);
+
+  /** 조용한 온실: lower the lights, soften the music, Selly rests on the cushion. */
+  const startQuiet = () => {
+    setCareOpen(false);
+    setMenuOpen(false);
+    setMode("quiet");
+    setImmersive(true);
+    brainRef.current.settle("cushion");
+    brainRef.current.say("쉿… 조용히 쉬자 ♡", 3200);
+  };
+  const endQuiet = () => {
+    setMode("home");
+    setImmersive(false);
+    brainRef.current.release();
+  };
+
+  const handleCareAction = (a: CareAction) => {
+    setSuggestion(null);
+    const b = brainRef.current;
+    if (a === "rest") b.rest("응, 같이 쉬자 ♡", 20000);
+    else if (a === "quiet") startQuiet();
+    else if (a.startsWith("breathe")) {
+      setPrefs({ breathPattern: a === "breathe-long" ? "long" : a === "breathe-sleep" ? "478" : "calm", breathMinutes: 1 });
+      startBreathing();
+    } else if (a === "walk") setInviteOpen(true);
+    else if (a === "talk") startTalk();
+    else if (a === "record") router.push("/record");
   };
 
   const startTalk = () => {
@@ -289,7 +345,9 @@ export function HomeScreen() {
   const breathing = mode === "breathing";
   const talking = mode === "talk";
   const decorating = mode === "decorate";
-  const tod = useAmbience();
+  const quiet = mode === "quiet";
+  const ambience = useAmbience();
+  const tod = quiet ? "night" : ambience;
 
   return (
     <main ref={mainRef} className="relative h-full w-full overflow-clip">
@@ -324,7 +382,7 @@ export function HomeScreen() {
         {/* header */}
         <div className="relative h-[124px] shrink-0">
           <AnimatePresence initial={false}>
-            {talking || decorating ? null : !breathing ? (
+            {talking || decorating || quiet ? null : !breathing ? (
               <motion.div key="top" className="absolute inset-0 flex flex-col gap-3" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <TopBar onDecorate={startDecorate} />
                 <LevelCard />
@@ -351,7 +409,7 @@ export function HomeScreen() {
           className={`relative shrink-0 transition-[padding] duration-500 ${breathing ? "pb-[calc(env(safe-area-inset-bottom)+28px)] pt-4" : "pb-[calc(env(safe-area-inset-bottom)+86px)] pt-1"}`}
         >
           <AnimatePresence mode="wait" initial={false}>
-            {talking || decorating ? null : breathing ? (
+            {talking || decorating || quiet ? null : breathing ? (
               <motion.div key="breath" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
                 <BreathingPanel onStop={() => endBreathing(false)} onComplete={(m) => endBreathing(true, m)} onPhase={onPhase} />
               </motion.div>
@@ -367,6 +425,21 @@ export function HomeScreen() {
 
       <SellyMenu open={menuOpen && mode === "home"} onPick={handleMenu} onClose={() => setMenuOpen(false)} />
       <SellyTalk open={talking} onAction={handleTalkAction} onClose={endTalk} />
+      <CareSuggestion rule={mode === "home" && !menuOpen && !inviteOpen ? suggestion : null} onAction={handleCareAction} onDismiss={() => setSuggestion(null)} />
+      <AnimatePresence>
+        {quiet && (
+          <motion.button
+            type="button"
+            onClick={endQuiet}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute left-1/2 top-[calc(env(safe-area-inset-top)+20px)] z-[60] -translate-x-1/2 rounded-full border border-white/30 bg-[rgba(30,32,64,0.55)] px-4 py-2 text-[13px] text-[#e9e4f6] backdrop-blur-md"
+          >
+            🌙 조용한 온실 · 돌아가기
+          </motion.button>
+        )}
+      </AnimatePresence>
       <DecorateTray
         open={decorating}
         slot={activeSlot}
