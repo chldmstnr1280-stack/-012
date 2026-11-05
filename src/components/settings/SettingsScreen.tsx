@@ -14,6 +14,7 @@ import { useSelly } from "@/lib/selly-store";
 import { InstallCard } from "./InstallCard";
 import { ImportBackup } from "./ImportBackup";
 import { SoundCard } from "./SoundCard";
+import { AmbienceCard } from "./AmbienceCard";
 
 export function SettingsScreen() {
   const data = useAppData();
@@ -44,6 +45,8 @@ export function SettingsScreen() {
       <SubPage title="설정">
         <div className="flex flex-col gap-3">
           <InstallCard />
+
+          <AmbienceCard />
 
           <SoundCard />
 
@@ -92,7 +95,7 @@ export function SettingsScreen() {
               <li>· 몸이나 마음이 많이 힘들 때는 가까운 전문가에게 도움을 요청해 주세요.</li>
               <li>· 기기의 &lsquo;동작 줄이기&rsquo; 설정을 켜면 셀리의 움직임도 차분해져요.</li>
             </ul>
-            <p className="mt-3 text-[11px] text-ink-300">버전 0.6.0 · MVP</p>
+            <p className="mt-3 text-[11px] text-ink-300">버전 0.7.0 · MVP</p>
           </SectionCard>
         </div>
       </SubPage>

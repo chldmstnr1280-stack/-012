@@ -57,10 +57,12 @@ export interface Prefs {
   /** Selly's cute sound effects */
   sfx: boolean;
   sfxVolume: number;
+  /** greenhouse mood: follow the device clock, or a fixed time of day */
+  ambience: "auto" | "morning" | "day" | "evening" | "night";
 }
 
 const KEY = "dear-selly:v1";
-const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7 } };
+const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
 
 let state: AppData = EMPTY;
 let loaded = false;

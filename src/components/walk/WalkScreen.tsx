@@ -9,7 +9,7 @@ import { WalkingSelly } from "./WalkingSelly";
 import { useWalkSession } from "@/lib/walk/useWalkSession";
 import { useWakeLock } from "@/lib/walk/wakeLock";
 import { WALK_LINES, type WalkTime } from "@/data/walkingPrompts";
-import { timeOfDay } from "@/lib/game/behaviorEngine";
+import { currentTimeOfDay } from "@/lib/game/ambience";
 import { FIND_KINDS, FIND_LABEL, readGame, updateGame, type FindKind } from "@/lib/game/gameStore";
 import { addSteps } from "@/lib/data-store";
 import { toKey } from "@/lib/date";
@@ -67,7 +67,7 @@ export function WalkScreen() {
   useEffect(() => {
     setImmersive(true);
     const t = setTimeout(() => {
-      setTime(timeOfDay());
+      setTime(currentTimeOfDay());
       const q = new URLSearchParams(window.location.search).get("m");
       if (q === "free") setMinutes(null);
       else if (q && [5, 10, 15].includes(Number(q))) setMinutes(Number(q));

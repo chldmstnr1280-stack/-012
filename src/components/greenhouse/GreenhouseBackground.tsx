@@ -11,11 +11,14 @@ export function GreenhouseBackground({
   dim = false,
   anchor = "bottom",
   placement,
+  tint,
 }: {
   dim?: boolean;
   anchor?: "top" | "bottom";
   /** exact placement of the painted image (world layout on the home screen) */
   placement?: { s: number; ox: number; oy: number };
+  /** simple time-of-day tint (the home screen uses the full TimeLighting instead) */
+  tint?: "morning" | "day" | "evening" | "night";
 }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -48,6 +51,19 @@ export function GreenhouseBackground({
       {/* vignette + readability veils */}
       <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_55%_45%,transparent_55%,rgba(70,54,34,0.5)_100%)]" />
       <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[rgba(70,62,50,0.3)] to-transparent" />
+      {tint && tint !== "day" && (
+        <div
+          className="absolute inset-0 transition-colors duration-1000"
+          style={{
+            background:
+              tint === "night"
+                ? "linear-gradient(180deg, rgba(18,22,58,0.55), rgba(24,26,60,0.42))"
+                : tint === "evening"
+                  ? "linear-gradient(180deg, rgba(102,70,128,0.26), rgba(236,128,96,0.18))"
+                  : "linear-gradient(160deg, rgba(255,222,210,0.24), rgba(206,224,242,0.1))",
+          }}
+        />
+      )}
       <div
         className="absolute inset-0 bg-[#3e3428] transition-opacity duration-1000"
         style={{ opacity: dim ? 0.28 : 0 }}

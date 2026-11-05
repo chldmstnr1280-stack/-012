@@ -11,6 +11,8 @@ import { STAGE_SIZE, type StageId } from "@/lib/growth";
 import { useSelly } from "@/lib/selly-store";
 import { toScreen, toWorld, type WorldLayout } from "@/lib/game/world";
 import { DOOR_RECT } from "@/data/greenhouseWorld";
+import { TimeLighting } from "./TimeLighting";
+import type { TimeOfDay } from "@/lib/game/behaviorEngine";
 import type { FindKind } from "@/lib/game/gameStore";
 import type { SellyState } from "@/lib/game/behaviorEngine";
 
@@ -48,9 +50,11 @@ interface Props {
   finds: FindKind[];
   /** petals drifting down (welcome back from a walk) */
   petals: boolean;
+  /** time-of-day light */
+  tod: TimeOfDay;
 }
 
-export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals }: Props) {
+export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod }: Props) {
   const { body, state, facing, spot } = brain;
   const L = layout;
 
@@ -150,6 +154,7 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
         </motion.div>
       </motion.div>
 
+      <TimeLighting tod={tod} layout={L} selly={[body.x, body.y]} />
       {!breathing && <WorldBubble brain={brain} layout={L} size={size} />}
     </div>
   );

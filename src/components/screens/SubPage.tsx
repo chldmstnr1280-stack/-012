@@ -4,13 +4,15 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { motion } from "motion/react";
 import { GreenhouseBackground } from "@/components/greenhouse/GreenhouseBackground";
+import { useAmbience } from "@/lib/game/ambience";
 
 /** Shared shell for secondary screens: greenhouse roof at the top fading into cream, large centred title. */
 export function SubPage({ title, children }: { title: string; children: React.ReactNode }) {
+  const tod = useAmbience();
   return (
     <main className="relative h-full overflow-clip bg-cream-50">
       <div className="absolute inset-x-0 top-0 h-[300px] overflow-hidden">
-        <GreenhouseBackground anchor="top" />
+        <GreenhouseBackground anchor="top" tint={tod} />
         <div className="absolute inset-0 bg-gradient-to-b from-[rgba(253,251,246,0.1)] via-[rgba(253,251,246,0.6)] to-cream-50" />
       </div>
       <div className="relative z-10 flex h-full flex-col pt-[calc(env(safe-area-inset-top)+10px)]">

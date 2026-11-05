@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motionValue, useReducedMotion, type MotionValue } from "motion/react";
 import { SPOTS, depthScale, type Spot, type WorldPoint } from "@/data/greenhouseWorld";
 import { AMBIENT, CALLED_LINES, GREETINGS, WAKE_LINES, pick } from "@/data/sellyDialogues";
-import { chooseActivity, timeOfDay, type Activity, type ActivityKind, type SellyState } from "@/lib/game/behaviorEngine";
+import { chooseActivity, type Activity, type ActivityKind, type SellyState } from "@/lib/game/behaviorEngine";
+import { currentTimeOfDay } from "@/lib/game/ambience";
 import { clampToFloor, randomFloorPoint, toWorld, type WorldLayout } from "@/lib/game/world";
 import type { VisitKind } from "@/lib/game/gameStore";
 
@@ -143,7 +144,7 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
   const runRef = useRef<(a: Activity) => void>(() => {});
   const next = useCallback(() => {
     if (paused.current) return;
-    const act = chooseActivity(history.current, timeOfDay(), { canMove: !reduce });
+    const act = chooseActivity(history.current, currentTimeOfDay(), { canMove: !reduce });
     history.current = [...history.current.slice(-5), act.kind];
     runRef.current(act);
   }, [reduce]);

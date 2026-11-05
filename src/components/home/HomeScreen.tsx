@@ -14,6 +14,7 @@ import { useAppData } from "@/lib/data-store";
 import type { ObjectId } from "@/data/greenhouseObjects";
 import { computeLayout, type WorldLayout } from "@/lib/game/world";
 import { readGame, registerVisit, updateGame, type FindKind } from "@/lib/game/gameStore";
+import { useAmbience } from "@/lib/game/ambience";
 import { WALK_LINES } from "@/data/walkingPrompts";
 import { WalkInvite } from "./WalkInvite";
 import { SellyMenu, type SellyMenuAction } from "./SellyMenu";
@@ -259,6 +260,7 @@ export function HomeScreen() {
 
   const breathing = mode === "breathing";
   const talking = mode === "talk";
+  const tod = useAmbience();
 
   return (
     <main ref={mainRef} className="relative h-full w-full overflow-clip">
@@ -281,6 +283,7 @@ export function HomeScreen() {
             doorGlow={doorGlow}
             finds={finds}
             petals={petals}
+            tod={tod}
           />
         )}
 
