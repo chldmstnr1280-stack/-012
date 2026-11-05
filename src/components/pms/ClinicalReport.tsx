@@ -6,9 +6,11 @@ import { createPortal } from "react-dom";
 import { ChevronLeft, Printer } from "lucide-react";
 import { IMPACT_ITEMS, ONSET_OPTIONS, SYMPTOM_IDS, SYMPTOM_LABEL, type ImpactId, type SymptomId } from "@/data/pmsSymptoms";
 import { addDays, formatMonthDay, toKey, useToday, type DateKey } from "@/lib/date";
-import { useAppData, type AppData } from "@/lib/data-store";
+import { setConsult, useAppData, type AppData, type Supplement } from "@/lib/data-store";
 import { PRE_DAYS, type CycleMemory } from "@/lib/pms/analysis";
 import { buildClinical, markFor, type ClinicalSummary, type Mark } from "@/lib/pms/clinical";
+import { CONSULT_QUESTIONS, findOverlaps, overlapText } from "@/lib/nutrition/overlap";
+import { NUTRIENT_LABEL, SUPP_TIME_LABEL } from "@/data/nutrition";
 import { IS_TOSS } from "@/lib/platform";
 
 /**
@@ -66,6 +68,7 @@ export function ClinicalReport() {
           ? "토스 앱에서는 PDF 저장을 준비 중이에요. 진료 때 이 화면을 보여 주세요. 이 문서는 이 기기에서만 만들어져요."
           : "인쇄 창에서 ‘PDF로 저장’을 고르면 파일로 저장돼요. 이 문서는 이 기기에서만 만들어져요."}
       </p>
+      <ConsultPicker />
       <article
         className="paper mx-auto mt-3 bg-white p-[28px] text-[11px] leading-snug text-[#2c2620] shadow-[0_10px_30px_-12px_rgba(60,40,20,0.4)]"
         style={{ width: PAPER, zoom, fontFamily: '"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif' }}
@@ -202,6 +205,8 @@ function Paper({ s, data, today }: { s: ClinicalSummary; data: AppData; today: D
           </p>
         </Section>
       )}
+
+      <SupplementSection data={data} today={today} />
 
       <Section title="정리 방법">
         <ul className="list-disc pl-4 text-[10px] leading-relaxed text-[#4a423a]">
@@ -350,6 +355,106 @@ function RecallSection({ data }: { data: AppData }) {
           ))}
         </tbody>
       </table>
+    </Section>
+  );
+}
+
+/** On screen only: pick the questions to bring (saved on the device, printed below). */
+function ConsultPicker() {
+  const data = useAppData();
+  const chosen = new Set(data.consult?.questions ?? []);
+  const [custom, setCustom] = useState(data.consult?.custom ?? "");
+  const save = (questions: string[], c = custom) => setConsult({ questions, custom: c });
+  return (
+    <section id="consult" className="no-print mx-auto mt-3 max-w-[420px] rounded-[22px] bg-[#fdfaf3] px-4 py-3.5 shadow-[0_8px_24px_-14px_rgba(60,40,20,0.5)]">
+      <p className="text-[14px] font-bold text-ink-700">상담 때 물어볼 것 고르기</p>
+      <p className="mt-0.5 text-[11.5px] text-ink-500">고른 질문은 아래 문서의 ‘영양제 · 상담 때 물어볼 것’에 들어가요.</p>
+      <ul className="mt-2 flex flex-col gap-1">
+        {CONSULT_QUESTIONS.map((q) => {
+          const on = chosen.has(q);
+          return (
+            <li key={q}>
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={on}
+                onClick={() => save(on ? [...chosen].filter((x) => x !== q) : [...chosen, q])}
+                className={`flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left text-[12.5px] ${on ? "bg-[#eef5e9] font-bold text-sage-700" : "text-ink-700"}`}
+              >
+                <span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border ${on ? "border-sage-500 bg-sage-500 text-white" : "border-[#cfc4b4]"}`}>{on ? "✓" : ""}</span>
+                {q}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <input
+        value={custom}
+        maxLength={120}
+        onChange={(e) => setCustom(e.target.value)}
+        onBlur={() => save([...chosen], custom)}
+        placeholder="직접 적기 (선택)"
+        className="mt-2 h-10 w-full rounded-xl border border-[#ece4d6] bg-white px-3 text-[12.5px] outline-none focus:border-sage-300"
+      />
+    </section>
+  );
+}
+
+/** Printed: what I take, how often I checked it off lately, overlaps, and my questions. */
+function SupplementSection({ data, today }: { data: AppData; today: DateKey }) {
+  const active = data.supplements.filter((x) => x.active);
+  const questions = [...(data.consult?.questions ?? []), ...(data.consult?.custom ? [data.consult.custom] : [])];
+  if (!active.length && !questions.length) return null;
+  const days = Array.from({ length: 14 }, (_, i) => addDays(today, -i));
+  const rate = (sp: Supplement) => {
+    const slots = sp.times.length ? sp.times : ["morning"];
+    const expected = days.length * slots.length;
+    const taken = days.reduce((a, d) => a + slots.filter((t) => (data.suppLog[d] ?? []).includes(`${sp.id}@${t}`)).length, 0);
+    return `${taken}/${expected}`;
+  };
+  const overlaps = findOverlaps(data.supplements);
+  return (
+    <Section title="영양제 · 상담 때 물어볼 것">
+      {active.length > 0 && (
+        <table className="w-full border-collapse text-[10.5px]">
+          <thead>
+            <tr className="border-b border-[#2c2620] text-left">
+              <th className="py-1 font-bold">이름 (사용자 입력)</th>
+              <th className="font-bold">성분 (사용자 선택)</th>
+              <th className="font-bold">먹는 때</th>
+              <th className="font-bold">최근 14일 체크</th>
+            </tr>
+          </thead>
+          <tbody>
+            {active.map((sp) => (
+              <tr key={sp.id} className="border-b border-[#e6dfd4]">
+                <td className="py-0.5">{sp.name}</td>
+                <td>{sp.nutrients.map((n) => NUTRIENT_LABEL[n]).join(", ") || "–"}</td>
+                <td>{sp.times.map((t) => SUPP_TIME_LABEL[t]).join(", ") || "–"}</td>
+                <td className="tabular-nums">{rate(sp)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {overlaps.length > 0 && (
+        <ul className="mt-1.5 list-disc pl-4 text-[10.5px]">
+          {overlaps.map((o) => (
+            <li key={o.nutrient}>겹치는 성분: {overlapText(o)}</li>
+          ))}
+        </ul>
+      )}
+      {questions.length > 0 && (
+        <>
+          <p className="mt-2 text-[10.5px] font-bold">물어보고 싶은 것</p>
+          <ol className="list-decimal pl-4 text-[10.5px]">
+            {questions.map((q) => (
+              <li key={q}>{q}</li>
+            ))}
+          </ol>
+        </>
+      )}
+      <p className="mt-1 text-[9.5px] text-[#6b6157]">영양제 이름·성분은 사용자가 직접 입력·선택한 것이며, 앱은 영양제를 추천하지 않습니다.</p>
     </Section>
   );
 }

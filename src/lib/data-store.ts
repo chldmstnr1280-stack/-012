@@ -125,6 +125,8 @@ export interface AppData {
   suppLog: Record<DateKey, string[]>;
   /** what I ate (kinds of food per meal) */
   meals: Record<DateKey, MealDay>;
+  /** questions to bring to a pharmacist/doctor (picked from a list, plus one of my own) */
+  consult?: { questions: string[]; custom?: string };
 }
 
 export interface Prefs {
@@ -334,6 +336,10 @@ export function setCycleRecap(start: DateKey, r: Omit<CycleRecap, "updatedAt"> |
     else delete next[start];
     return { ...d, cycleRecaps: next };
   });
+}
+
+export function setConsult(c: { questions: string[]; custom?: string }) {
+  setData((d) => ({ ...d, consult: { questions: c.questions, ...(c.custom?.trim() ? { custom: c.custom.trim().slice(0, 120) } : {}) } }));
 }
 
 /** Sets one meal (null clears it); an empty day is removed. */

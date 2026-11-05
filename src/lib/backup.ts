@@ -2,6 +2,7 @@ import { EMOTIONS, type Emotion } from "@/data/moodFlowers";
 import { IMPACT_IDS, ONSET_IDS, SYMPTOM_IDS, type OnsetId, type Score } from "@/data/pmsSymptoms";
 import type { DayTags, MealDay, PmsProfile, Supplement, SymptomDay } from "./data-store";
 import { FOOD_IDS, MEAL_SLOT_IDS, type FoodId } from "@/data/foods";
+import { CONSULT_QUESTIONS } from "@/lib/nutrition/overlap";
 import { NUTRIENT_IDS, SUPP_TIME_IDS, type NutrientId, type SuppTime } from "@/data/nutrition";
 import { CONTEXT_TAG_IDS, type ContextTagId } from "@/data/contextTags";
 import {
@@ -85,7 +86,7 @@ function cleanDaily(v: unknown): DailyLog | null {
 
 export type ParsedBackup = Pick<
   AppData,
-  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals"
+  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals" | "consult"
 >;
 
 /** Validates an untrusted meal day: known slots and food ids only. */
@@ -263,6 +264,12 @@ export function parseBackup(
       const m = cleanMealDay(v);
       if (m) meals[k] = m;
     }
+  let consult: ParsedBackup["consult"];
+  if (isObj(raw.consult) && Array.isArray(raw.consult.questions)) {
+    const questions = raw.consult.questions.filter((q): q is string => (CONSULT_QUESTIONS as readonly string[]).includes(q as string));
+    const custom = typeof raw.consult.custom === "string" ? raw.consult.custom.trim().slice(0, 120) : "";
+    if (questions.length || custom) consult = { questions, ...(custom ? { custom } : {}) };
+  }
   const pmsProfile = cleanPattern(raw.pmsProfile) ?? undefined;
   const cycleRecaps: ParsedBackup["cycleRecaps"] = {};
   if (isObj(raw.cycleRecaps)) {
@@ -284,7 +291,7 @@ export function parseBackup(
   }
   return {
     ok: true,
-    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals },
+    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals, consult },
   };
 }
 
@@ -343,6 +350,7 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
     supplements,
     suppLog,
     meals,
+    consult: cur.consult ?? inc.consult,
     cycleContext: { ...inc.cycleContext, ...cur.cycleContext },
     demo: false,
   };

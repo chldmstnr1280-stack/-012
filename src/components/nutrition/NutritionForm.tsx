@@ -12,6 +12,8 @@ import type { DateKey } from "@/lib/date";
 import { useSelly } from "@/lib/selly-store";
 import { playSfx } from "@/lib/sound/sfx";
 import { MealCard } from "./MealCard";
+import Link from "next/link";
+import { findOverlaps, overlapText } from "@/lib/nutrition/overlap";
 
 /**
  * 물·영양제 — a quick daily check-in. Records only: the app never suggests a
@@ -27,6 +29,7 @@ export function NutritionForm({ date, isFuture }: { date: DateKey; isFuture: boo
   if (isFuture) return <p className="glass rounded-[22px] p-5 text-center text-[13px] text-ink-500">아직 오지 않은 날이에요.</p>;
 
   const active = data.supplements.filter((s) => s.active);
+  const overlaps = findOverlaps(data.supplements);
   // what was taken that day, including supplements stopped since
   const taken = new Set(data.suppLog[date] ?? []);
   const slots = SUPP_TIMES.map((t) => ({ ...t, items: active.filter((s) => s.times.includes(t.id) || (t.id === "morning" && !s.times.length)) })).filter((t) => t.items.length);
@@ -147,6 +150,24 @@ export function NutritionForm({ date, isFuture }: { date: DateKey; isFuture: boo
             <Plus size={13} /> 영양제 추가
           </button>
         </div>
+        {overlaps.length > 0 && (
+          <div className="mt-3 rounded-2xl border border-[#f0dcc0] bg-[#fff8ec] px-3.5 py-3">
+            <p className="text-[12.5px] font-bold text-[#8a6224]">겹치는 성분이 있어요</p>
+            <ul className="mt-1 flex flex-col gap-1 text-[12px] leading-relaxed text-ink-700">
+              {overlaps.map((o) => (
+                <li key={o.nutrient} className="break-keep">
+                  · {overlapText(o)}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1.5 text-[11.5px] text-ink-500">함께 먹어도 되는지는 약사나 의사에게 확인해 보세요.</p>
+          </div>
+        )}
+        {active.length > 0 && (
+          <Link href="/report/clinical#consult" className="mt-2.5 flex h-10 items-center justify-center rounded-full bg-sage-50 text-[13px] font-bold text-sage-700">
+            약사·의사 상담 준비하기 →
+          </Link>
+        )}
         <p className="mt-2.5 break-keep text-center text-[11px] leading-relaxed text-ink-300">
           셀리는 영양제를 추천하지 않아요. 새로 먹거나 바꿀 땐, 특히 다른 약을 먹고 있다면 의사·약사와 먼저 상의해요.
         </p>
