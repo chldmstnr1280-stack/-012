@@ -33,6 +33,8 @@ export interface GameData {
   deco: Record<string, string>;
   /** which care suggestions were shown ("date:opaque-id"), so Selly doesn't repeat herself */
   careShown: string[];
+  /** let friends see mood flowers in my greenhouse (off by default) */
+  shareFlowers?: boolean;
 }
 
 const EMPTY: GameData = { version: 1, lastVisit: null, finds: [], pendingReturn: null, walkIntroSeen: false, lastWalkGrowth: null, deco: {}, careShown: [] };

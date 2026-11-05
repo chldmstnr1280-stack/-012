@@ -14,7 +14,7 @@ let client: SupabaseClient | null = null;
 
 export function supabase(): SupabaseClient {
   client ??= createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "dear-selly:auth" },
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce", storageKey: "dear-selly:auth" },
   });
   return client;
 }

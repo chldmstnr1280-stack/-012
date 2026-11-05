@@ -22,6 +22,9 @@ import { WalkInvite } from "./WalkInvite";
 import { SellyMenu, type SellyMenuAction } from "./SellyMenu";
 import { SellyTalk } from "@/components/talk/SellyTalk";
 import { DecorateTray } from "./DecorateTray";
+import { useSession } from "@/lib/social/useAuth";
+import { markSeen, unseenGifts } from "@/lib/social/api";
+import { GIFT_INFO, GIFT_MESSAGES } from "@/data/gifts";
 import { CareSuggestion } from "./CareSuggestion";
 import { markShown, shouldShow, suggestionFor } from "@/lib/game/careEngine";
 import type { CareAction, CareRule } from "@/data/careSuggestions";
@@ -37,6 +40,13 @@ import { ActionDock } from "./ActionDock";
 import { CareSheet } from "./CareSheet";
 
 type Mode = "home" | "breathing" | "talk" | "decorate" | "quiet";
+
+/** 가/이 after a Korean name (이 after a final consonant). */
+function josa(name: string) {
+  const c = name.charCodeAt(name.length - 1);
+  if (c < 0xac00 || c > 0xd7a3) return "가";
+  return (c - 0xac00) % 28 ? "이" : "가";
+}
 
 export function HomeScreen() {
   const { react, completeTask, touchExp, setImmersive, showToast, breath } = useSelly();
@@ -68,6 +78,8 @@ export function HomeScreen() {
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<CareRule | null>(null);
   const careChecked = useRef(false);
+  const session = useSession();
+  const giftsChecked = useRef(false);
   const haloScale = useTransform(breath, [0, 1], [0.82, 1.12]);
   const haloOpacity = useTransform(breath, [0, 1], [0.45, 0.95]);
 
@@ -166,6 +178,32 @@ export function HomeScreen() {
       }
     }, 6500);
   }, [today, layout]);
+
+  // Gifts from friends: Selly tells you who came by; seeds, petals and fireflies stay in the greenhouse
+  useEffect(() => {
+    const uid = session?.user.id;
+    if (!uid || !layout || giftsChecked.current) return;
+    giftsChecked.current = true;
+    (async () => {
+      const gifts = await unseenGifts(uid).catch(() => []);
+      if (!gifts.length) return;
+      await markSeen(gifts.map((g) => g.id)).catch(() => {});
+      const finds = gifts.map((g) => GIFT_INFO[g.kind]?.find).filter((f): f is FindKind => !!f);
+      if (finds.length) {
+        updateGame((d) => ({ finds: [...d.finds, ...finds].slice(-60) }));
+        setFinds((f) => [...f, ...finds].slice(-60));
+      }
+      gifts.slice(0, 3).forEach((g, i) => {
+        setTimeout(() => {
+          if (modeRef.current !== "home") return;
+          const name = g.sender?.nickname ?? "친구";
+          brainRef.current.say(`${name}${josa(name)} ${GIFT_INFO[g.kind].done}!\n“${GIFT_MESSAGES[g.message] ?? ""}”`, 5200);
+          react(g.kind === "water" ? "water" : g.kind === "hug" ? "pat" : "cheer");
+        }, 3500 + i * 6000);
+      });
+      if (gifts.length > 3) setTimeout(() => showToast(`친구들이 선물을 ${gifts.length}개 보냈어요 🎁`), 3500 + 3 * 6000);
+    })();
+  }, [session, layout, react, showToast]);
 
   // a suggestion never lingers: it slips away if left alone
   useEffect(() => {
