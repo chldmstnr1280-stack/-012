@@ -390,3 +390,16 @@ python3 scripts/extract-assets.py
 - 셀리 한마디: `src/lib/pms/insight.ts` (무엇이 기록됐는지만 말하고 원인은 말하지 않아요)
 - 화면: `src/components/pms/PmsReport.tsx` (주기별 증상 흐름 · 반복 증상 표 · 생활 영향/시작 후 변화 · 안내 문구), 색은 `src/components/pms/colors.ts`
 - 캘린더: 증상을 기록한 날에 점수 색 점, 2주기 이상이면 ‘PMS 예상(참고)’ 칸 표시. 주기가 불규칙하면 비교가 덜 정확하다고 알려요.
+
+## 21. 근거 기반 관리 카드 (Phase C)
+
+리포트 › PMS 탭 아래 **‘도움이 될 수 있는 방법’** 카드. 내 기록에 자주 나온 증상을 출처가 직접 언급한 카드가 먼저 보여요(순서만 바뀌고, 모든 카드는 그대로 볼 수 있어요).
+
+- 내용: `src/data/careEvidence.ts` — 출처는 두 곳뿐이에요.
+  - NHS “PMS (premenstrual syndrome)” (기관 검토 2024-06-18)
+  - ACOG FAQ057 “Premenstrual Syndrome (PMS)” (기관 검토 2025-11)
+  - 각 카드에 원문 인용(`quote`)을 함께 저장하고, 화면의 ‘출처 보기’에서 링크와 함께 보여줘요. 출처에 없는 내용은 넣지 않았어요.
+  - 약·영양제 **용량은 앱에 쓰지 않아요** (ACOG 원문에 칼슘 용량이 있지만 제외). 대신 ‘먼저 상담하기’ 카드로 안내해요.
+  - 모든 카드는 `review: "pending"` → 화면에 ‘전문가 검토 전’ 표시. **공개 전 한국 의료 전문가 검토 필요** (번역·표현·선택).
+- 순서 로직: `src/lib/pms/care.ts` (`focusSymptoms`, `pickCare`). 분석할 주기가 2개 미만이면 ‘증상 기록 이어 가기’가 먼저 와요.
+- 화면: `src/components/pms/CareCards.tsx` — 펼치기, 앱 안에서 해 보기(산책 `/walk`, 호흡 `/?do=breathe`, 기록), ‘이럴 땐 진료를 고려해 보세요’ 상자.

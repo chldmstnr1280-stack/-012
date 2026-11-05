@@ -12,6 +12,8 @@ import { formatMonthDay, type DateKey } from "@/lib/date";
 import type { AppData } from "@/lib/data-store";
 import { analysePms, PRE_DAYS, type CycleMemory, type DayCell } from "@/lib/pms/analysis";
 import { sellyPmsLine } from "@/lib/pms/insight";
+import { focusSymptoms, pickCare } from "@/lib/pms/care";
+import { CareCards } from "./CareCards";
 import { INTENSITY_FILL, INTENSITY_INK, MISSING_EDGE } from "./colors";
 
 /**
@@ -24,6 +26,7 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
   const anyRecords = Object.keys(data.symptoms).length > 0;
   const chrono = [...p.cycles].reverse(); // oldest → newest for comparisons
   const single = p.cycles.length === 1 ? p.cycles[0] : null;
+  const care = useMemo(() => pickCare(focusSymptoms(p), p.enough), [p]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -87,6 +90,8 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
           </p>
         </SectionCard>
       )}
+
+      <CareCards picks={care} />
 
       <Link
         href="/record?tab=pms"
