@@ -3,6 +3,7 @@
 import { BottomNav } from "./BottomNav";
 import { Toast } from "@/components/ui/Toast";
 import { LevelUpOverlay } from "@/components/growth/LevelUpOverlay";
+import { SoundInit } from "./SoundInit";
 
 /**
  * Mobile-first shell. On phones it fills the viewport; on larger screens the
@@ -20,6 +21,7 @@ export function MobileFrame({ children }: { children: React.ReactNode }) {
         <BottomNav />
         <Toast />
         <LevelUpOverlay />
+        <SoundInit />
       </div>
     </div>
   );

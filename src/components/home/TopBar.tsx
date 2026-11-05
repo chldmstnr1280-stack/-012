@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Settings } from "lucide-react";
+import { Bell, Music2, Settings } from "lucide-react";
+import { setPrefs, useAppData } from "@/lib/data-store";
 import { useSelly } from "@/lib/selly-store";
 
 export function TopBar() {
   const { showToast } = useSelly();
+  const { prefs } = useAppData();
   return (
     <header className="flex items-center justify-between px-5">
       <h1 className="text-glow flex items-baseline font-script text-[38px] leading-none text-white">
@@ -16,6 +18,19 @@ export function TopBar() {
         <span className="sr-only">디어셀리</span>
       </h1>
       <div className="flex items-center gap-1">
+        <button
+          type="button"
+          aria-label={prefs.music ? "배경 음악 끄기" : "배경 음악 켜기"}
+          aria-pressed={prefs.music}
+          onClick={() => {
+            setPrefs({ music: !prefs.music });
+            showToast(prefs.music ? "배경 음악을 껐어요" : "배경 음악을 켰어요 ♪");
+          }}
+          className="relative grid h-11 w-11 place-items-center rounded-full text-white drop-shadow-[0_1px_3px_rgba(90,70,50,0.45)] transition active:scale-90"
+        >
+          <Music2 size={22} strokeWidth={1.9} className={prefs.music ? "" : "opacity-60"} />
+          {!prefs.music && <span aria-hidden className="absolute h-[2px] w-7 rotate-45 rounded-full bg-white" />}
+        </button>
         <IconButton label="알림" onClick={() => showToast("알림 기능은 준비 중이에요")}>
           <Bell size={23} fill="white" strokeWidth={1.6} />
         </IconButton>

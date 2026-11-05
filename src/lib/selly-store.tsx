@@ -5,6 +5,7 @@ import { motionValue, type MotionValue } from "motion/react";
 import { claimDailyBonus, claimTouchExp, getData, markDaily, setProgress, useAppData, type DailyTask } from "./data-store";
 import { EXP_PER_LEVEL, REWARDS, stageFor, type Stage } from "./growth";
 import { toKey } from "./date";
+import { playSfx } from "./sound/sfx";
 
 export type SellyReaction = "touch" | "greet" | "water" | "sun" | "pat" | "cheer";
 
@@ -76,6 +77,7 @@ export function SellyProvider({ children }: { children: React.ReactNode }) {
     }
     setProgress({ level, exp });
     if (level > p.level) {
+      playSfx("levelup");
       const stage = stageFor(level);
       counter.current += 1;
       setLevelUp({ id: counter.current, level, stage, stageChanged: stage.id !== stageFor(p.level).id });
@@ -106,6 +108,7 @@ export function SellyProvider({ children }: { children: React.ReactNode }) {
   }, [addExp]);
 
   const react = useCallback((type: SellyReaction) => {
+    playSfx(type);
     counter.current += 1;
     setReaction({ id: counter.current, type });
   }, []);
