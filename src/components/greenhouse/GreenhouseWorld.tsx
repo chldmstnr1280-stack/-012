@@ -12,6 +12,8 @@ import { useSelly } from "@/lib/selly-store";
 import { toScreen, toWorld, type WorldLayout } from "@/lib/game/world";
 import { DOOR_RECT } from "@/data/greenhouseWorld";
 import { TimeLighting } from "./TimeLighting";
+import { EMOTION_INFO, FLOWER_ASPECT, FLOWER_STAGE_NAMES, flowerArt, type Emotion } from "@/data/moodFlowers";
+import type { PlantedFlower } from "@/lib/garden";
 import type { TimeOfDay } from "@/lib/game/behaviorEngine";
 import type { FindKind } from "@/lib/game/gameStore";
 import type { SellyState } from "@/lib/game/behaviorEngine";
@@ -52,9 +54,11 @@ interface Props {
   petals: boolean;
   /** time-of-day light */
   tod: TimeOfDay;
+  /** the mood garden (flowers planted by recorded feelings) */
+  flowers: PlantedFlower[];
 }
 
-export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod }: Props) {
+export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers }: Props) {
   const { body, state, facing, spot } = brain;
   const L = layout;
 
@@ -94,10 +98,20 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
 
       <Door layout={L} glow={doorGlow} disabled={breathing} onTap={onDoor} />
       <GardenFinds layout={L} finds={finds} />
+      <MoodGarden layout={L} flowers={flowers} />
       {petals && <FallingPetals />}
 
       {OBJECTS.map((o) => (
-        <WorldObject key={o.id} obj={o} layout={L} moodDays={moodDays} disabled={breathing} onTap={() => onObject(o.id)} breathing={breathing} />
+        <WorldObject
+          key={o.id}
+          obj={o}
+          layout={L}
+          moodDays={moodDays}
+          latest={flowers[flowers.length - 1]?.emotion}
+          disabled={breathing}
+          onTap={() => onObject(o.id)}
+          breathing={breathing}
+        />
       ))}
 
       {state === "watering" && spot?.focus && <Droplets at={toScreen(L, spot.focus)} />}
@@ -209,6 +223,7 @@ function WorldObject({
   obj,
   layout,
   moodDays,
+  latest,
   disabled,
   breathing,
   onTap,
@@ -216,20 +231,22 @@ function WorldObject({
   obj: GreenhouseObject;
   layout: WorldLayout;
   moodDays: number;
+  latest?: Emotion;
   disabled: boolean;
   breathing: boolean;
   onTap: () => void;
 }) {
   const [bump, setBump] = useState(0);
   const stage = obj.id === "moodFlower" ? flowerStage(moodDays) : null;
-  const src = stage?.src ?? obj.src;
+  const stageIdx = stage ? FLOWER_STAGE_NAMES.indexOf(stage.name as (typeof FLOWER_STAGE_NAMES)[number]) : -1;
+  const src = stage ? flowerArt(latest ?? "tired", stageIdx) : obj.src;
   const width = stage?.width ?? obj.width;
   const aspect = stage?.aspect ?? obj.aspect;
   const p = toScreen(layout, obj.anchor);
   const w = width * layout.s;
   const h = w * aspect;
   const z = obj.id === "cushion" ? CUSHION_BACK_Z : Math.round(obj.anchor.y);
-  const label = stage ? `${obj.label} (${stage.name}) — ${obj.hint}` : `${obj.label} — ${obj.hint}`;
+  const label = stage ? `${obj.label} (${latest && stageIdx >= 2 ? EMOTION_INFO[latest].flower + " " : ""}${stage.name}) — ${obj.hint}` : `${obj.label} — ${obj.hint}`;
 
   return (
     <>
@@ -476,6 +493,50 @@ function FallingPetals() {
           <path d="M0 -7 C 6 -4 6 4 0 7 C -6 4 -6 -4 0 -7Z" fill={i % 3 ? "#f7c6d2" : "#fde3ea"} />
         </motion.svg>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Flower-bed slots around the mood flower, front-right of the floor (world px).
+ * Newest flowers take the front-most slots; the mood flower itself stands in front.
+ */
+const BED = [
+  { x: 724, y: 990 },
+  { x: 732, y: 948 },
+  { x: 770, y: 952 },
+  { x: 806, y: 946 },
+  { x: 744, y: 906 },
+  { x: 780, y: 902 },
+  { x: 814, y: 908 },
+];
+const BED_WIDTH = [64, 62, 56, 62];
+
+/** The mood garden: one flower per day with a recorded feeling; it never wilts. */
+function MoodGarden({ layout, flowers }: { layout: WorldLayout; flowers: PlantedFlower[] }) {
+  const shown = flowers.slice(-BED.length).reverse(); // newest first → front slots
+  if (!shown.length) return null;
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-label={`기분 정원: 꽃 ${flowers.length}송이`} role="img">
+      {shown.map((f, i) => {
+        const slot = BED[i];
+        const p = toScreen(layout, slot);
+        const w = BED_WIDTH[f.stage] * layout.s;
+        const h = w * FLOWER_ASPECT[f.stage];
+        return (
+          <motion.img
+            key={`${f.date}-${f.stage}`}
+            src={flowerArt(f.emotion, f.stage)}
+            alt=""
+            draggable={false}
+            className="absolute max-w-none select-none"
+            style={{ left: p.x - w / 2, top: p.y - h, width: w, height: h, zIndex: slot.y, originY: 1 }}
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1, rotate: [0, -1.5, 1.5, 0] }}
+            transition={{ scale: { type: "spring", stiffness: 180, damping: 14, delay: i * 0.05 }, opacity: { duration: 0.3 }, rotate: { duration: 6 + (i % 3), repeat: Infinity, ease: "easeInOut" } }}
+          />
+        );
+      })}
     </div>
   );
 }

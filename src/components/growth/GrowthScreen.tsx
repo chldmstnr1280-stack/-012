@@ -12,6 +12,8 @@ import { useAppData, DAILY_TASKS, type DailyTask } from "@/lib/data-store";
 import { useToday } from "@/lib/date";
 import { EXP_PER_LEVEL, REWARDS, STAGES, nextStage } from "@/lib/growth";
 import { greenhouseArt, grassIslandArt } from "@/lib/assets";
+import { EMOTIONS, EMOTION_INFO, flowerArt } from "@/data/moodFlowers";
+import { plantedFlowers } from "@/lib/garden";
 
 const TASKS: Record<DailyTask, { label: string; icon: React.ReactNode; tint: string; href: string }> = {
   record: { label: "오늘의 기록 남기기", icon: <JournalIcon size={24} />, tint: "#f6ecdc", href: "/record" },
@@ -23,12 +25,14 @@ const TASKS: Record<DailyTask, { label: string; icon: React.ReactNode; tint: str
 
 export function GrowthScreen() {
   const { level, exp, stage } = useSelly();
-  const { daily } = useAppData();
+  const appData = useAppData();
+  const { daily } = appData;
   const today = useToday();
   const log = today ? daily[today] : undefined;
   const next = nextStage(level);
   const remaining = next ? (next.minLevel - level) * EXP_PER_LEVEL - exp : 0;
   const doneCount = DAILY_TASKS.filter((t) => log?.done[t]).length;
+  const flowers = today ? plantedFlowers(appData, today) : [];
 
   return (
     <SubPage title="셀리의 성장">
@@ -118,6 +122,42 @@ export function GrowthScreen() {
             )}
           </p>
         </section>
+
+        {/* mood garden */}
+        <SectionCard icon={<SproutLeafIcon />} title="기분 정원" aside={<span className="text-[12px] tabular-nums text-ink-500">꽃 {flowers.length}송이</span>}>
+          {flowers.length ? (
+            <>
+              <ul className="grid grid-cols-5 gap-1 text-center">
+                {EMOTIONS.map((e) => {
+                  const n = flowers.filter((f) => f.emotion === e).length;
+                  return (
+                    <li key={e} className={`flex flex-col items-center rounded-2xl py-1.5 ${n ? "" : "opacity-40"}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={flowerArt(e, 3)} alt="" className="h-11 w-auto" />
+                      <span className="text-[11.5px] text-ink-700">{EMOTION_INFO[e].label}</span>
+                      <span className="text-[12px] font-bold tabular-nums text-ink-700">{n}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="mt-2 text-center text-[12px] text-ink-500">
+                {(() => {
+                  const growing = flowers.filter((f) => f.stage < 3);
+                  return growing.length
+                    ? `${growing.length}송이가 자라는 중이에요 · 물을 주면 조금 더 빨리 자라요`
+                    : "모두 활짝 피었어요 ♡";
+                })()}
+              </p>
+            </>
+          ) : (
+            <p className="py-2 text-center text-[13px] leading-relaxed text-ink-500">
+              기록할 때 <b className="text-ink-700">마음의 색</b>을 고르면
+              <br />
+              온실에 그 색의 꽃이 피어나요.
+            </p>
+          )}
+          <p className="mt-1 text-center text-[11px] text-ink-300">어떤 마음이든 똑같이 예쁜 꽃이에요. 쉬는 날이 있어도 꽃은 시들지 않아요.</p>
+        </SectionCard>
 
         {/* today's care */}
         <SectionCard

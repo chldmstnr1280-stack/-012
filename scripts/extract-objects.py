@@ -132,3 +132,43 @@ for name in ["sit", "sleep"]:  # the side-walking pose does not survive leaf rem
     cols = xs2[ys2 <= t + 6]
     heads[name] = (round(float(cols.mean()) / out.shape[1], 3), round(float(t) / out.shape[0], 3))
     print(f"selly/pose-{name}-bare.png", out.shape[1::-1], "head", heads[name])
+
+# ---------- mood flowers: recolour the white petals (bud & bloom) ----------
+# Petals = pale, low-saturation pixels above the soil; stamens, leaves and soil keep their colour.
+EMOTION_HUES = {  # hue (0-179 OpenCV), saturation, lightness scale
+    "happy": (24, 175, 0.93),
+    "calm": (38, 120, 0.95),
+    "sad": (106, 125, 0.9),
+    "anxious": (134, 105, 0.88),
+}
+for stage in ["bud", "bloom"]:
+    src = np.array(Image.open(os.path.join(OUT, f"flowers/white-{stage}.png")).convert("RGBA"))
+    rgb, al = src[..., :3], src[..., 3]
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV).astype(np.float32)
+    h_img = rgb.shape[0]
+    rows = np.arange(h_img)[:, None]
+    petal = (hsv[..., 1] < 70) & (hsv[..., 2] > 150) & (rows < h_img * 0.62) & (al > 0)
+    # keep leaf highlights green: drop anything near green leaf pixels, then keep only big petal blobs
+    green = ((hsv[..., 0] > 22) & (hsv[..., 0] < 50) & (hsv[..., 1] > 55) & (al > 0)).astype(np.uint8)
+    petal &= cv2.dilate(green, np.ones((3, 3), np.uint8), iterations=4) == 0
+    n, lab, st, _ = cv2.connectedComponentsWithStats(petal.astype(np.uint8))
+    keep = np.zeros_like(petal)
+    for i in range(1, n):
+        if st[i, 4] > 300:
+            keep |= lab == i
+    # grow over the pale outline of the petals (only where the image is drawn)
+    keep = cv2.dilate(keep.astype(np.uint8), np.ones((3, 3), np.uint8), iterations=3).astype(bool) & (al > 0) & (rows < h_img * 0.62)
+    keep &= ~(cv2.dilate(green, np.ones((3, 3), np.uint8), iterations=1).astype(bool))
+    keep &= ~((hsv[..., 0] < 22) & (hsv[..., 1] > 90))  # stamens stay golden
+    petal = cv2.GaussianBlur(keep.astype(np.float32), (0, 0), 0.9)
+    for name, (hue, sat, light) in EMOTION_HUES.items():
+        out = hsv.copy()
+        out[..., 0] = hue
+        # deeper colour in the shaded folds, paler at the highlights
+        shade = np.clip((255 - hsv[..., 2]) / 60, 0, 1)
+        out[..., 1] = sat * (0.8 + 0.3 * shade)
+        out[..., 2] = hsv[..., 2] * (light - 0.06 * shade)
+        rec = cv2.cvtColor(np.clip(out, 0, 255).astype(np.uint8), cv2.COLOR_HSV2RGB).astype(np.float32)
+        mix = (rgb * (1 - petal[..., None]) + rec * petal[..., None]).astype(np.uint8)
+        Image.fromarray(np.dstack([mix, al])).save(os.path.join(OUT, f"flowers/{name}-{stage}.png"), optimize=True)
+    print(f"flowers/*-{stage}.png recoloured")

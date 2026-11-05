@@ -1,3 +1,4 @@
+import { EMOTIONS, type Emotion } from "@/data/moodFlowers";
 import { CONDITION_KEYS, DAILY_TASKS, type AppData, type DailyEntry, type DailyLog, type Level5 } from "./data-store";
 
 /**
@@ -24,9 +25,10 @@ function cleanEntry(v: unknown): DailyEntry | null {
   const steps = Number.isInteger(v.steps) && (v.steps as number) >= 0 && (v.steps as number) <= 200_000 ? (v.steps as number) : undefined;
   const memo = typeof v.memo === "string" && v.memo.trim() ? v.memo.slice(0, 300) : undefined;
   const mood = level5(v.mood);
+  const emotion = typeof v.emotion === "string" && (EMOTIONS as readonly string[]).includes(v.emotion) ? (v.emotion as Emotion) : undefined;
   const updatedAt = typeof v.updatedAt === "number" && Number.isFinite(v.updatedAt) ? v.updatedAt : 0;
-  if (mood == null && !Object.keys(condition).length && steps == null && !memo) return null;
-  return { mood, condition, steps, memo, updatedAt };
+  if (mood == null && emotion == null && !Object.keys(condition).length && steps == null && !memo) return null;
+  return { mood, emotion, condition, steps, memo, updatedAt };
 }
 
 function cleanDaily(v: unknown): DailyLog | null {

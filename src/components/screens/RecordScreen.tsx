@@ -11,6 +11,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { EnergyIcon, FocusIcon, NoteIcon, SleepIcon, SmileIcon, SneakerIcon, SproutLeafIcon, StressIcon } from "@/components/ui/icons";
 import { MoodFace, MOODS } from "@/components/ui/MoodFace";
 import { SubPage } from "./SubPage";
+import { EMOTIONS, EMOTION_INFO, flowerArt, type Emotion } from "@/data/moodFlowers";
 
 const CONDITIONS: Record<ConditionKey, { label: string; icon: React.ReactNode; tint: string; levels: string[] }> = {
   energy: { label: "에너지", icon: <EnergyIcon />, tint: "#fff3d2", levels: ["지쳤어요", "조금 피곤해요", "보통이에요", "괜찮아요", "활기차요"] },
@@ -73,29 +74,32 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
   const [activeCond, setActiveCond] = useState<ConditionKey>("energy");
   const [steps, setSteps] = useState<string>(existing?.steps != null ? String(existing.steps) : "");
   const [memo, setMemo] = useState(existing?.memo ?? "");
+  const [emotion, setEmotion] = useState<Emotion | undefined>(existing?.emotion);
   const { showToast, completeTask, react } = useSelly();
   const router = useRouter();
 
-  const hasAny = mood != null || Object.keys(condition).length > 0 || steps !== "" || memo.trim() !== "";
+  const hasAny = mood != null || emotion != null || Object.keys(condition).length > 0 || steps !== "" || memo.trim() !== "";
 
   const save = () => {
     if (!hasAny) {
       showToast("하나만 골라도 괜찮아요");
       return;
     }
+    const planted = emotion && !existing?.emotion;
     saveEntry(date, {
       mood,
+      emotion,
       condition,
       steps: steps === "" ? undefined : Math.min(200_000, Number(steps)),
       memo: memo.trim() || undefined,
     });
     const exp = isToday ? completeTask("record").exp : 0;
     if (exp) {
-      showToast(`오늘의 기록을 담았어요 · 성장 +${exp}`);
+      showToast(planted ? `정원에 ${EMOTION_INFO[emotion].flower} 씨앗을 심었어요 🌱 · 성장 +${exp}` : `오늘의 기록을 담았어요 · 성장 +${exp}`);
       react("cheer");
       router.push("/");
     } else {
-      showToast(existing ? "기록을 수정했어요" : `${formatShort(date)} 기록을 담았어요`);
+      showToast(planted ? `정원에 ${EMOTION_INFO[emotion].flower} 씨앗을 심었어요 🌱` : existing ? "기록을 수정했어요" : `${formatShort(date)} 기록을 담았어요`);
     }
   };
 
@@ -122,6 +126,32 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
           ))}
         </div>
         <p className="mt-1.5 h-5 text-center text-[13px] text-ink-500">{mood ? MOODS[mood - 1].label : "오늘 마음은 어땠나요?"}</p>
+      </SectionCard>
+
+      <SectionCard icon={<SproutLeafIcon />} title="마음의 색" aside={<span className="text-[11.5px] text-ink-300">고르면 정원에 꽃이 피어요</span>}>
+        <div className="grid grid-cols-5 gap-1" role="radiogroup" aria-label="마음의 색">
+          {EMOTIONS.map((e) => {
+            const on = emotion === e;
+            const info = EMOTION_INFO[e];
+            return (
+              <motion.button
+                key={e}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                aria-label={`${info.label} — ${info.flower}`}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => setEmotion(on ? undefined : e)}
+                className={`flex flex-col items-center gap-1 rounded-2xl pb-1.5 pt-1 transition ${on ? "bg-white shadow-[0_0_0_2px_#b7d4b0,0_6px_14px_-8px_rgba(90,130,85,0.6)]" : ""}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={flowerArt(e, 3)} alt="" className={`h-12 w-auto transition ${on ? "" : "opacity-80"}`} draggable={false} />
+                <span className="text-[12px] text-ink-700">{info.label}</span>
+              </motion.button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-center text-[11.5px] text-ink-500">어떤 마음이든 똑같이 예쁜 꽃으로 자라요</p>
       </SectionCard>
 
       <SectionCard icon={<SproutLeafIcon />} title="컨디션">

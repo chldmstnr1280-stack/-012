@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useTransform } from "motion/react";
 import { ChevronLeft } from "lucide-react";
 import { GreenhouseBackground } from "@/components/greenhouse/GreenhouseBackground";
@@ -15,6 +15,8 @@ import type { ObjectId } from "@/data/greenhouseObjects";
 import { computeLayout, type WorldLayout } from "@/lib/game/world";
 import { readGame, registerVisit, updateGame, type FindKind } from "@/lib/game/gameStore";
 import { useAmbience } from "@/lib/game/ambience";
+import { plantedFlowers } from "@/lib/garden";
+import { useToday } from "@/lib/date";
 import { WALK_LINES } from "@/data/walkingPrompts";
 import { WalkInvite } from "./WalkInvite";
 import { SellyMenu, type SellyMenuAction } from "./SellyMenu";
@@ -41,8 +43,11 @@ export function HomeScreen() {
   const [caption, setCaption] = useState("어떤 호흡으로\n쉬어갈까요?");
   const touchIndex = useRef(0);
   const router = useRouter();
-  const { entries } = useAppData();
-  const moodDays = Object.values(entries).filter((e) => e.mood != null).length;
+  const appData = useAppData();
+  const { entries } = appData;
+  const today = useToday();
+  const flowers = useMemo(() => (today ? plantedFlowers(appData, today) : []), [appData, today]);
+  const moodDays = Object.values(entries).filter((e) => e.mood != null || e.emotion != null).length;
   const pendingAction = useRef<string | null | undefined>(undefined);
   const breathingRef = useRef(false);
   const started = useRef(false);
@@ -284,6 +289,7 @@ export function HomeScreen() {
             finds={finds}
             petals={petals}
             tod={tod}
+            flowers={flowers}
           />
         )}
 

@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { DateKey } from "./date";
+import type { Emotion } from "@/data/moodFlowers";
 
 /**
  * On-device data store (Phase 2). Everything lives in this browser's
@@ -15,6 +16,8 @@ export type ConditionKey = (typeof CONDITION_KEYS)[number];
 
 export interface DailyEntry {
   mood?: Level5;
+  /** a feeling, which plants a flower of its colour in the mood garden */
+  emotion?: Emotion;
   condition: Partial<Record<ConditionKey, Level5>>;
   steps?: number;
   memo?: string;
