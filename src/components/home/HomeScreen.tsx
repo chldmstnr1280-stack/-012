@@ -52,8 +52,14 @@ export function HomeScreen() {
   const { react, completeTask, touchExp, setImmersive, showToast, breath } = useSelly();
   const [mode, setMode] = useState<Mode>("home");
   const modeRef = useRef<Mode>("home");
+  const measureRef = useRef<() => void>(() => {});
   useEffect(() => {
     modeRef.current = mode;
+    // back home: catch up on any resize that happened while breathing/talking (measure skips then)
+    if (mode === "home") {
+      const id = setTimeout(() => measureRef.current(), 450);
+      return () => clearTimeout(id);
+    }
   }, [mode]);
   const [careOpen, setCareOpen] = useState(false);
   /** breathing-mode caption (in the home mode Selly speaks through her own bubble) */
@@ -102,10 +108,26 @@ export function HomeScreen() {
       layoutRef.current = L;
       setLayout(L);
     };
+    measureRef.current = measure;
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(main);
-    return () => ro.disconnect();
+    // the dock can move on its own (fonts, safe area), not only when the page resizes
+    if (dockRef.current) ro.observe(dockRef.current);
+    // Safari's toolbars change the viewport while the page is in the background or bfcache
+    const again = () => requestAnimationFrame(measure);
+    const onVisible = () => document.visibilityState === "visible" && again();
+    window.addEventListener("resize", again);
+    window.visualViewport?.addEventListener("resize", again);
+    window.addEventListener("pageshow", again);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", again);
+      window.visualViewport?.removeEventListener("resize", again);
+      window.removeEventListener("pageshow", again);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const brain = useSellyBrain(layoutRef);
