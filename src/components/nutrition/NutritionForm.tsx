@@ -11,6 +11,7 @@ import { addWater, retireSupplement, saveSupplement, setPrefs, toggleSuppTaken, 
 import type { DateKey } from "@/lib/date";
 import { useSelly } from "@/lib/selly-store";
 import { playSfx } from "@/lib/sound/sfx";
+import { MealCard } from "./MealCard";
 
 /**
  * 물·영양제 — a quick daily check-in. Records only: the app never suggests a
@@ -40,6 +41,8 @@ export function NutritionForm({ date, isFuture }: { date: DateKey; isFuture: boo
 
   return (
     <div className="flex flex-col gap-3">
+      <MealCard date={date} />
+
       {/* water */}
       <SectionCard icon={<SproutLeafIcon />} title="물" aside={<span className="text-[11.5px] tabular-nums text-ink-500">{cups * WATER_CUP_ML} ml</span>}>
         <div className="flex flex-wrap justify-center gap-1" aria-label={`물 ${cups}컵, 목표 ${goal}컵`}>

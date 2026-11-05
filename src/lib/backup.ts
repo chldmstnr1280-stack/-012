@@ -1,6 +1,7 @@
 import { EMOTIONS, type Emotion } from "@/data/moodFlowers";
 import { IMPACT_IDS, ONSET_IDS, SYMPTOM_IDS, type OnsetId, type Score } from "@/data/pmsSymptoms";
-import type { DayTags, PmsProfile, Supplement, SymptomDay } from "./data-store";
+import type { DayTags, MealDay, PmsProfile, Supplement, SymptomDay } from "./data-store";
+import { FOOD_IDS, MEAL_SLOT_IDS, type FoodId } from "@/data/foods";
 import { NUTRIENT_IDS, SUPP_TIME_IDS, type NutrientId, type SuppTime } from "@/data/nutrition";
 import { CONTEXT_TAG_IDS, type ContextTagId } from "@/data/contextTags";
 import {
@@ -84,8 +85,25 @@ function cleanDaily(v: unknown): DailyLog | null {
 
 export type ParsedBackup = Pick<
   AppData,
-  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog"
+  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals"
 >;
+
+/** Validates an untrusted meal day: known slots and food ids only. */
+export function cleanMealDay(v: unknown): MealDay | null {
+  if (!isObj(v)) return null;
+  const out: MealDay = { updatedAt: typeof v.updatedAt === "number" && Number.isFinite(v.updatedAt) ? v.updatedAt : 0 };
+  let any = false;
+  for (const slot of MEAL_SLOT_IDS) {
+    const m = v[slot];
+    if (!isObj(m)) continue;
+    const foods = Array.isArray(m.foods) ? [...new Set(m.foods.filter((f): f is FoodId => FOOD_IDS.includes(f as FoodId)))] : [];
+    if (m.skipped === true) out[slot] = { foods: [], skipped: true };
+    else if (foods.length) out[slot] = { foods };
+    else continue;
+    any = true;
+  }
+  return any ? out : null;
+}
 
 /** Validates an untrusted supplement: short name, known nutrients and times. */
 export function cleanSupplement(v: unknown): Supplement | null {
@@ -204,6 +222,7 @@ export function parseBackup(
     !isObj(raw.pmsProfile) &&
     !(Array.isArray(raw.supplements) && raw.supplements.length) &&
     !(isObj(raw.water) && Object.keys(raw.water).length) &&
+    !(isObj(raw.meals) && Object.keys(raw.meals).length) &&
     progress.level === 1 &&
     progress.exp === 0
   ) {
@@ -237,6 +256,13 @@ export function parseBackup(
       const keys = v.filter((x): x is string => typeof x === "string" && suppIds.has(x.split("@")[0]) && SUPP_TIME_IDS.includes(x.split("@")[1] as SuppTime));
       if (keys.length) suppLog[k] = [...new Set(keys)];
     }
+  const meals: ParsedBackup["meals"] = {};
+  if (isObj(raw.meals))
+    for (const [k, v] of Object.entries(raw.meals)) {
+      if (!isDate(k)) continue;
+      const m = cleanMealDay(v);
+      if (m) meals[k] = m;
+    }
   const pmsProfile = cleanPattern(raw.pmsProfile) ?? undefined;
   const cycleRecaps: ParsedBackup["cycleRecaps"] = {};
   if (isObj(raw.cycleRecaps)) {
@@ -258,7 +284,7 @@ export function parseBackup(
   }
   return {
     ok: true,
-    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog },
+    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals },
   };
 }
 
@@ -299,6 +325,8 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
   const supplements = [...cur.supplements, ...inc.supplements.filter((x) => !cur.supplements.some((c) => c.id === x.id))];
   const suppLog = { ...cur.suppLog };
   for (const [k, v] of Object.entries(inc.suppLog)) suppLog[k] = [...new Set([...(cur.suppLog[k] ?? []), ...v])];
+  const meals = { ...cur.meals };
+  for (const [k, m] of Object.entries(inc.meals)) if (!meals[k] || m.updatedAt > meals[k].updatedAt) meals[k] = m;
   const pmsProfile =
     inc.pmsProfile && (!cur.pmsProfile || inc.pmsProfile.updatedAt > cur.pmsProfile.updatedAt) ? inc.pmsProfile : cur.pmsProfile;
   return {
@@ -314,6 +342,7 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
     water,
     supplements,
     suppLog,
+    meals,
     cycleContext: { ...inc.cycleContext, ...cur.cycleContext },
     demo: false,
   };

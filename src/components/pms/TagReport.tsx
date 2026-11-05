@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SproutLeafIcon } from "@/components/ui/icons";
-import { CONTEXT_TAG_LABEL } from "@/data/contextTags";
 import { MIN_DAYS, type TagSummary } from "@/lib/pms/tags";
 
 const DIR = { higher: "더 높았어요", similar: "비슷했어요", lower: "더 낮았어요" } as const;
@@ -25,29 +24,41 @@ export function TagReport({ s }: { s: TagSummary }) {
   const scale = (v: number) => `${(v / 4) * 100}%`;
   return (
     <SectionCard icon={<SproutLeafIcon />} title="상황과 함께 본 증상" aside={<span className="text-[11px] text-ink-300">최근 6개월</span>}>
-      {s.rows.length ? (
-        <ul className="flex flex-col gap-2.5">
-          {s.rows.map((r) => (
-            <li key={r.id} className="rounded-2xl bg-white/60 px-3.5 py-2.5">
-              <p className="flex items-baseline justify-between gap-2 text-[13px]">
-                <b className="text-ink-700">{CONTEXT_TAG_LABEL[r.id]}</b>
-                <span className="text-[11.5px] text-ink-500">이런 날 증상이 {DIR[r.direction]}</span>
-              </p>
-              <Bar label={`있던 날 ${r.taggedDays}일`} value={r.taggedAvg} width={scale(r.taggedAvg)} strong />
-              <Bar label={`다른 날 ${r.otherDays}일`} value={r.otherAvg} width={scale(r.otherAvg)} />
-            </li>
-          ))}
-        </ul>
+      {s.rows.length || s.foods.length ? (
+        <div className="flex flex-col gap-3">
+          {[
+            { title: "상황·상태", rows: s.rows },
+            { title: "먹은 것", rows: s.foods },
+          ]
+            .filter((g) => g.rows.length)
+            .map((g) => (
+              <div key={g.title}>
+                <p className="mb-1.5 text-[12px] font-bold text-ink-500">{g.title}</p>
+                <ul className="flex flex-col gap-2.5">
+                  {g.rows.map((r) => (
+                    <li key={r.id} className="rounded-2xl bg-white/60 px-3.5 py-2.5">
+                      <p className="flex items-baseline justify-between gap-2 text-[13px]">
+                        <b className="text-ink-700">{r.label}</b>
+                        <span className="text-[11.5px] text-ink-500">이런 날 증상이 {DIR[r.direction]}</span>
+                      </p>
+                      <Bar label={`있던 날 ${r.taggedDays}일`} value={r.taggedAvg} width={scale(r.taggedAvg)} strong />
+                      <Bar label={`다른 날 ${r.otherDays}일`} value={r.otherAvg} width={scale(r.otherAvg)} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+        </div>
       ) : (
         <p className="text-[12.5px] text-ink-500">아직 비교할 만큼 모이지 않았어요.</p>
       )}
-      {s.pending.length > 0 && (
+      {s.pending.length + s.foodPending.length > 0 && (
         <p className="mt-2 text-[11.5px] leading-relaxed text-ink-500">
-          조금 더 모이면 볼 수 있어요: {s.pending.map((p) => `${CONTEXT_TAG_LABEL[p.id]} ${p.taggedDays}일`).join(", ")} (각각 {MIN_DAYS}일 이상 필요)
+          조금 더 모이면 볼 수 있어요: {[...s.pending, ...s.foodPending].map((p) => `${p.label} ${p.taggedDays}일`).join(", ")} (각각 {MIN_DAYS}일 이상 필요)
         </p>
       )}
       <p className="mt-2 text-[11px] leading-relaxed text-ink-300">
-        숫자는 그날 가장 높았던 증상 점수(0–4)의 평균이고, 증상을 기록한 날만 비교해요. 함께 기록됐다는 뜻이지, 그 상황이 증상의 원인이라는 뜻은 아니에요. 생리 주기 시기에 따라서도 달라질 수 있어요.
+        숫자는 그날 가장 높았던 증상 점수(0–4)의 평균이고, 증상을 기록한 날만 비교해요(먹은 것은 식사도 기록한 날만). 함께 기록됐다는 뜻이지, 그 상황이 증상의 원인이라는 뜻은 아니에요. 생리 주기 시기에 따라서도 달라질 수 있어요.
       </p>
     </SectionCard>
   );

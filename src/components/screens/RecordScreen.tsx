@@ -75,7 +75,7 @@ export function RecordScreen() {
               options={[
                 { value: "day", label: "하루 기록" },
                 { value: "pms", label: "PMS 증상" },
-                { value: "care", label: "물·영양제" },
+                { value: "care", label: "먹은 것" },
               ]}
             />
           </div>

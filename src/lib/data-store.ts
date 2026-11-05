@@ -6,6 +6,7 @@ import type { Emotion } from "@/data/moodFlowers";
 import type { ImpactId, OnsetId, Score, SymptomId } from "@/data/pmsSymptoms";
 import type { ContextTagId } from "@/data/contextTags";
 import type { NutrientId, SuppTime } from "@/data/nutrition";
+import type { FoodId, MealSlot } from "@/data/foods";
 import { afterPersist } from "@/lib/platform";
 
 /**
@@ -75,6 +76,13 @@ export interface CycleRecap {
   updatedAt: number;
 }
 
+/** One meal: the kinds of food, or "skipped". */
+export interface Meal {
+  foods: FoodId[];
+  skipped?: true;
+}
+export type MealDay = Partial<Record<MealSlot, Meal>> & { updatedAt: number };
+
 /** A supplement the user takes (their own words; the app never suggests one). */
 export interface Supplement {
   id: string;
@@ -115,6 +123,8 @@ export interface AppData {
   supplements: Supplement[];
   /** taken per day: "supplementId@time" */
   suppLog: Record<DateKey, string[]>;
+  /** what I ate (kinds of food per meal) */
+  meals: Record<DateKey, MealDay>;
 }
 
 export interface Prefs {
@@ -136,7 +146,7 @@ export interface Prefs {
 }
 
 const KEY = "dear-selly:v1";
-const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, symptoms: {}, cycleContext: {}, dayTags: {}, cycleRecaps: {}, water: {}, supplements: [], suppLog: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
+const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, symptoms: {}, cycleContext: {}, dayTags: {}, cycleRecaps: {}, water: {}, supplements: [], suppLog: {}, meals: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
 
 let state: AppData = EMPTY;
 let loaded = false;
@@ -323,6 +333,19 @@ export function setCycleRecap(start: DateKey, r: Omit<CycleRecap, "updatedAt"> |
     if (r) next[start] = { ...r, updatedAt: Date.now() };
     else delete next[start];
     return { ...d, cycleRecaps: next };
+  });
+}
+
+/** Sets one meal (null clears it); an empty day is removed. */
+export function setMeal(date: DateKey, slot: MealSlot, meal: Meal | null) {
+  setData((d) => {
+    const day: MealDay = { ...(d.meals[date] ?? {}), updatedAt: Date.now() };
+    if (meal && (meal.skipped || meal.foods.length)) day[slot] = meal;
+    else delete day[slot];
+    const meals = { ...d.meals };
+    if (Object.keys(day).some((k) => k !== "updatedAt")) meals[date] = day;
+    else delete meals[date];
+    return { ...d, meals };
   });
 }
 

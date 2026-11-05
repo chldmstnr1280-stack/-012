@@ -21,6 +21,8 @@ import { DemoBanner } from "./DemoBanner";
 import { PmsReport } from "@/components/pms/PmsReport";
 import { DayPatterns } from "./DayPatterns";
 import { dayPatterns } from "@/lib/dayPatterns";
+import { MealPatterns } from "./MealPatterns";
+import { mealPatterns } from "@/lib/mealPatterns";
 
 export function ReportScreen() {
   const today = useToday();
@@ -29,6 +31,7 @@ export function ReportScreen() {
   const report = useMemo(() => (today && kind !== "pms" ? buildReport(kind, today, data) : null), [kind, today, data]);
   const hasAnyData = Object.keys(data.entries).length > 0;
   const patterns = useMemo(() => (report ? dayPatterns(data, report.current.days) : null), [report, data]);
+  const meals = useMemo(() => (report ? mealPatterns(data, report.current.days) : null), [report, data]);
 
   return (
     <SubPage title="나의 웰니스 리포트">
@@ -66,6 +69,7 @@ export function ReportScreen() {
                   </SectionCard>
 
                   {patterns && <DayPatterns p={patterns} />}
+                  {meals && <MealPatterns p={meals} />}
 
                   <div className="grid grid-cols-2 gap-2">
                     <Tile label="기록한 날" value={`${report.current.recordedDays}`} unit={kind === "all" ? "일" : `/ ${report.current.days.length}일`} />
