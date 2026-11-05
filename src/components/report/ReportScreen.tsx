@@ -18,12 +18,13 @@ import { useSelly } from "@/lib/selly-store";
 import { BalanceRadar } from "./BalanceRadar";
 import { MoodFlow, rangeLabel } from "./MoodFlow";
 import { DemoBanner } from "./DemoBanner";
+import { PmsReport } from "@/components/pms/PmsReport";
 
 export function ReportScreen() {
   const today = useToday();
   const data = useAppData();
-  const [kind, setKind] = useState<RangeKind>("week");
-  const report = useMemo(() => (today ? buildReport(kind, today, data) : null), [kind, today, data]);
+  const [kind, setKind] = useState<RangeKind | "pms">("week");
+  const report = useMemo(() => (today && kind !== "pms" ? buildReport(kind, today, data) : null), [kind, today, data]);
   const hasAnyData = Object.keys(data.entries).length > 0;
 
   return (
@@ -37,11 +38,16 @@ export function ReportScreen() {
             { value: "week", label: "주간" },
             { value: "month", label: "월간" },
             { value: "all", label: "전체" },
+            { value: "pms", label: "PMS" },
           ]}
         />
         {data.demo && <DemoBanner />}
 
-        {report && today ? (
+        {kind === "pms" && today ? (
+          <motion.div key="pms" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+            <PmsReport data={data} today={today} />
+          </motion.div>
+        ) : report && today ? (
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={kind} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="flex flex-col gap-3">
               <Hero title={report.title} summary={report.summary} period={rangeLabel(report.current.days)} empty={!report.current.recordedDays} />
@@ -53,7 +59,7 @@ export function ReportScreen() {
                   </SectionCard>
 
                   <SectionCard icon={<SmileIcon />} title="기분 흐름" aside={kind === "all" && report.current.days.length > 60 ? <span className="text-[11.5px] text-ink-300">주별 평균</span> : undefined}>
-                    <MoodFlow kind={kind} days={report.current.days} data={data} />
+                    <MoodFlow kind={kind as RangeKind} days={report.current.days} data={data} />
                   </SectionCard>
 
                   <div className="grid grid-cols-2 gap-2">

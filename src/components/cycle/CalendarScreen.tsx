@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { SubPage } from "@/components/screens/SubPage";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { analyzeCycle } from "@/lib/cycle";
+import { analysePms, expectedPmsDays, hasSymptomRecord } from "@/lib/pms/analysis";
 import { fromKey, useToday, type DateKey } from "@/lib/date";
 import { useAppData } from "@/lib/data-store";
 import { DemoBanner } from "@/components/report/DemoBanner";
@@ -25,6 +26,18 @@ export function CalendarScreen() {
   const info = useMemo(() => analyzeCycle(data.periodDays, today), [data.periodDays, today]);
   const periodSet = useMemo(() => new Set(data.periodDays), [data.periodDays]);
   const recorded = useMemo(() => new Set(Object.keys(data.entries)), [data.entries]);
+  const symptomMax = useMemo(
+    () => new Map(
+        Object.entries(data.symptoms)
+          .filter(([, d]) => hasSymptomRecord(d))
+          .map(([k, d]) => [k, d.none ? 0 : Math.max(0, ...Object.values(d.scores).map((v) => v ?? 0))]),
+      ),
+    [data.symptoms],
+  );
+  const pmsWindow = useMemo(
+    () => (today ? expectedPmsDays(analysePms(data.periodDays, data.symptoms, today, info.nextStart), info.nextStart) : new Set<DateKey>()),
+    [data.periodDays, data.symptoms, today, info.nextStart],
+  );
 
   const month: MonthCursor | null = cursor ?? (today ? { year: fromKey(today).getFullYear(), month: fromKey(today).getMonth() } : null);
 
@@ -61,6 +74,8 @@ export function CalendarScreen() {
                       info={info}
                       periodDays={periodSet}
                       recorded={recorded}
+                      symptomMax={symptomMax}
+                      pmsWindow={pmsWindow}
                       onSelect={setSelected}
                     />
                     <CurrentCycleCard info={info} today={today} />
