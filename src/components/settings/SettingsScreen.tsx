@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Download, Trash2 } from "lucide-react";
@@ -45,6 +46,14 @@ export function SettingsScreen() {
       <SubPage title="설정">
         <div className="flex flex-col gap-3">
           <InstallCard />
+
+          <Link
+            href="/share"
+            className="glass flex items-center justify-between rounded-[22px] px-4 py-3.5 text-[14.5px] font-bold text-ink-700 active:scale-[0.99]"
+          >
+            <span>💌 온실 나누기</span>
+            <span className="text-[12px] font-normal text-ink-500">엽서 · 구경 링크 →</span>
+          </Link>
 
           <AmbienceCard />
 

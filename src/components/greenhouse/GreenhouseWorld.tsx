@@ -522,7 +522,7 @@ const BED = [
 const BED_WIDTH = [64, 62, 56, 62];
 
 /** The mood garden: one flower per day with a recorded feeling; it never wilts. */
-function MoodGarden({ layout, flowers }: { layout: WorldLayout; flowers: PlantedFlower[] }) {
+export function MoodGarden({ layout, flowers }: { layout: WorldLayout; flowers: PlantedFlower[] }) {
   const shown = flowers.slice(-BED.length).reverse(); // newest first → front slots
   if (!shown.length) return null;
   return (
@@ -551,7 +551,7 @@ function MoodGarden({ layout, flowers }: { layout: WorldLayout; flowers: Planted
 }
 
 /** Placed decorations, and in decorate mode the slots they can go into. */
-function Decorations({
+export function Decorations({
   layout,
   deco,
   decorating,

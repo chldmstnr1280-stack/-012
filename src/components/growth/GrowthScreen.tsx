@@ -62,6 +62,14 @@ export function GrowthScreen() {
           </div>
         </section>
 
+        <Link
+          href="/share"
+          className="glass flex items-center justify-between rounded-[22px] px-4 py-3 text-[14px] font-bold text-ink-700 active:scale-[0.99]"
+        >
+          <span>💌 친구에게 셀리 보여주기</span>
+          <span className="text-[12px] font-normal text-ink-500">엽서 · 온실 링크 →</span>
+        </Link>
+
         {/* stage track */}
         <section className="glass rounded-[26px] px-3 pb-4 pt-4" aria-label="성장 단계">
           <ol className="relative grid grid-cols-4">
