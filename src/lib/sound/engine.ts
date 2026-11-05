@@ -37,9 +37,10 @@ function create(): Engine | null {
   if (typeof window === "undefined") return null;
   const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AC) return null;
-  // iOS: follow the ringer switch and mix politely with other audio
+  // iOS: play like a media app — audible even with the ringer switch on silent
+  // (Web Audio is otherwise muted by the switch). Other apps' music pauses meanwhile.
   const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
-  if (session) session.type = "ambient";
+  if (session) session.type = "playback";
 
   const ctx = new AC();
   const comp = ctx.createDynamicsCompressor();
@@ -71,16 +72,26 @@ export function getEngine(): Engine | null {
   return engine;
 }
 
-/** Call from a user gesture. Resumes the context and plays a silent blip (iOS unlock). */
-export function unlock() {
+/**
+ * Call from a user gesture. Mobile browsers only count the END of a touch
+ * (touchend / pointerup / click) as permission to play — not touchstart/pointerdown.
+ * Resolves true once the audio is actually running.
+ */
+export async function unlock(): Promise<boolean> {
   const e = getEngine();
-  if (!e) return;
-  if (e.ctx.state !== "running") e.ctx.resume().catch(() => {});
-  const b = e.ctx.createBuffer(1, 1, e.ctx.sampleRate);
-  const s = e.ctx.createBufferSource();
-  s.buffer = b;
-  s.connect(e.ctx.destination);
-  s.start();
+  if (!e) return false;
+  try {
+    // a silent blip inside the gesture (needed by older iOS)
+    const b = e.ctx.createBuffer(1, 1, e.ctx.sampleRate);
+    const s = e.ctx.createBufferSource();
+    s.buffer = b;
+    s.connect(e.ctx.destination);
+    s.start();
+    if (e.ctx.state !== "running") await e.ctx.resume();
+  } catch {
+    // not allowed yet — the next gesture will try again
+  }
+  return e.ctx.state === "running";
 }
 
 export const isRunning = () => engine?.ctx.state === "running";

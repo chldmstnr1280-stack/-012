@@ -94,7 +94,7 @@ export function SoundCard() {
         />
       </div>
       <p className="mt-2 text-[11.5px] leading-relaxed text-ink-300">
-        모든 소리는 앱 안에서 직접 만들어져요. 아이폰은 무음 모드에서는 소리가 나지 않아요.
+        모든 소리는 앱 안에서 직접 만들어져요. 앱을 열고 화면을 한 번 누르면 소리가 시작돼요. 소리가 안 들리면 휴대폰 미디어 볼륨을 확인해 주세요.
       </p>
     </SectionCard>
   );

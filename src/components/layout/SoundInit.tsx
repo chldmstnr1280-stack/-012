@@ -17,18 +17,17 @@ export function SoundInit() {
   const { immersive } = useSelly();
   const [unlocked, setUnlocked] = useState(false);
 
+  // Turn sound on with a gesture the browser accepts (end of a touch, a click, a key),
+  // and keep trying on every gesture while it is not running — this also brings the
+  // sound back after iOS suspends it (another app, a call, the screen locking).
   useEffect(() => {
-    if (unlocked) return;
-    const go = () => {
-      unlock();
-      setUnlocked(true);
+    const events = ["pointerup", "touchend", "click", "keydown"] as const;
+    const go = async () => {
+      if (getEngine()?.ctx.state === "running" && unlocked) return;
+      if (await unlock()) setUnlocked(true);
     };
-    window.addEventListener("pointerdown", go, { once: true, capture: true });
-    window.addEventListener("keydown", go, { once: true, capture: true });
-    return () => {
-      window.removeEventListener("pointerdown", go, { capture: true });
-      window.removeEventListener("keydown", go, { capture: true });
-    };
+    events.forEach((ev) => window.addEventListener(ev, go, { capture: true, passive: true }));
+    return () => events.forEach((ev) => window.removeEventListener(ev, go, { capture: true }));
   }, [unlocked]);
 
   useEffect(() => {
