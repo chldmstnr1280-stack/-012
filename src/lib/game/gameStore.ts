@@ -29,9 +29,11 @@ export interface GameData {
   walkIntroSeen: boolean;
   /** local date of the last walk that granted growth (once a day, never required) */
   lastWalkGrowth: string | null;
+  /** greenhouse decorations: slot id → item id */
+  deco: Record<string, string>;
 }
 
-const EMPTY: GameData = { version: 1, lastVisit: null, finds: [], pendingReturn: null, walkIntroSeen: false, lastWalkGrowth: null };
+const EMPTY: GameData = { version: 1, lastVisit: null, finds: [], pendingReturn: null, walkIntroSeen: false, lastWalkGrowth: null, deco: {} };
 
 export function readGame(): GameData {
   return read();

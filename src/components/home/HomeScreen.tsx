@@ -21,6 +21,8 @@ import { WALK_LINES } from "@/data/walkingPrompts";
 import { WalkInvite } from "./WalkInvite";
 import { SellyMenu, type SellyMenuAction } from "./SellyMenu";
 import { SellyTalk } from "@/components/talk/SellyTalk";
+import { DecorateTray } from "./DecorateTray";
+import { playSfx } from "@/lib/sound/sfx";
 import type { TalkAction } from "@/data/sellyConversations";
 import { CARE_LINES, TOUCH_LINES } from "@/data/sellyDialogues";
 import { TopBar } from "./TopBar";
@@ -29,7 +31,7 @@ import { SpeechBubble } from "./SpeechBubble";
 import { ActionDock } from "./ActionDock";
 import { CareSheet } from "./CareSheet";
 
-type Mode = "home" | "breathing" | "talk";
+type Mode = "home" | "breathing" | "talk" | "decorate";
 
 export function HomeScreen() {
   const { react, completeTask, touchExp, setImmersive, showToast, breath } = useSelly();
@@ -57,6 +59,8 @@ export function HomeScreen() {
   const [leaving, setLeaving] = useState(false);
   const [finds, setFinds] = useState<FindKind[]>([]);
   const [petals, setPetals] = useState(false);
+  const [deco, setDeco] = useState<Record<string, string>>({});
+  const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const haloScale = useTransform(breath, [0, 1], [0.82, 1.12]);
   const haloOpacity = useTransform(breath, [0, 1], [0.45, 0.95]);
 
@@ -123,6 +127,24 @@ export function HomeScreen() {
     const t = setTimeout(() => setMenuOpen(false), 7000);
     return () => clearTimeout(t);
   }, [menuOpen]);
+
+  const startDecorate = () => {
+    setCareOpen(false);
+    setMenuOpen(false);
+    setActiveSlot(null);
+    setMode("decorate");
+    setImmersive(true);
+  };
+  const endDecorate = () => {
+    setActiveSlot(null);
+    setMode("home");
+    setImmersive(false);
+    brainRef.current.say("와, 온실이 더 예뻐졌다 ♡", 3600);
+  };
+  const saveDeco = (next: Record<string, string>) => {
+    setDeco(next);
+    updateGame(() => ({ deco: next }));
+  };
 
   const startTalk = () => {
     setCareOpen(false);
@@ -222,6 +244,7 @@ export function HomeScreen() {
     // runs exactly once; not cancelled by later layout updates
     setTimeout(() => {
       setFinds(game.finds);
+      setDeco(game.deco ?? {});
       if (back) {
         // back from a walk: petals drift in, Selly comes through the door and rests
         setPetals(true);
@@ -265,6 +288,7 @@ export function HomeScreen() {
 
   const breathing = mode === "breathing";
   const talking = mode === "talk";
+  const decorating = mode === "decorate";
   const tod = useAmbience();
 
   return (
@@ -290,15 +314,19 @@ export function HomeScreen() {
             petals={petals}
             tod={tod}
             flowers={flowers}
+            deco={deco}
+            decorating={decorating}
+            activeSlot={activeSlot}
+            onSlot={(id) => setActiveSlot((a) => (a === id ? null : id))}
           />
         )}
 
         {/* header */}
         <div className="relative h-[124px] shrink-0">
           <AnimatePresence initial={false}>
-            {talking ? null : !breathing ? (
+            {talking || decorating ? null : !breathing ? (
               <motion.div key="top" className="absolute inset-0 flex flex-col gap-3" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <TopBar />
+                <TopBar onDecorate={startDecorate} />
                 <LevelCard />
               </motion.div>
             ) : (
@@ -323,7 +351,7 @@ export function HomeScreen() {
           className={`relative shrink-0 transition-[padding] duration-500 ${breathing ? "pb-[calc(env(safe-area-inset-bottom)+28px)] pt-4" : "pb-[calc(env(safe-area-inset-bottom)+86px)] pt-1"}`}
         >
           <AnimatePresence mode="wait" initial={false}>
-            {talking ? null : breathing ? (
+            {talking || decorating ? null : breathing ? (
               <motion.div key="breath" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
                 <BreathingPanel onStop={() => endBreathing(false)} onComplete={(m) => endBreathing(true, m)} onPhase={onPhase} />
               </motion.div>
@@ -339,6 +367,23 @@ export function HomeScreen() {
 
       <SellyMenu open={menuOpen && mode === "home"} onPick={handleMenu} onClose={() => setMenuOpen(false)} />
       <SellyTalk open={talking} onAction={handleTalkAction} onClose={endTalk} />
+      <DecorateTray
+        open={decorating}
+        slot={activeSlot}
+        current={activeSlot ? deco[activeSlot] : undefined}
+        onPick={(item) => {
+          if (!activeSlot) return;
+          saveDeco({ ...deco, [activeSlot]: item });
+          playSfx("cheer");
+        }}
+        onRemove={() => {
+          if (!activeSlot) return;
+          const next = { ...deco };
+          delete next[activeSlot];
+          saveDeco(next);
+        }}
+        onDone={endDecorate}
+      />
       <WalkInvite open={inviteOpen} onPick={startWalk} onClose={() => setInviteOpen(false)} />
       {/* fade into the walking path */}
       <motion.div

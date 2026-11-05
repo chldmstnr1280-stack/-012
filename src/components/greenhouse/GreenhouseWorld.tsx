@@ -14,6 +14,8 @@ import { DOOR_RECT } from "@/data/greenhouseWorld";
 import { TimeLighting } from "./TimeLighting";
 import { EMOTION_INFO, FLOWER_ASPECT, FLOWER_STAGE_NAMES, flowerArt, type Emotion } from "@/data/moodFlowers";
 import type { PlantedFlower } from "@/lib/garden";
+import { DECO_SLOTS, itemById } from "@/data/gardenItems";
+import { Plus } from "lucide-react";
 import type { TimeOfDay } from "@/lib/game/behaviorEngine";
 import type { FindKind } from "@/lib/game/gameStore";
 import type { SellyState } from "@/lib/game/behaviorEngine";
@@ -56,9 +58,15 @@ interface Props {
   tod: TimeOfDay;
   /** the mood garden (flowers planted by recorded feelings) */
   flowers: PlantedFlower[];
+  /** decorations: slot id → item id */
+  deco: Record<string, string>;
+  /** decorate mode: show the slots */
+  decorating: boolean;
+  activeSlot: string | null;
+  onSlot: (id: string) => void;
 }
 
-export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers }: Props) {
+export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers, deco, decorating, activeSlot, onSlot }: Props) {
   const { body, state, facing, spot } = brain;
   const L = layout;
 
@@ -99,6 +107,7 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
       <Door layout={L} glow={doorGlow} disabled={breathing} onTap={onDoor} />
       <GardenFinds layout={L} finds={finds} />
       <MoodGarden layout={L} flowers={flowers} />
+      <Decorations layout={L} deco={deco} decorating={decorating} activeSlot={activeSlot} onSlot={onSlot} />
       {petals && <FallingPetals />}
 
       {OBJECTS.map((o) => (
@@ -538,5 +547,70 @@ function MoodGarden({ layout, flowers }: { layout: WorldLayout; flowers: Planted
         );
       })}
     </div>
+  );
+}
+
+/** Placed decorations, and in decorate mode the slots they can go into. */
+function Decorations({
+  layout,
+  deco,
+  decorating,
+  activeSlot,
+  onSlot,
+}: {
+  layout: WorldLayout;
+  deco: Record<string, string>;
+  decorating: boolean;
+  activeSlot: string | null;
+  onSlot: (id: string) => void;
+}) {
+  return (
+    <>
+      {DECO_SLOTS.map((slot) => {
+        const item = deco[slot.id] ? itemById(deco[slot.id]) : undefined;
+        const p = toScreen(layout, slot);
+        const w = (item?.width ?? 56) * layout.s;
+        const h = item ? w * item.aspect : w;
+        const active = activeSlot === slot.id;
+        return (
+          <div key={slot.id}>
+            {item?.src && (
+              <motion.img
+                key={item.id}
+                src={item.src}
+                alt=""
+                draggable={false}
+                className="pointer-events-none absolute max-w-none select-none"
+                style={{ left: p.x - w / 2, top: p.y - h, width: w, height: h, zIndex: slot.y, originY: 1 }}
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 220, damping: 15 }}
+              />
+            )}
+            {decorating && (
+              <motion.button
+                type="button"
+                aria-label={item ? `${item.name} — 바꾸거나 치우기` : "빈 자리 — 꾸미기"}
+                aria-pressed={active}
+                onClick={() => onSlot(slot.id)}
+                className="pointer-events-auto absolute grid place-items-center rounded-full"
+                style={{ left: p.x - 24, top: (item ? p.y - h / 2 : p.y - 30) - 24, width: 48, height: 48, zIndex: 4800 }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: active ? 1.12 : 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <span
+                  className={`grid h-10 w-10 place-items-center rounded-full border-2 border-dashed shadow-[0_4px_14px_-6px_rgba(60,45,25,0.6)] ${
+                    active ? "border-white bg-sage-500 text-white" : item ? "border-white/90 bg-white/25 text-white" : "border-white bg-white/70 text-sage-700"
+                  }`}
+                >
+                  {!item && <Plus size={18} strokeWidth={2.6} />}
+                </span>
+              </motion.button>
+            )}
+          </div>
+        );
+      })}
+    </>
   );
 }
