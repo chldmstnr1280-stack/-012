@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
-import { addDays, diffDays, formatShort, type DateKey } from "@/lib/date";
+import { addDays, diffDays, formatMonthDay, formatShort, type DateKey } from "@/lib/date";
+import { useSelly } from "@/lib/selly-store";
 import type { CycleInfo } from "@/lib/cycle";
 import { setPeriodDays, type DailyEntry } from "@/lib/data-store";
 import { MoodFace, MOODS } from "@/components/ui/MoodFace";
@@ -50,6 +51,7 @@ export function DaySheet({
 function Body({ date, today, info, periodDays, entry, onClose }: { date: DateKey; today: DateKey; info: CycleInfo; periodDays: Set<DateKey>; entry?: DailyEntry; onClose: () => void }) {
   const isPeriod = periodDays.has(date);
   const future = date > today;
+  const { showToast } = useSelly();
   const tags = [
     isPeriod && { label: "생리일", color: C.period },
     info.predictedPeriodDays.has(date) && { label: "생리 예정일 · 예측", color: C.period },
@@ -57,9 +59,30 @@ function Body({ date, today, info, periodDays, entry, onClose }: { date: DateKey
     !info.ovulationDays.has(date) && info.fertileDays.has(date) && { label: "가임기 · 예측", color: C.fertile },
   ].filter(Boolean) as { label: string; color: string }[];
 
-  // offer "start here" when no period is logged right before this day
-  const nearPrev = [1, 2, 3].some((n) => periodDays.has(addDays(date, -n)));
-  const fillDays = Array.from({ length: info.avgPeriod }, (_, i) => addDays(date, i)).filter((k) => k <= today);
+  // range marking: a logged period day within 10 days before → this day can close the range
+  let prev: DateKey | null = null;
+  for (let n = 1; n <= 10; n++) {
+    const k = addDays(date, -n);
+    if (periodDays.has(k)) {
+      prev = k;
+      break;
+    }
+  }
+  let runStart = prev;
+  while (runStart && periodDays.has(addDays(runStart, -1))) runStart = addDays(runStart, -1);
+  const gap = prev ? diffDays(prev, date) : 0;
+  const fillTo = (from: DateKey, to: DateKey) => {
+    const out: DateKey[] = [];
+    for (let k = from; k <= to; k = addDays(k, 1)) out.push(k);
+    return out;
+  };
+  // days marked right after this one (to end the period here)
+  const after: DateKey[] = [];
+  for (let k = addDays(date, 1); periodDays.has(k); k = addDays(k, 1)) after.push(k);
+  // "end here" only when the whole period would stay within 10 days; otherwise it's more likely a new start
+  const offerEnd = !isPeriod && !!prev && !!runStart && gap >= 2 && diffDays(runStart, date) <= 9;
+  const offerStart = !isPeriod && !offerEnd && gap !== 1;
+  const avgFill = Array.from({ length: info.avgPeriod }, (_, i) => addDays(date, i)).filter((k) => k <= today);
 
   return (
     <div>
@@ -88,25 +111,61 @@ function Body({ date, today, info, periodDays, entry, onClose }: { date: DateKey
         <p className="rounded-2xl bg-white/70 px-4 py-3 text-[13px] text-ink-500">아직 오지 않은 날이에요. 생리일은 지난 날짜와 오늘만 표시할 수 있어요.</p>
       ) : (
         <div className="flex flex-col gap-2">
+          {offerEnd && prev && runStart && (
+            <button
+              type="button"
+              onClick={() => {
+                setPeriodDays(fillTo(addDays(prev!, 1), date), true);
+                showToast(`${formatMonthDay(runStart!)}~${formatMonthDay(date)} 생리 기간으로 표시했어요`);
+              }}
+              className="flex flex-col items-center justify-center rounded-2xl bg-[#e3707e] px-4 py-3 text-white shadow-[0_8px_18px_-10px_rgba(200,90,100,0.8)]"
+            >
+              <span className="text-[15px] font-bold">생리 끝난 날로 표시</span>
+              <span className="text-[12px] opacity-90">
+                {formatMonthDay(runStart)} ~ {formatMonthDay(date)} · 사이 {gap - 1}일 자동으로 채워요
+              </span>
+            </button>
+          )}
+          {offerStart && (
+            <button
+              type="button"
+              onClick={() => {
+                setPeriodDays([date], true);
+                showToast("시작일을 표시했어요. 끝난 날을 누르면 그 사이가 채워져요");
+              }}
+              className="flex flex-col items-center justify-center rounded-2xl bg-[#e3707e] px-4 py-3 text-white shadow-[0_8px_18px_-10px_rgba(200,90,100,0.8)]"
+            >
+              <span className="text-[15px] font-bold">생리 시작일로 표시</span>
+              <span className="text-[12px] opacity-90">끝난 날을 누르면 그 사이가 자동으로 채워져요</span>
+            </button>
+          )}
+          {isPeriod && after.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setPeriodDays(after, false);
+                showToast(`${formatMonthDay(date)}에 끝난 것으로 고쳤어요`);
+              }}
+              className="h-12 rounded-2xl border border-[#f2c3c9] bg-[#fdf1f2] text-[13.5px] font-bold text-[#b4505e]"
+            >
+              이날 생리가 끝났어요 · 뒤 {after.length}일 지우기
+            </button>
+          )}
           <button
             type="button"
             role="switch"
             aria-checked={isPeriod}
             onClick={() => setPeriodDays([date], !isPeriod)}
-            className="flex h-14 items-center justify-between rounded-2xl bg-white px-4 shadow-[0_4px_12px_-8px_rgba(110,88,60,0.4)]"
+            className="flex h-12 items-center justify-between rounded-2xl bg-white px-4 shadow-[0_4px_12px_-8px_rgba(110,88,60,0.4)]"
           >
-            <span className="text-[14.5px] text-ink-700">이날 생리 중이었어요</span>
+            <span className="text-[14px] text-ink-700">이날만 생리 중으로 표시</span>
             <span className={`relative h-7 w-12 rounded-full transition-colors ${isPeriod ? "bg-[#e3707e]" : "bg-[#e5ded2]"}`}>
               <motion.span layout className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow ${isPeriod ? "right-1" : "left-1"}`} />
             </span>
           </button>
-          {!isPeriod && !nearPrev && fillDays.length > 1 && (
-            <button
-              type="button"
-              onClick={() => setPeriodDays(fillDays, true)}
-              className="h-12 rounded-2xl border border-[#f2c3c9] bg-[#fdf1f2] text-[13.5px] text-[#b4505e]"
-            >
-              이날 시작 · {fillDays.length}일 한 번에 표시
+          {offerStart && avgFill.length > 1 && (
+            <button type="button" onClick={() => setPeriodDays(avgFill, true)} className="h-10 text-[12.5px] text-[#b4505e] underline underline-offset-4">
+              평균 {avgFill.length}일로 한 번에 표시하기
             </button>
           )}
         </div>
