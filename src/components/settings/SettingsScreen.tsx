@@ -16,6 +16,7 @@ import { InstallCard } from "./InstallCard";
 import { ImportBackup } from "./ImportBackup";
 import { SoundCard } from "./SoundCard";
 import { AmbienceCard } from "./AmbienceCard";
+import { HealthSyncCard } from "./HealthSyncCard";
 
 export function SettingsScreen() {
   const data = useAppData();
@@ -93,6 +94,8 @@ export function SettingsScreen() {
             </div>
           </SectionCard>
 
+          <HealthSyncCard />
+
           <SectionCard icon={<SproutLeafIcon />} title="Dear Selly">
             <p className="font-script text-[26px] leading-tight text-sage-700">Held, not healed.</p>
             <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
@@ -104,7 +107,7 @@ export function SettingsScreen() {
               <li>· 몸이나 마음이 많이 힘들 때는 가까운 전문가에게 도움을 요청해 주세요.</li>
               <li>· 기기의 &lsquo;동작 줄이기&rsquo; 설정을 켜면 셀리의 움직임도 차분해져요.</li>
             </ul>
-            <p className="mt-3 text-[11px] text-ink-300">버전 0.7.0 · MVP</p>
+            <p className="mt-3 text-[11px] text-ink-300">버전 0.8.0 · MVP</p>
           </SectionCard>
         </div>
       </SubPage>

@@ -349,7 +349,7 @@ python3 scripts/extract-assets.py
 
 ## 18. 친구 기능 (Supabase + 카카오 로그인)
 
-- **서버:** Supabase(`src/lib/supabase/client.ts`). URL과 publishable 키는 원래 공개용이에요. 접근 제어는 `supabase/schema.sql`의 Row Level Security가 맡아요
+- **서버:** Supabase(`src/lib/supabase/client.ts`). URL과 publishable 키는 원래 공개용이에요. 접근 제어는 `supabase/migrations/`의 Row Level Security가 맡아요
 - **원칙:** 웰니스 기록(기분·주기·걸음·메모)은 서버에 **절대** 올리지 않아요. 서버에는 닉네임, 초대 코드, 친구에게 보여줄 온실 모습, 친구 관계, 차단, 선물만 있어요
 - **로그인:** 카카오 OAuth(PKCE). 처음 로그인하면 카카오 닉네임을 디어셀리 닉네임으로 가져와요(바꿀 수 있어요)
 - **`/friends`:**
@@ -359,5 +359,21 @@ python3 scripts/extract-assets.py
 - **받은 선물:** 온실에 들어오면 셀리가 "OO가 물을 주고 갔어!" 하고 차례로 알려줘요. 씨앗·꽃잎·반딧불이는 온실 바닥에 놓여요. 홈 상단 종 아이콘은 친구 화면으로 가요
 - **친구에게 보여줄 온실:** 친구 화면을 열 때마다 레벨과 꾸미기를 갱신해요. 기분 꽃은 **"친구에게 내 기분 꽃도 보여주기"를 켰을 때만** 보여줘요
 - **개인정보 처리방침:** `/privacy`. 운영자 연락처 이메일 자리를 채워야 해요
-- **Supabase 설정 체크리스트:** schema.sql 실행, Kakao provider(REST API 키 / Client Secret / Allow users without an email), URL Configuration(Site URL `https://dear-selly.vercel.app`, Redirect `https://dear-selly.vercel.app/**`)
+- **Supabase 설정 체크리스트:** migrations 001·002 실행, Kakao provider(REST API 키 / Client Secret / Allow users without an email), URL Configuration(Site URL `https://dear-selly.vercel.app`, Redirect `https://dear-selly.vercel.app/**`)
 - **카카오 설정:** 카카오 로그인 ON, Redirect URI `https://<project>.supabase.co/auth/v1/callback`, 동의항목(닉네임 필수, 프로필 사진·이메일 선택), 클라이언트 시크릿 사용
+
+
+## 19. PMS 관리 — Phase A: 기록 시스템
+
+- **증상 정의** (`src/data/pmsSymptoms.ts`): 감정 5 · 신체 5 · 생활 4개 증상, 일상생활 영향 3개(업무·학업 / 대인관계 / 일상 활동). 모두 0~4 척도(없음 · 가벼움 · 보통 · 심함 · 매우 심함). 본인이 느낀 정도를 적는 기록이고 검증된 임상 척도가 아니에요. 증상별로 따로 저장해서, 나중에 DRSP 같은 검증된 도구를 쓸 수 있게 했어요(매핑은 전문가 검토 후)
+- **기록 화면** (`/record` → "PMS 증상" 탭, `?tab=pms`로 바로 열기): 증상마다 한 줄에 0~4 버튼이 있고, 누르면 바로 저장돼요. 같은 점수를 다시 누르면 지워져요. "오늘은 증상이 없어요", 그날 생리 중 표시, 지우기, 날짜 이동으로 지난 기록도 수정할 수 있어요
+- **"기록 안 함"과 "증상 없음" 구분:** 기록이 없는 날은 `symptoms`에 항목이 없어요(= 알 수 없음). "증상 없음"은 `none: true`로 따로 저장해요. 0점도 "없음"이라는 명시적인 기록이에요
+- **데이터** (`src/lib/data-store.ts`): `symptoms: Record<날짜, { scores, impact, none?, updatedAt }>`, `cycleContext.hormonalContraception`(선택). 기존 저장 데이터는 그대로 두고 새 항목은 비어 있는 채로 붙어요. 내보내기·가져오기에 포함되고, 가져올 때 0~4 범위와 알려진 증상 이름만 받아들여요
+- **생리주기:** 실제 기록(생리일)과 예측(점선 표시, 예정일)을 계속 구분해요. 주기 길이 차이가 7일보다 크거나 21~35일을 벗어나면 `irregular`로 보고 "예측이 덜 정확할 수 있어요"라고 안내해요(진단 아님). 호르몬 피임법 사용 여부는 선택 입력이에요
+- **서버 보관(선택, 별도 동의)** (`supabase/migrations/002_health_records.sql`, `src/lib/health/sync.ts`, 설정 → "건강 기록 백업"):
+  - 기본은 기기에만 저장해요. 로그인한 사용자가 민감정보 처리에 **별도로 동의**해야 `period_days`·`pms_symptom_days`에 올라가요
+  - 서버 표는 RLS로 **본인만** 읽고 쓸 수 있어요(동의가 있을 때만 저장 가능). 친구나 관리자가 읽는 경로는 없어요
+  - 변경된 날짜만 올리고, 처음 동의하거나 새 기기에서 로그인하면 합쳐요(같은 날짜는 최근 수정이 우선, 생리일은 합집합). 실패해도 기기 기록은 그대로이고 다음에 다시 올려요
+  - 동의를 철회하면 `withdraw_health_consent()`가 서버 기록을 모두 지워요. 계정을 삭제하면 cascade로 함께 지워져요
+  - 건강 데이터는 로그에 남기지 않아요
+- ⚠️ **전문가 검토 필요:** 동의서 문구(법률), 호르몬 피임법 안내 문구(의학), 불규칙 주기 기준(21~35일, 범위 7일 초과)

@@ -11,6 +11,8 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { EnergyIcon, FocusIcon, NoteIcon, SleepIcon, SmileIcon, SneakerIcon, SproutLeafIcon, StressIcon } from "@/components/ui/icons";
 import { MoodFace, MOODS } from "@/components/ui/MoodFace";
 import { SubPage } from "./SubPage";
+import { SymptomForm } from "@/components/pms/SymptomForm";
+import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { EMOTIONS, EMOTION_INFO, flowerArt, type Emotion } from "@/data/moodFlowers";
 
 const CONDITIONS: Record<ConditionKey, { label: string; icon: React.ReactNode; tint: string; levels: string[] }> = {
@@ -23,18 +25,23 @@ const CONDITIONS: Record<ConditionKey, { label: string; icon: React.ReactNode; t
 export function RecordScreen() {
   const today = useToday();
   const [date, setDate] = useState<DateKey | null>(null);
+  const [tab, setTab] = useState<"day" | "pms">("day");
 
   // initial date: ?date=YYYY-MM-DD (from the calendar) or today
   useEffect(() => {
     if (!today || date) return;
     const q = new URLSearchParams(window.location.search).get("date");
     const valid = q && /^\d{4}-\d{2}-\d{2}$/.test(q) && q <= today ? q : today;
-    const t = setTimeout(() => setDate(valid), 0);
+    const wantPms = new URLSearchParams(window.location.search).get("tab") === "pms";
+    const t = setTimeout(() => {
+      setDate(valid);
+      if (wantPms) setTab("pms");
+    }, 0);
     return () => clearTimeout(t);
   }, [today, date]);
 
   return (
-    <SubPage title="오늘의 기록">
+    <SubPage title={tab === "pms" ? "증상 기록" : "오늘의 기록"}>
       {date && today ? (
         <>
           <div className="mx-auto mb-4 flex w-fit items-center gap-1 rounded-full border border-white bg-white/75 p-1 shadow-[0_4px_14px_-8px_rgba(110,88,60,0.4)]">
@@ -57,7 +64,18 @@ export function RecordScreen() {
               오늘로 돌아가기
             </button>
           )}
-          <RecordForm key={date} date={date} isToday={date === today} />
+          <div className="mb-3">
+            <SegmentedTabs
+              label="기록 종류"
+              value={tab}
+              onChange={setTab}
+              options={[
+                { value: "day", label: "하루 기록" },
+                { value: "pms", label: "PMS 증상" },
+              ]}
+            />
+          </div>
+          {tab === "day" ? <RecordForm key={date} date={date} isToday={date === today} /> : <SymptomForm key={date} date={date} isFuture={date > today} />}
         </>
       ) : (
         <div className="h-[420px]" />

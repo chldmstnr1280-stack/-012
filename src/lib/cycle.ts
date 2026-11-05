@@ -22,6 +22,11 @@ export interface CycleInfo {
   avgCycle: number;
   avgPeriod: number;
   hasHistory: boolean;
+  /**
+   * Cycle lengths vary a lot (range > 7 days) or fall outside 21–35 days.
+   * Only a signal that predictions are less certain — not a medical finding.
+   */
+  irregular: boolean;
   predictedPeriodDays: Set<DateKey>;
   fertileDays: Set<DateKey>;
   ovulationDays: Set<DateKey>;
@@ -98,6 +103,8 @@ export function analyzeCycle(periodDays: DateKey[], today: DateKey | null, horiz
     avgCycle,
     avgPeriod,
     hasHistory: periods.length > 0,
+    irregular:
+      recent.length >= 2 && (Math.max(...recent) - Math.min(...recent) > 7 || recent.some((l) => l < 21 || l > 35)),
     predictedPeriodDays,
     fertileDays,
     ovulationDays,

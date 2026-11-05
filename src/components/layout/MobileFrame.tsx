@@ -4,6 +4,7 @@ import { BottomNav } from "./BottomNav";
 import { Toast } from "@/components/ui/Toast";
 import { LevelUpOverlay } from "@/components/growth/LevelUpOverlay";
 import { SoundInit } from "./SoundInit";
+import { HealthSync } from "./HealthSync";
 
 /**
  * Mobile-first shell. On phones it fills the viewport; on larger screens the
@@ -22,6 +23,7 @@ export function MobileFrame({ children }: { children: React.ReactNode }) {
         <Toast />
         <LevelUpOverlay />
         <SoundInit />
+        <HealthSync />
       </div>
     </div>
   );

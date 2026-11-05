@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import type { DateKey } from "./date";
 import type { Emotion } from "@/data/moodFlowers";
+import type { ImpactId, Score, SymptomId } from "@/data/pmsSymptoms";
 
 /**
  * On-device data store (Phase 2). Everything lives in this browser's
@@ -36,6 +37,23 @@ export interface DailyLog {
   bonus?: true;
 }
 
+/**
+ * One day of PMS symptom record. A day with no entry = NOT RECORDED (unknown),
+ * never "no symptoms". "No symptoms" is an explicit `none: true` entry.
+ */
+export interface SymptomDay {
+  scores: Partial<Record<SymptomId, Score>>;
+  impact: Partial<Record<ImpactId, Score>>;
+  /** the user said "no symptoms today" */
+  none?: true;
+  updatedAt: number;
+}
+
+/** Optional context that changes how a cycle should be read (never required). */
+export interface CycleContext {
+  hormonalContraception?: "yes" | "no" | "unsure";
+}
+
 export interface AppData {
   version: 1;
   progress: { level: number; exp: number };
@@ -46,6 +64,9 @@ export interface AppData {
   demo: boolean;
   daily: Record<DateKey, DailyLog>;
   prefs: Prefs;
+  /** PMS daily symptom records (Phase A) */
+  symptoms: Record<DateKey, SymptomDay>;
+  cycleContext: CycleContext;
 }
 
 export interface Prefs {
@@ -65,7 +86,7 @@ export interface Prefs {
 }
 
 const KEY = "dear-selly:v1";
-const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
+const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, symptoms: {}, cycleContext: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
 
 let state: AppData = EMPTY;
 let loaded = false;
@@ -139,6 +160,7 @@ export function setPeriodDays(days: DateKey[], on: boolean) {
     days.forEach((k) => (on ? set.add(k) : set.delete(k)));
     return { ...d, periodDays: [...set].sort() };
   });
+  healthListeners.forEach((l) => l({ kind: "period", days, on }));
 }
 
 export function setProgress(progress: AppData["progress"]) {
@@ -201,4 +223,34 @@ export function addSteps(date: DateKey, steps: number) {
     const cur = d.entries[date] ?? { condition: {}, updatedAt: 0 };
     return { ...d, entries: { ...d.entries, [date]: { ...cur, steps: Math.min(200_000, (cur.steps ?? 0) + steps), updatedAt: Date.now() } } };
   });
+}
+
+/* ---------- PMS records (Phase A) ---------- */
+
+type HealthListener = (change: { kind: "symptoms"; date: DateKey; day: SymptomDay | null } | { kind: "period"; days: DateKey[]; on: boolean }) => void;
+const healthListeners = new Set<HealthListener>();
+/** Lets the optional server sync follow record changes (nothing listens unless the user opted in). */
+export function onHealthChange(l: HealthListener) {
+  healthListeners.add(l);
+  return () => healthListeners.delete(l);
+}
+
+export function saveSymptoms(date: DateKey, day: Omit<SymptomDay, "updatedAt">) {
+  const next: SymptomDay = { ...day, updatedAt: Date.now() };
+  setData((d) => ({ ...d, symptoms: { ...d.symptoms, [date]: next } }));
+  healthListeners.forEach((l) => l({ kind: "symptoms", date, day: next }));
+}
+
+/** Removes a day's symptom record: the day goes back to "not recorded". */
+export function deleteSymptoms(date: DateKey) {
+  setData((d) => {
+    const rest = { ...d.symptoms };
+    delete rest[date];
+    return { ...d, symptoms: rest };
+  });
+  healthListeners.forEach((l) => l({ kind: "symptoms", date, day: null }));
+}
+
+export function setCycleContext(patch: Partial<CycleContext>) {
+  setData((d) => ({ ...d, cycleContext: { ...d.cycleContext, ...patch } }));
 }

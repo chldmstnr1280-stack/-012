@@ -1,6 +1,7 @@
 import type { CycleInfo } from "@/lib/cycle";
 import { diffDays, formatMonthDay, type DateKey } from "@/lib/date";
 import { CYCLE_COLORS as C } from "./colors";
+import { CycleContextCard } from "./CycleContextCard";
 
 function StatTile({ label, value, unit, note }: { label: string; value: string; unit?: string; note?: string }) {
   return (
@@ -31,6 +32,12 @@ export function CycleAnalysis({ info, today }: { info: CycleInfo; today: DateKey
           note={info.nextStart ? `D-${Math.max(0, diffDays(today, info.nextStart))}` : "기록 필요"}
         />
       </div>
+
+      {info.irregular && (
+        <p className="rounded-2xl border border-[#efd9a8] bg-[#fff8e7] px-4 py-3 text-[12.5px] leading-relaxed text-[#8a6a2c]">
+          최근 주기 길이의 차이가 커서 예정일 예측이 평소보다 덜 정확할 수 있어요. 예측은 참고로만 봐 주세요.
+        </p>
+      )}
 
       <section className="glass rounded-[26px] p-4">
         <h2 className="text-[15.5px] font-bold text-ink-700">최근 주기 길이</h2>
@@ -83,6 +90,8 @@ export function CycleAnalysis({ info, today }: { info: CycleInfo; today: DateKey
           </ul>
         )}
       </section>
+
+      <CycleContextCard />
 
       <p className="px-2 text-center text-[11.5px] leading-relaxed text-ink-300">
         예측은 기록한 날짜를 바탕으로 한 참고용이에요. 피임이나 의료적 판단에 사용하지 말고,
