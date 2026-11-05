@@ -1,6 +1,7 @@
 import { EMOTIONS, type Emotion } from "@/data/moodFlowers";
 import { IMPACT_IDS, SYMPTOM_IDS, type Score } from "@/data/pmsSymptoms";
-import type { SymptomDay } from "./data-store";
+import type { DayTags, SymptomDay } from "./data-store";
+import { CONTEXT_TAG_IDS, type ContextTagId } from "@/data/contextTags";
 import {
   CONDITION_KEYS,
   DAILY_TASKS,
@@ -82,8 +83,17 @@ function cleanDaily(v: unknown): DailyLog | null {
 
 export type ParsedBackup = Pick<
   AppData,
-  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext"
+  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags"
 >;
+
+/** Validates an untrusted day-tags record: known tags only, no duplicates. */
+export function cleanDayTags(v: unknown): DayTags | null {
+  if (!isObj(v) || !Array.isArray(v.tags)) return null;
+  const tags = [...new Set(v.tags.filter((t): t is ContextTagId => CONTEXT_TAG_IDS.includes(t as ContextTagId)))];
+  if (!tags.length) return null;
+  const at = typeof v.updatedAt === "number" && Number.isFinite(v.updatedAt) ? v.updatedAt : 0;
+  return { tags, updatedAt: at };
+}
 
 const score = (v: unknown): Score | undefined =>
   Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 4
@@ -164,6 +174,7 @@ export function parseBackup(
     !Object.keys(entries).length &&
     !periodDays.length &&
     !(isObj(raw.symptoms) && Object.keys(raw.symptoms).length) &&
+    !(isObj(raw.dayTags) && Object.keys(raw.dayTags).length) &&
     progress.level === 1 &&
     progress.exp === 0
   ) {
@@ -175,6 +186,14 @@ export function parseBackup(
       if (!isDate(k)) continue;
       const d = cleanSymptomDay(v);
       if (d) symptoms[k] = d;
+    }
+  }
+  const dayTags: ParsedBackup["dayTags"] = {};
+  if (isObj(raw.dayTags)) {
+    for (const [k, v] of Object.entries(raw.dayTags)) {
+      if (!isDate(k)) continue;
+      const d = cleanDayTags(v);
+      if (d) dayTags[k] = d;
     }
   }
   const cycleContext: ParsedBackup["cycleContext"] = {};
@@ -189,7 +208,7 @@ export function parseBackup(
   }
   return {
     ok: true,
-    data: { entries, periodDays, progress, daily, symptoms, cycleContext },
+    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags },
   };
 }
 
@@ -219,6 +238,9 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
   const symptoms = { ...cur.symptoms };
   for (const [k, d] of Object.entries(inc.symptoms))
     if (!symptoms[k] || d.updatedAt > symptoms[k].updatedAt) symptoms[k] = d;
+  const dayTags = { ...cur.dayTags };
+  for (const [k, d] of Object.entries(inc.dayTags))
+    if (!dayTags[k] || d.updatedAt > dayTags[k].updatedAt) dayTags[k] = d;
   return {
     ...cur,
     entries,
@@ -226,6 +248,7 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
     progress: higher,
     daily,
     symptoms,
+    dayTags,
     cycleContext: { ...inc.cycleContext, ...cur.cycleContext },
     demo: false,
   };

@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import type { DateKey } from "./date";
 import type { Emotion } from "@/data/moodFlowers";
 import type { ImpactId, Score, SymptomId } from "@/data/pmsSymptoms";
+import type { ContextTagId } from "@/data/contextTags";
 
 /**
  * On-device data store (Phase 2). Everything lives in this browser's
@@ -49,6 +50,12 @@ export interface SymptomDay {
   updatedAt: number;
 }
 
+/** Context tags for one day ("오늘의 상황"). Device + backup file only; never synced to the server. */
+export interface DayTags {
+  tags: ContextTagId[];
+  updatedAt: number;
+}
+
 /** Optional context that changes how a cycle should be read (never required). */
 export interface CycleContext {
   hormonalContraception?: "yes" | "no" | "unsure";
@@ -67,6 +74,8 @@ export interface AppData {
   /** PMS daily symptom records (Phase A) */
   symptoms: Record<DateKey, SymptomDay>;
   cycleContext: CycleContext;
+  /** what happened on a day (context tags) */
+  dayTags: Record<DateKey, DayTags>;
 }
 
 export interface Prefs {
@@ -86,7 +95,7 @@ export interface Prefs {
 }
 
 const KEY = "dear-selly:v1";
-const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, symptoms: {}, cycleContext: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
+const EMPTY: AppData = { version: 1, progress: { level: 1, exp: 0 }, entries: {}, periodDays: [], demo: false, daily: {}, symptoms: {}, cycleContext: {}, dayTags: {}, prefs: { breathPattern: "calm", breathMinutes: 1, sound: true, haptic: true, music: true, musicVolume: 0.5, sfx: true, sfxVolume: 0.7, ambience: "auto" } };
 
 let state: AppData = EMPTY;
 let loaded = false;
@@ -239,6 +248,16 @@ export function saveSymptoms(date: DateKey, day: Omit<SymptomDay, "updatedAt">) 
   const next: SymptomDay = { ...day, updatedAt: Date.now() };
   setData((d) => ({ ...d, symptoms: { ...d.symptoms, [date]: next } }));
   healthListeners.forEach((l) => l({ kind: "symptoms", date, day: next }));
+}
+
+/** Sets the context tags of a day; an empty list removes the day. */
+export function setDayTags(date: DateKey, tags: ContextTagId[]) {
+  setData((d) => {
+    const next = { ...d.dayTags };
+    if (tags.length) next[date] = { tags, updatedAt: Date.now() };
+    else delete next[date];
+    return { ...d, dayTags: next };
+  });
 }
 
 /** Removes a day's symptom record: the day goes back to "not recorded". */

@@ -14,6 +14,8 @@ import { analysePms, PRE_DAYS, type CycleMemory, type DayCell } from "@/lib/pms/
 import { sellyPmsLine } from "@/lib/pms/insight";
 import { focusSymptoms, pickCare } from "@/lib/pms/care";
 import { CareCards } from "./CareCards";
+import { TagReport } from "./TagReport";
+import { compareTags } from "@/lib/pms/tags";
 import { HelpCard } from "./HelpCard";
 import { heavyImpactCycles } from "@/lib/pms/clinical";
 import { IMPACT_NUDGE } from "@/data/safety";
@@ -31,6 +33,7 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
   const chrono = [...p.cycles].reverse(); // oldest → newest for comparisons
   const single = p.cycles.length === 1 ? p.cycles[0] : null;
   const care = useMemo(() => pickCare(focusSymptoms(p), p.enough), [p]);
+  const tagSummary = useMemo(() => compareTags(data, today), [data, today]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -79,6 +82,8 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
       {p.cycles.length > 0 && <SymptomGrid chrono={chrono} repeated={p.repeated.map((r) => r.id)} />}
 
       {p.cycles.length > 0 && <ImpactAndAfter chrono={chrono} />}
+
+      {anyRecords && <TagReport s={tagSummary} />}
 
       {p.current && p.current.recordedDays > 0 && (
         <SectionCard icon={<SproutLeafIcon />} title="이번 주기 지금까지">

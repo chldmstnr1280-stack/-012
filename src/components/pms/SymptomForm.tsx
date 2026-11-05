@@ -11,6 +11,7 @@ import type { DateKey } from "@/lib/date";
 import { useSelly } from "@/lib/selly-store";
 import { HEAVY_DAY } from "@/data/safety";
 import { HelpCard } from "./HelpCard";
+import { ContextTagPicker } from "./ContextTagPicker";
 
 /**
  * PMS daily record — built to take under 30 seconds:
@@ -135,6 +136,8 @@ export function SymptomForm({ date, isFuture }: { date: DateKey; isFuture: boole
         <p className="mt-2 text-[11px] text-ink-300">증상이 오늘의 생활을 얼마나 어렵게 했는지 0(전혀)~4(매우 많이)로 골라 주세요.</p>
       </SectionCard>
       {heavyImpact && <HelpCard lead={helpLead} />}
+
+      <ContextTagPicker date={date} />
 
       <p className="px-2 text-center text-[11.5px] leading-relaxed text-ink-300">
         점수는 내가 느낀 정도를 적는 거예요. 진단이 아니에요.
