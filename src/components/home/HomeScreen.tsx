@@ -296,7 +296,7 @@ export function HomeScreen() {
     if (!today) return;
     const k = readGame().kindness ?? { total: 0, lastDate: null };
     const first = k.lastDate !== today;
-    updateGame(() => ({ kindness: { total: k.total + 1, lastDate: today } }));
+    updateGame(() => ({ kindness: { total: k.total + 1, lastDate: today, dates: [...(k.dates ?? []), today].slice(-200) } }));
     if (first) {
       addExp(5);
       showToast(`다정한 말 연습 ${k.total + 1}번째 · 성장 +5`);

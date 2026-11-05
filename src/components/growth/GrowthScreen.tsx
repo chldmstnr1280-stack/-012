@@ -63,6 +63,14 @@ export function GrowthScreen() {
           </div>
         </section>
 
+        <Link
+          href="/collection"
+          className="glass flex items-center justify-between rounded-[22px] px-4 py-3 text-[14px] font-bold text-ink-700 active:scale-[0.99]"
+        >
+          <span>🌼 스티커북 · 이번 주 작은 목표</span>
+          <span className="text-[12px] font-normal text-ink-500">모은 것 보기 →</span>
+        </Link>
+
         {!IS_TOSS && (
         <Link
           href="/share"

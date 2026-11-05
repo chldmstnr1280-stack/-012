@@ -38,7 +38,11 @@ export interface GameData {
   /** let friends see mood flowers in my greenhouse (off by default) */
   shareFlowers?: boolean;
   /** self-compassion practice: how many times, and the last local date (growth once a day) */
-  kindness?: { total: number; lastDate: string | null };
+  kindness?: { total: number; lastDate: string | null; /** date of each practice (last 200) */ dates?: string[] };
+  /** each finished walk (last 200), for weekly goals and the sticker book */
+  walks?: { date: string; minutes: number }[];
+  /** weeks (Monday date) whose weekly stamp was collected */
+  weeklyClaimed?: string[];
   /** walk missions done (newest last, kept to 100); photos live in IndexedDB by id */
   missions?: { id: string; date: string; found: boolean; photo?: string }[];
   /** local date of the last mission that granted growth */

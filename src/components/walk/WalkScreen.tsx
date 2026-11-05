@@ -190,7 +190,12 @@ export function WalkScreen() {
       if (steps) addSteps(today, steps);
       const g = readGame();
       const growth = g.lastWalkGrowth !== today && s.elapsed >= 60_000;
-      updateGame((d) => ({ finds: [...d.finds, ...finds].slice(-60), pendingReturn: { finds, minutes: mins }, lastWalkGrowth: growth ? today : d.lastWalkGrowth }));
+      updateGame((d) => ({
+        finds: [...d.finds, ...finds].slice(-60),
+        pendingReturn: { finds, minutes: mins },
+        lastWalkGrowth: growth ? today : d.lastWalkGrowth,
+        walks: [...(d.walks ?? []), { date: today, minutes: mins }].slice(-200),
+      }));
       if (growth) addExp(15);
       const t = setTimeout(() => setSummary({ minutes: mins, steps, finds, text: pick(WALK_LINES.summary) }), 0);
       return () => clearTimeout(t);
