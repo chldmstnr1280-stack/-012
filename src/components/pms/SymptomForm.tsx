@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { motion } from "motion/react";
 import { Check, Trash2 } from "lucide-react";
 import { SectionCard } from "@/components/ui/SectionCard";
@@ -9,6 +9,8 @@ import { IMPACT_ITEMS, SCORE_LABEL, SYMPTOM_GROUPS, type ImpactId, type Score, t
 import { deleteSymptoms, saveSymptoms, setPeriodDays, useAppData, type SymptomDay } from "@/lib/data-store";
 import type { DateKey } from "@/lib/date";
 import { useSelly } from "@/lib/selly-store";
+import { HEAVY_DAY } from "@/data/safety";
+import { HelpCard } from "./HelpCard";
 
 /**
  * PMS daily record — built to take under 30 seconds:
@@ -46,12 +48,16 @@ export function SymptomForm({ date, isFuture }: { date: DateKey; isFuture: boole
   if (isFuture) return <p className="glass rounded-[22px] p-5 text-center text-[13px] text-ink-500">아직 오지 않은 날이에요.</p>;
 
   const rated = Object.values(day?.scores ?? {}).filter((v) => v != null).length;
+  // gentle help card on a very hard day — shown under the section that triggered it, so nothing above the tapped row moves
+  const heavyMood = !!day && HEAVY_DAY.symptoms.some((id) => day.scores[id] === HEAVY_DAY.score);
+  const heavyImpact = !heavyMood && !!day && Object.values(day.impact).some((v) => v === HEAVY_DAY.impactScore);
+  const helpLead = "오늘 많이 힘든 날이었네요. 혼자 견디기 어려운 마음이 들면, 지금 바로 이야기를 들어 줄 사람이 있어요.";
 
   return (
     <div className="flex flex-col gap-3">
       {/* status + quick actions */}
       <section className="glass rounded-[26px] p-4">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex min-h-[30px] items-center justify-between gap-2">
           <p className="text-[13px] text-ink-500" aria-live="polite">
             {day ? (day.none ? "‘증상 없음’으로 기록했어요" : `증상 ${rated}개 기록 · 자동 저장`) : "아직 기록하지 않은 날이에요"}
           </p>
@@ -96,14 +102,17 @@ export function SymptomForm({ date, isFuture }: { date: DateKey; isFuture: boole
       </section>
 
       {/* symptoms */}
-      {SYMPTOM_GROUPS.map((g) => (
-        <SectionCard key={g.id} icon={<SproutLeafIcon />} title={`${g.label} 증상`} aside={<ScaleHint />}>
-          <ul className="flex flex-col gap-1.5">
-            {g.items.map((it) => (
-              <ScoreRow key={it.id} label={it.label} value={day?.scores[it.id as SymptomId]} onPick={(v) => setScore(it.id as SymptomId, v)} />
-            ))}
-          </ul>
-        </SectionCard>
+      {SYMPTOM_GROUPS.map((g, gi) => (
+        <Fragment key={g.id}>
+          <SectionCard icon={<SproutLeafIcon />} title={`${g.label} 증상`} aside={<ScaleHint />}>
+            <ul className="flex flex-col gap-1.5">
+              {g.items.map((it) => (
+                <ScoreRow key={it.id} label={it.label} value={day?.scores[it.id as SymptomId]} onPick={(v) => setScore(it.id as SymptomId, v)} />
+              ))}
+            </ul>
+          </SectionCard>
+          {gi === 0 && heavyMood && <HelpCard lead={helpLead} />}
+        </Fragment>
       ))}
 
       {/* functional impact */}
@@ -125,6 +134,7 @@ export function SymptomForm({ date, isFuture }: { date: DateKey; isFuture: boole
         )}
         <p className="mt-2 text-[11px] text-ink-300">증상이 오늘의 생활을 얼마나 어렵게 했는지 0(전혀)~4(매우 많이)로 골라 주세요.</p>
       </SectionCard>
+      {heavyImpact && <HelpCard lead={helpLead} />}
 
       <p className="px-2 text-center text-[11.5px] leading-relaxed text-ink-300">
         점수는 내가 느낀 정도를 적는 거예요. 진단이 아니에요.

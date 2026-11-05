@@ -98,3 +98,37 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .lantern-glow, .light-ray, .sway { animation: none; }
 }
+
+/* Clinical summary (/report/clinical): print only the paper. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  body:has(> .print-root) > :not(.print-root) {
+    display: none !important;
+  }
+  .print-root {
+    position: static !important;
+    overflow: visible !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  .print-root .no-print {
+    display: none !important;
+  }
+  .print-root .paper {
+    zoom: 1 !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  .print-root .print-block {
+    break-inside: avoid;
+  }
+}

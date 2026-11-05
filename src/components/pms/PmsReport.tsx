@@ -14,6 +14,10 @@ import { analysePms, PRE_DAYS, type CycleMemory, type DayCell } from "@/lib/pms/
 import { sellyPmsLine } from "@/lib/pms/insight";
 import { focusSymptoms, pickCare } from "@/lib/pms/care";
 import { CareCards } from "./CareCards";
+import { HelpCard } from "./HelpCard";
+import { heavyImpactCycles } from "@/lib/pms/clinical";
+import { IMPACT_NUDGE } from "@/data/safety";
+import { FileText } from "lucide-react";
 import { INTENSITY_FILL, INTENSITY_INK, MISSING_EDGE } from "./colors";
 
 /**
@@ -93,6 +97,8 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
 
       <CareCards picks={care} />
 
+      <CareBridge cycles={p.cycles.length} heavy={heavyImpactCycles(p)} />
+
       <Link
         href="/record?tab=pms"
         className="h-12 rounded-full bg-gradient-to-b from-[#9cc095] to-[#7ea47a] text-center text-[15px] font-bold leading-[48px] text-white shadow-[0_10px_24px_-10px_rgba(90,130,85,0.8)]"
@@ -106,6 +112,8 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
         <li>· 함께 기록됐다는 뜻이지, 어떤 것이 원인이라는 뜻은 아니에요.</li>
         <li>· 내가 느낀 정도를 정리한 것으로, 진단이 아니에요.</li>
       </ul>
+
+      <HelpCard />
     </div>
   );
 }
@@ -290,6 +298,31 @@ function ImpactAndAfter({ chrono }: { chrono: CycleMemory[] }) {
       <p className="mt-2 text-[11px] leading-relaxed text-ink-300">
         ‘시작 후’는 생리 시작 2~6일째의 하루 최고 점수를 시작 전과 비교한 거예요 (그 기간에 2일 이상 기록했을 때만).
       </p>
+    </SectionCard>
+  );
+}
+
+/** Phase D: bridge to a clinician — a printable summary of the user's own records. */
+function CareBridge({ cycles, heavy }: { cycles: number; heavy: number }) {
+  const nudge = heavy >= IMPACT_NUDGE.cycles;
+  return (
+    <SectionCard icon={<FileText size={20} className="text-sage-700" />} title="진료 준비">
+      {nudge && (
+        <p className="mb-2.5 break-keep rounded-2xl bg-[#fdf3f4] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-ink-700">
+          최근 {cycles}번의 주기 중 {heavy}번, 생활 영향을 ‘심함’ 이상으로 기록했어요. NHS·ACOG 안내에서는 증상이 일상생활에 영향을 줄 때 진료를
+          고려해 보라고 해요.
+        </p>
+      )}
+      <p className="break-keep text-[12.5px] leading-relaxed text-ink-500">
+        진료를 볼 때 생리 날짜와 2~3주기 동안의 증상 기록을 보여 주면 도움이 돼요. 내 기록을 한 장으로 정리해 PDF로 저장할 수 있어요.
+      </p>
+      <Link
+        href="/report/clinical"
+        className="mt-3 flex h-11 items-center justify-center gap-1.5 rounded-full bg-sage-50 text-[13.5px] font-bold text-sage-700"
+      >
+        <FileText size={16} /> 진료용 기록 요약 만들기
+      </Link>
+      <p className="mt-2 text-[10.5px] text-ink-300">이 기기에서만 만들어지고 어디에도 전송되지 않아요. 복용 중인 약이나 영양제가 있다면 함께 알려 주세요.</p>
     </SectionCard>
   );
 }
