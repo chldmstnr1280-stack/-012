@@ -241,6 +241,50 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
     [body, cancel, moveTo, next, say, set, wait],
   );
 
+  /** A conversation begins: stop, come to the talk spot and face the user. */
+  const engage = useCallback(async () => {
+    const g = cancel();
+    paused.current = true;
+    say(null);
+    const target = clampToFloor(SPOTS.talk.at, layoutRef.current ?? undefined);
+    if (Math.hypot(target.x - body.x.get(), target.y - body.y.get()) > 6) {
+      setSpot(null);
+      set("walking");
+      if (!(await moveTo(target, g))) return;
+    }
+    setSpot(SPOTS.talk);
+    setFacing(0);
+    set("interacting");
+  }, [body, cancel, layoutRef, moveTo, say, set]);
+
+  /** During a conversation: sit or doze on the cushion, or come close — and stay there. */
+  const settle = useCallback(
+    async (where: "cushion" | "close", sleep = false) => {
+      const g = cancel();
+      paused.current = true;
+      const spotTo = where === "cushion" ? SPOTS.rug : SPOTS.close;
+      const target = clampToFloor(spotTo.at, layoutRef.current ?? undefined);
+      if (Math.hypot(target.x - body.x.get(), target.y - body.y.get()) > 6) {
+        setSpot(null);
+        set("walking");
+        if (!(await moveTo(target, g))) return;
+      }
+      setSpot(spotTo);
+      setFacing(0);
+      set(where === "cushion" ? (sleep ? "sleeping" : "sitting") : "interacting");
+    },
+    [body, cancel, layoutRef, moveTo, set],
+  );
+
+  /** The conversation ended: if resting, stay a little longer; then life goes on. */
+  const release = useCallback(async () => {
+    const resting = stateRef.current === "sitting" || stateRef.current === "sleeping";
+    const g = cancel();
+    paused.current = false;
+    if (!resting) set("idle");
+    if (await wait(resting ? 15000 : 1500, g)) next();
+  }, [cancel, next, set, wait]);
+
   /** Head out for a walk: stop living in the greenhouse and walk to the door. */
   const leave = useCallback(async () => {
     const g = cancel();
@@ -310,7 +354,7 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
     [stopMotion],
   );
 
-  return { body, state, facing, spot, bubble, say, start, interact, walkTo, rest, leave, returnFromWalk, setBreathing };
+  return { body, state, facing, spot, bubble, say, start, interact, walkTo, rest, leave, returnFromWalk, engage, settle, release, setBreathing };
 }
 
 export type SellyBrain = ReturnType<typeof useSellyBrain>;

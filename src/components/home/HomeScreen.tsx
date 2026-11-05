@@ -17,6 +17,8 @@ import { readGame, registerVisit, updateGame, type FindKind } from "@/lib/game/g
 import { WALK_LINES } from "@/data/walkingPrompts";
 import { WalkInvite } from "./WalkInvite";
 import { SellyMenu, type SellyMenuAction } from "./SellyMenu";
+import { SellyTalk } from "@/components/talk/SellyTalk";
+import type { TalkAction } from "@/data/sellyConversations";
 import { CARE_LINES, TOUCH_LINES } from "@/data/sellyDialogues";
 import { TopBar } from "./TopBar";
 import { LevelCard } from "./LevelCard";
@@ -24,11 +26,15 @@ import { SpeechBubble } from "./SpeechBubble";
 import { ActionDock } from "./ActionDock";
 import { CareSheet } from "./CareSheet";
 
-type Mode = "home" | "breathing";
+type Mode = "home" | "breathing" | "talk";
 
 export function HomeScreen() {
   const { react, completeTask, touchExp, setImmersive, showToast, breath } = useSelly();
   const [mode, setMode] = useState<Mode>("home");
+  const modeRef = useRef<Mode>("home");
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
   const [careOpen, setCareOpen] = useState(false);
   /** breathing-mode caption (in the home mode Selly speaks through her own bubble) */
   const [caption, setCaption] = useState("어떤 호흡으로\n쉬어갈까요?");
@@ -58,7 +64,7 @@ export function HomeScreen() {
     if (!main) return;
     const measure = () => {
       // keep the world still while breathing (the dock changes height then)
-      if (breathingRef.current || !dockRef.current) return;
+      if (breathingRef.current || modeRef.current !== "home" || !dockRef.current) return;
       const m = main.getBoundingClientRect();
       const dockTop = dockRef.current.getBoundingClientRect().top - m.top;
       const L = computeLayout(m.width, m.height, dockTop - 4);
@@ -102,7 +108,7 @@ export function HomeScreen() {
   // touching Selly: a little reaction + her menu
   const handleTouch = () => {
     pet();
-    setMenuOpen(true);
+    if (modeRef.current === "home") setMenuOpen(true);
   };
 
   // the menu tucks itself away if left alone
@@ -112,9 +118,40 @@ export function HomeScreen() {
     return () => clearTimeout(t);
   }, [menuOpen]);
 
+  const startTalk = () => {
+    setCareOpen(false);
+    setMode("talk");
+    setImmersive(true);
+    brainRef.current.engage();
+  };
+
+  const endTalk = useCallback(() => {
+    setMode("home");
+    setImmersive(false);
+    brainRef.current.release();
+  }, [setImmersive]);
+
+  /** What Selly does as the conversation goes. */
+  const handleTalkAction = (a: TalkAction) => {
+    const b = brainRef.current;
+    if (a === "cheer") react("cheer");
+    else if (a === "comfort") react("pat");
+    else if (a === "rest") b.settle("cushion");
+    else if (a === "nap") b.settle("cushion", true);
+    else if (a === "comeClose") b.settle("close");
+    else if (a === "breathe") {
+      setMode("home");
+      setTimeout(() => startBreathing(), 150);
+    } else if (a === "record") {
+      endTalk();
+      setTimeout(() => router.push("/record"), 250);
+    }
+  };
+
   const handleMenu = (a: SellyMenuAction) => {
     setMenuOpen(false);
-    if (a === "pet") pet();
+    if (a === "talk") startTalk();
+    else if (a === "pet") pet();
     else if (a === "rest") brainRef.current.rest();
     else if (a === "breathe") startBreathing();
     else setInviteOpen(true);
@@ -221,6 +258,7 @@ export function HomeScreen() {
   }, []);
 
   const breathing = mode === "breathing";
+  const talking = mode === "talk";
 
   return (
     <main ref={mainRef} className="relative h-full w-full overflow-clip">
@@ -249,7 +287,7 @@ export function HomeScreen() {
         {/* header */}
         <div className="relative h-[124px] shrink-0">
           <AnimatePresence initial={false}>
-            {!breathing ? (
+            {talking ? null : !breathing ? (
               <motion.div key="top" className="absolute inset-0 flex flex-col gap-3" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <TopBar />
                 <LevelCard />
@@ -276,7 +314,7 @@ export function HomeScreen() {
           className={`relative shrink-0 transition-[padding] duration-500 ${breathing ? "pb-[calc(env(safe-area-inset-bottom)+28px)] pt-4" : "pb-[calc(env(safe-area-inset-bottom)+86px)] pt-1"}`}
         >
           <AnimatePresence mode="wait" initial={false}>
-            {breathing ? (
+            {talking ? null : breathing ? (
               <motion.div key="breath" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
                 <BreathingPanel onStop={() => endBreathing(false)} onComplete={(m) => endBreathing(true, m)} onPhase={onPhase} />
               </motion.div>
@@ -290,7 +328,8 @@ export function HomeScreen() {
         </div>
       </div>
 
-      <SellyMenu open={menuOpen && !breathing} onPick={handleMenu} onClose={() => setMenuOpen(false)} />
+      <SellyMenu open={menuOpen && mode === "home"} onPick={handleMenu} onClose={() => setMenuOpen(false)} />
+      <SellyTalk open={talking} onAction={handleTalkAction} onClose={endTalk} />
       <WalkInvite open={inviteOpen} onPick={startWalk} onClose={() => setInviteOpen(false)} />
       {/* fade into the walking path */}
       <motion.div

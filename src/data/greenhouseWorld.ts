@@ -31,7 +31,7 @@ export const WALKABLE: WorldPoint[] = [
   { x: 320, y: 948 },
 ];
 
-export type SpotId = "rug" | "window" | "flowers" | "plants" | "lantern" | "door";
+export type SpotId = "rug" | "window" | "flowers" | "plants" | "lantern" | "door" | "talk" | "close";
 
 export interface Spot {
   id: SpotId;
@@ -53,6 +53,10 @@ export const SPOTS: Record<SpotId, Spot> = {
   flowers: { id: "flowers", name: "꽃밭", at: { x: 385, y: 912 }, facing: -1, focus: { x: 300, y: 860 } },
   // flowering plants by the table, right
   plants: { id: "plants", name: "기분 꽃", at: { x: 712, y: 978 }, facing: 1, focus: { x: 792, y: 930 } },
+  // where Selly stands to talk (left-front, leaving room for the choices on the right)
+  talk: { id: "talk", name: "이야기 자리", at: { x: 425, y: 978 }, facing: 0 },
+  // right at the front, as close to the user as she can be
+  close: { id: "close", name: "가까이", at: { x: 470, y: 998 }, facing: 0 },
   // in front of the glass door (centre of the big window)
   door: { id: "door", name: "온실 문", at: { x: 575, y: 893 }, facing: 0 },
   // small floor lantern by the window
