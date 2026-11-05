@@ -188,3 +188,12 @@ export function applyData(next: AppData) {
 export function setPrefs(patch: Partial<Prefs>) {
   setData((d) => ({ ...d, prefs: { ...d.prefs, ...patch } }));
 }
+
+/** Add walk steps to a day's record (keeps everything else on that day). */
+export function addSteps(date: DateKey, steps: number) {
+  if (steps <= 0) return;
+  setData((d) => {
+    const cur = d.entries[date] ?? { condition: {}, updatedAt: 0 };
+    return { ...d, entries: { ...d.entries, [date]: { ...cur, steps: Math.min(200_000, (cur.steps ?? 0) + steps), updatedAt: Date.now() } } };
+  });
+}

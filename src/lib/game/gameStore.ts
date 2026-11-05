@@ -7,12 +7,40 @@
  */
 const KEY = "dear-selly:game:v1";
 
+/** Little things found on walks; they decorate the greenhouse. */
+export const FIND_KINDS = ["petal", "stone", "seed", "leaf", "firefly", "shard"] as const;
+export type FindKind = (typeof FIND_KINDS)[number];
+export const FIND_LABEL: Record<FindKind, { emoji: string; name: string }> = {
+  petal: { emoji: "🌸", name: "꽃잎" },
+  stone: { emoji: "🪨", name: "작은 돌" },
+  seed: { emoji: "🌱", name: "씨앗" },
+  leaf: { emoji: "🌿", name: "작은 잎" },
+  firefly: { emoji: "✨", name: "반딧불이" },
+  shard: { emoji: "💫", name: "빛 조각" },
+};
+
 export interface GameData {
   version: 1;
   lastVisit: number | null;
+  /** everything found on walks, in order (kept to the last 60) */
+  finds: FindKind[];
+  /** set when a walk ends; the greenhouse plays a small "welcome back" and clears it */
+  pendingReturn: { finds: FindKind[]; minutes: number } | null;
+  walkIntroSeen: boolean;
+  /** local date of the last walk that granted growth (once a day, never required) */
+  lastWalkGrowth: string | null;
 }
 
-const EMPTY: GameData = { version: 1, lastVisit: null };
+const EMPTY: GameData = { version: 1, lastVisit: null, finds: [], pendingReturn: null, walkIntroSeen: false, lastWalkGrowth: null };
+
+export function readGame(): GameData {
+  return read();
+}
+
+export function updateGame(patch: (d: GameData) => Partial<GameData>) {
+  const d = read();
+  write({ ...d, ...patch(d) });
+}
 
 function read(): GameData {
   try {

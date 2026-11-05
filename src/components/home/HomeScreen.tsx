@@ -13,7 +13,10 @@ import { useRouter } from "next/navigation";
 import { useAppData } from "@/lib/data-store";
 import type { ObjectId } from "@/data/greenhouseObjects";
 import { computeLayout, type WorldLayout } from "@/lib/game/world";
-import { registerVisit } from "@/lib/game/gameStore";
+import { readGame, registerVisit, updateGame, type FindKind } from "@/lib/game/gameStore";
+import { WALK_LINES } from "@/data/walkingPrompts";
+import { WalkInvite } from "./WalkInvite";
+import { SellyMenu, type SellyMenuAction } from "./SellyMenu";
 import { CARE_LINES, TOUCH_LINES } from "@/data/sellyDialogues";
 import { TopBar } from "./TopBar";
 import { LevelCard } from "./LevelCard";
@@ -36,6 +39,12 @@ export function HomeScreen() {
   const pendingAction = useRef<string | null | undefined>(undefined);
   const breathingRef = useRef(false);
   const started = useRef(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [doorGlow, setDoorGlow] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [finds, setFinds] = useState<FindKind[]>([]);
+  const [petals, setPetals] = useState(false);
   const haloScale = useTransform(breath, [0, 1], [0.82, 1.12]);
   const haloOpacity = useTransform(breath, [0, 1], [0.45, 0.95]);
 
@@ -73,11 +82,51 @@ export function HomeScreen() {
   const size = layout ? Math.min(layout.w * 0.62, 250) : 240;
 
   useEffect(() => () => setImmersive(false), [setImmersive]);
+  // transient UI must not survive the page being hidden (back/forward restores the route)
+  useLayoutEffect(
+    () => () => {
+      setDoorGlow(false);
+      setLeaving(false);
+      setInviteOpen(false);
+      setMenuOpen(false);
+    },
+    [],
+  );
 
-  const handleTouch = () => {
+  const pet = () => {
     react("touch");
     touchExp();
     brain.interact(TOUCH_LINES[touchIndex.current++ % TOUCH_LINES.length]);
+  };
+
+  // touching Selly: a little reaction + her menu
+  const handleTouch = () => {
+    pet();
+    setMenuOpen(true);
+  };
+
+  // the menu tucks itself away if left alone
+  useEffect(() => {
+    if (!menuOpen) return;
+    const t = setTimeout(() => setMenuOpen(false), 7000);
+    return () => clearTimeout(t);
+  }, [menuOpen]);
+
+  const handleMenu = (a: SellyMenuAction) => {
+    setMenuOpen(false);
+    if (a === "pet") pet();
+    else if (a === "rest") brainRef.current.rest();
+    else if (a === "breathe") startBreathing();
+    else setInviteOpen(true);
+  };
+
+  /** Door → walk: Selly walks to the door, it lights up, the screen fades, then the path. */
+  const startWalk = async (m: string) => {
+    setInviteOpen(false);
+    setLeaving(true);
+    await Promise.race([brainRef.current.leave(), new Promise((r) => setTimeout(r, 3200))]);
+    setDoorGlow(true);
+    setTimeout(() => router.push(`/walk?m=${m}`), 900);
   };
 
   const handleCare = (type: SellyReaction) => {
@@ -124,13 +173,24 @@ export function HomeScreen() {
     }
     const action = pendingAction.current;
     const visit = registerVisit();
+    const game = readGame();
+    const back = game.pendingReturn;
+    if (back) updateGame(() => ({ pendingReturn: null }));
     // runs exactly once; not cancelled by later layout updates
     setTimeout(() => {
-      if (action === "breathe") startBreathing();
+      setFinds(game.finds);
+      if (back) {
+        // back from a walk: petals drift in, Selly comes through the door and rests
+        setPetals(true);
+        brainRef.current.returnFromWalk(WALK_LINES.home);
+        react("cheer");
+        setTimeout(() => setPetals(false), 6500);
+      } else if (action === "breathe") startBreathing();
       else {
         brainRef.current.start(visit);
         react("greet");
         if (action === "care") setCareOpen(true);
+        if (action === "walk") setInviteOpen(true);
       }
     }, 450);
   }, [layout, react, startBreathing]);
@@ -179,6 +239,10 @@ export function HomeScreen() {
             onTouchSelly={handleTouch}
             onObject={handleObject}
             moodDays={moodDays}
+            onDoor={() => setInviteOpen(true)}
+            doorGlow={doorGlow}
+            finds={finds}
+            petals={petals}
           />
         )}
 
@@ -225,6 +289,18 @@ export function HomeScreen() {
           </AnimatePresence>
         </div>
       </div>
+
+      <SellyMenu open={menuOpen && !breathing} onPick={handleMenu} onClose={() => setMenuOpen(false)} />
+      <WalkInvite open={inviteOpen} onPick={startWalk} onClose={() => setInviteOpen(false)} />
+      {/* fade into the walking path */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[80] bg-[#fdf6e6]"
+        initial={false}
+        animate={{ opacity: doorGlow ? 1 : 0 }}
+        transition={{ duration: 0.8, delay: doorGlow ? 0.15 : 0, ease: "easeInOut" }}
+      />
+      {leaving && <div className="absolute inset-0 z-[79]" aria-hidden />}
     </main>
   );
 }

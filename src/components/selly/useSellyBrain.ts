@@ -241,6 +241,41 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
     [body, cancel, moveTo, next, say, set, wait],
   );
 
+  /** Head out for a walk: stop living in the greenhouse and walk to the door. */
+  const leave = useCallback(async () => {
+    const g = cancel();
+    paused.current = true;
+    say("가자! ♡", 2000);
+    const door = SPOTS.door.at;
+    setSpot(null);
+    set("walking");
+    await moveTo(door, g);
+    setFacing(0);
+    set("idle");
+  }, [cancel, moveTo, say, set]);
+
+  /** Back from a walk: appear at the door, say so, then rest on the cushion. */
+  const returnFromWalk = useCallback(
+    async (line: string) => {
+      const g = cancel();
+      paused.current = false;
+      body.x.set(SPOTS.door.at.x);
+      body.y.set(SPOTS.door.at.y);
+      body.scale.set(depthScale(SPOTS.door.at.y));
+      setSpot(SPOTS.door);
+      setFacing(0);
+      set("greeting");
+      say(line, 4200);
+      if (!(await wait(3000, g))) return;
+      set("walking");
+      if (!(await moveTo(SPOTS.rug.at, g))) return;
+      setSpot(SPOTS.rug);
+      set("sitting");
+      if (await wait(12000, g)) next();
+    },
+    [body, cancel, moveTo, next, say, set, wait],
+  );
+
   /** Breathing takes over: float Selly to a calm spot above the controls, and back after. */
   const setBreathing = useCallback(
     async (on: boolean, screen?: { x: number; y: number }) => {
@@ -275,7 +310,7 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
     [stopMotion],
   );
 
-  return { body, state, facing, spot, bubble, say, start, interact, walkTo, rest, setBreathing };
+  return { body, state, facing, spot, bubble, say, start, interact, walkTo, rest, leave, returnFromWalk, setBreathing };
 }
 
 export type SellyBrain = ReturnType<typeof useSellyBrain>;

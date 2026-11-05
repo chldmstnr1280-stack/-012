@@ -31,7 +31,7 @@ export const WALKABLE: WorldPoint[] = [
   { x: 320, y: 948 },
 ];
 
-export type SpotId = "rug" | "window" | "flowers" | "plants" | "lantern";
+export type SpotId = "rug" | "window" | "flowers" | "plants" | "lantern" | "door";
 
 export interface Spot {
   id: SpotId;
@@ -53,6 +53,8 @@ export const SPOTS: Record<SpotId, Spot> = {
   flowers: { id: "flowers", name: "꽃밭", at: { x: 385, y: 912 }, facing: -1, focus: { x: 300, y: 860 } },
   // flowering plants by the table, right
   plants: { id: "plants", name: "기분 꽃", at: { x: 712, y: 978 }, facing: 1, focus: { x: 792, y: 930 } },
+  // in front of the glass door (centre of the big window)
+  door: { id: "door", name: "온실 문", at: { x: 575, y: 893 }, facing: 0 },
   // small floor lantern by the window
   lantern: { id: "lantern", name: "작은 랜턴", at: { x: 650, y: 900 }, facing: 1, focus: { x: 665, y: 860 } },
 };
@@ -62,3 +64,6 @@ export function depthScale(y: number) {
   const t = Math.max(0, Math.min(1, (y - 890) / (1000 - 890)));
   return 0.64 + t * (0.84 - 0.64);
 }
+
+/** The glass door: the narrow centre pane of the big painted window (world rect). */
+export const DOOR_RECT = { x0: 518, y0: 560, x1: 632, y1: 882 };

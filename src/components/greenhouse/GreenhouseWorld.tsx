@@ -10,6 +10,8 @@ import { sellyPoses } from "@/lib/assets";
 import { STAGE_SIZE, type StageId } from "@/lib/growth";
 import { useSelly } from "@/lib/selly-store";
 import { toScreen, toWorld, type WorldLayout } from "@/lib/game/world";
+import { DOOR_RECT } from "@/data/greenhouseWorld";
+import type { FindKind } from "@/lib/game/gameStore";
 import type { SellyState } from "@/lib/game/behaviorEngine";
 
 /** Expression and posture for each behaviour state. */
@@ -39,9 +41,16 @@ interface Props {
   onObject: (id: ObjectId) => void;
   /** days with a mood record — grows the mood flower */
   moodDays: number;
+  onDoor: () => void;
+  /** warm light at the door (heading out for a walk) */
+  doorGlow: boolean;
+  /** things found on walks, placed around the floor */
+  finds: FindKind[];
+  /** petals drifting down (welcome back from a walk) */
+  petals: boolean;
 }
 
-export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays }: Props) {
+export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals }: Props) {
   const { body, state, facing, spot } = brain;
   const L = layout;
 
@@ -78,6 +87,10 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
           }}
         />
       )}
+
+      <Door layout={L} glow={doorGlow} disabled={breathing} onTap={onDoor} />
+      <GardenFinds layout={L} finds={finds} />
+      {petals && <FallingPetals />}
 
       {OBJECTS.map((o) => (
         <WorldObject key={o.id} obj={o} layout={L} moodDays={moodDays} disabled={breathing} onTap={() => onObject(o.id)} breathing={breathing} />
@@ -346,6 +359,117 @@ function Droplets({ at }: { at: { x: number; y: number } }) {
           animate={{ y: [-30, 4], opacity: [0, 1, 0] }}
           transition={{ duration: 0.9, delay: i * 0.25, repeat: Infinity, repeatDelay: 0.6, ease: "easeIn" }}
         />
+      ))}
+    </div>
+  );
+}
+
+/** The glass door in the painted window: a soft hit area that glows on hover/touch. */
+function Door({ layout, glow, disabled, onTap }: { layout: WorldLayout; glow: boolean; disabled: boolean; onTap: () => void }) {
+  const a = toScreen(layout, { x: DOOR_RECT.x0, y: DOOR_RECT.y0 });
+  const b = toScreen(layout, { x: DOOR_RECT.x1, y: DOOR_RECT.y1 });
+  return (
+    <button
+      type="button"
+      aria-label="온실 문 — 셀리와 산책하기"
+      disabled={disabled}
+      onClick={onTap}
+      className="group pointer-events-auto absolute rounded-t-[40%] focus-visible:outline-2 focus-visible:outline-white disabled:pointer-events-none"
+      style={{ left: a.x, top: a.y, width: b.x - a.x, height: b.y - a.y, zIndex: 1 }}
+    >
+      <span
+        aria-hidden
+        className="absolute inset-[-14%] rounded-[45%] bg-[radial-gradient(closest-side,rgba(255,240,200,0.55),rgba(255,236,190,0))] opacity-0 transition-opacity duration-500 group-hover:opacity-70 group-active:opacity-90 group-focus-visible:opacity-70"
+      />
+      <motion.span
+        aria-hidden
+        className="absolute inset-[-30%] rounded-[45%] bg-[radial-gradient(closest-side,rgba(255,236,180,0.95),rgba(255,226,160,0.35)_55%,rgba(255,226,160,0))]"
+        initial={false}
+        animate={{ opacity: glow ? 1 : 0, scale: glow ? 1.08 : 0.9 }}
+        transition={{ duration: 0.9, ease: "easeOut" }}
+      />
+    </button>
+  );
+}
+
+/** Where walk finds rest on the floor (world points outside Selly's main paths). */
+const FIND_SLOTS = [
+  { x: 352, y: 962 }, { x: 742, y: 958 }, { x: 410, y: 996 }, { x: 724, y: 1000 }, { x: 372, y: 900 },
+  { x: 688, y: 898 }, { x: 456, y: 1004 }, { x: 330, y: 930 }, { x: 760, y: 925 }, { x: 492, y: 893 },
+];
+
+function GardenFinds({ layout, finds }: { layout: WorldLayout; finds: FindKind[] }) {
+  const shown = finds.slice(-FIND_SLOTS.length);
+  return (
+    <>
+      {shown.map((f, i) => {
+        const slot = FIND_SLOTS[i];
+        const p = toScreen(layout, slot);
+        const k = layout.s;
+        return (
+          <div key={i} className="pointer-events-none absolute" style={{ left: p.x, top: p.y, zIndex: Math.round(slot.y) - 1 }} aria-hidden>
+            <FindSprite kind={f} k={k} i={i} />
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+function FindSprite({ kind, k, i }: { kind: FindKind; k: number; i: number }) {
+  if (kind === "seed")
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src="/assets/flowers/white-sprout.png" alt="" className="absolute max-w-none -translate-x-1/2 -translate-y-full" style={{ width: 46 * k }} />;
+  if (kind === "stone") return <span className="absolute -translate-x-1/2 -translate-y-full rounded-[50%] bg-gradient-to-b from-[#e8e1d6] to-[#bfb3a2]" style={{ width: 22 * k, height: 13 * k }} />;
+  if (kind === "petal")
+    return (
+      <svg viewBox="-8 -8 16 16" className="absolute -translate-x-1/2 -translate-y-full" style={{ width: 20 * k, rotate: `${i * 47}deg` }}>
+        <path d="M0 -7 C 6 -4 6 4 0 7 C -6 4 -6 -4 0 -7Z" fill="#f6c3cf" />
+      </svg>
+    );
+  if (kind === "leaf")
+    return (
+      <svg viewBox="-8 -12 16 14" className="absolute -translate-x-1/2 -translate-y-full" style={{ width: 22 * k, rotate: `${i * 61 - 40}deg` }}>
+        <path d="M0 0 C -6 -3 -6 -9 0 -12 C 6 -9 6 -3 0 0Z" fill="#9fc483" />
+      </svg>
+    );
+  if (kind === "firefly")
+    return (
+      <motion.span
+        className="absolute h-2 w-2 rounded-full bg-[#fff4b8] shadow-[0_0_12px_4px_rgba(255,236,150,0.75)]"
+        animate={{ x: [0, 14, -8, 0], y: [-60 * k, -80 * k, -66 * k, -60 * k], opacity: [0.5, 1, 0.6, 0.5] }}
+        transition={{ duration: 7 + (i % 3), repeat: Infinity, ease: "easeInOut" }}
+      />
+    );
+  return (
+    <motion.svg
+      viewBox="-6 -6 12 12"
+      className="absolute -translate-x-1/2 -translate-y-full"
+      style={{ width: 14 * k }}
+      animate={{ opacity: [0.4, 1, 0.4], scale: [0.85, 1.1, 0.85] }}
+      transition={{ duration: 2.6 + (i % 3) * 0.4, repeat: Infinity }}
+    >
+      <path d="M0 -6 C 0.6 -1 1 -0.6 6 0 C 1 0.6 0.6 1 0 6 C -0.6 1 -1 0.6 -6 0 C -1 -0.6 -0.6 -1 0 -6Z" fill="#fff1c2" />
+    </motion.svg>
+  );
+}
+
+/** A soft shower of petals across the greenhouse. */
+function FallingPetals() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[4000] motion-reduce:hidden" aria-hidden>
+      {Array.from({ length: 16 }, (_, i) => (
+        <motion.svg
+          key={i}
+          viewBox="-8 -8 16 16"
+          className="absolute top-0 h-4 w-4"
+          style={{ left: `${(i * 37) % 100}%` }}
+          initial={{ y: -20, opacity: 0, rotate: 0 }}
+          animate={{ y: 620, opacity: [0, 1, 1, 0], rotate: 260, x: [0, (i % 2 ? 1 : -1) * 30] }}
+          transition={{ duration: 4 + (i % 4) * 0.6, delay: (i % 8) * 0.25, ease: "easeIn" }}
+        >
+          <path d="M0 -7 C 6 -4 6 4 0 7 C -6 4 -6 -4 0 -7Z" fill={i % 3 ? "#f7c6d2" : "#fde3ea"} />
+        </motion.svg>
       ))}
     </div>
   );

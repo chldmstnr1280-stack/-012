@@ -62,3 +62,20 @@ export const sellyPoses: {
   bare: { sit: "/assets/selly/pose-sit-bare.png", sleep: "/assets/selly/pose-sleep-bare.png" },
   head: { sit: [0.52, 0.235], sleep: [0.64, 0.18] },
 };
+
+/**
+ * Walking scene art. Each layer is a horizontally SEAMLESS strip that scrolls at its
+ * own speed (parallax). Leave a layer null to use the code-drawn placeholder.
+ * Spec: 2400×1600 px PNG/WebP (3:2, height ≥ 1600), left/right edges tile seamlessly;
+ *  - far:  sky + distant hills/lake, opaque (no transparency needed)
+ *  - mid:  trees, bushes, fence — TRANSPARENT above the horizon line (~58% height)
+ *  - fore: path, grass, near flowers — TRANSPARENT except the bottom ~40%
+ * Path surface (where Selly walks) should sit at 80–86% of the height.
+ */
+export const walkArt: { far: string | null; mid: string | null; fore: string | null; frames: string[] } = {
+  far: null,
+  mid: null,
+  fore: null,
+  // walking cycle frames; one frame = gentle hop, 2–4 frames = sprite animation
+  frames: ["/assets/selly/pose-walk.png"],
+};
