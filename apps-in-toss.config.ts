@@ -3,10 +3,10 @@ import { defineConfig } from "@apps-in-toss/web-framework/config";
 /**
  * Apps in Toss mini-app config. `appName` must match the app registered in the
  * Apps in Toss console exactly (it also forms the intoss://{appName} deep link).
- * Build: `npm run build:toss` → static export in `out/` → `dearselly.ait`.
+ * Build: `npm run build:toss` → static export in `out/` → `dearselly0.ait`.
  */
 export default defineConfig({
-  appName: "dearselly",
+  appName: "dearselly0",
   brand: {
     primaryColor: "#7EA47A",
   },
