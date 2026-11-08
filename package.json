@@ -10,6 +10,7 @@
     "build:toss": "NEXT_PUBLIC_PLATFORM=toss next build && ait build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@apps-in-toss/web-framework": "^3.9.0",
     "@fontsource/gowun-dodum": "^5.3.0",
     "@fontsource/parisienne": "^5.3.0",

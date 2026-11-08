@@ -437,6 +437,8 @@ export function HomeScreen() {
         react("greet");
         if (action === "care") setCareOpen(true);
         if (action === "walk") setInviteOpen(true);
+        // from "☁️ 잠깐 쉬어가기" (셀리에게 징징대기): Selly sits on the cushion with you
+        if (action === "rest") setTimeout(() => void brainRef.current.rest("잠깐 쉬어 가자.\n같이 쉬자 ♡", 20000), 1400);
       }
     }, 450);
   }, [layout, react, startBreathing]);
@@ -525,6 +527,25 @@ export function HomeScreen() {
         {/* stage spacer; breathing caption sits at its top */}
         <section className="pointer-events-none relative min-h-0 flex-1">
           {breathing && <SpeechBubble text={caption} className="absolute left-1/2 top-2 -translate-x-1/2" />}
+          <AnimatePresence>
+            {mode === "home" && (
+              <motion.button
+                key="whine"
+                type="button"
+                onClick={() => {
+                  playSfx("tap");
+                  router.push("/whine");
+                }}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="glass pointer-events-auto absolute left-4 top-1 flex flex-col items-start rounded-[18px] px-3.5 py-2 text-left active:scale-95"
+              >
+                <span className="text-[13.5px] font-bold text-ink-700">🫧 셀리에게 징징대기</span>
+                <span className="text-[10.5px] text-ink-500">오늘 있었던 일, 셀리한테 다 말해!</span>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </section>
 
         {/* dock */}
