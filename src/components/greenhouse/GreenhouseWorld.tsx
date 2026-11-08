@@ -36,9 +36,12 @@ const LOOK: Partial<Record<SellyState, { pose?: SellyExpression; still?: boolean
 };
 
 /** States drawn with a painted pose sprite (box-relative width; feet at 90%). */
-type PoseId = "walk" | "sit" | "sleep";
-const POSE_FOR: Partial<Record<SellyState, PoseId>> = { walking: "walk", sitting: "sit", sleeping: "sleep", cozy: "sit" };
-const POSE_WIDTH: Record<PoseId, number> = { walk: 0.66, sit: 0.68, sleep: 0.8 };
+type PoseId = "walk" | "sit" | "sleep" | "blanket" | "back" | "rainbow";
+const POSE_FOR: Partial<Record<SellyState, PoseId>> = { walking: "walk", sitting: "sit", sleeping: "sleep", cozy: "blanket", watching: "back", cheering: "rainbow" };
+// sized so Selly's body matches the sitting pose (the rainbow pose also holds the rainbow)
+const POSE_WIDTH: Record<PoseId, number> = { walk: 0.66, sit: 0.68, sleep: 0.8, blanket: 0.72, back: 0.64, rainbow: 0.98 };
+/** the weather poses have leaves; the leafless seed Selly uses these instead */
+const SEED_POSE: Partial<Record<PoseId, PoseId | undefined>> = { walk: undefined, blanket: "sit", back: undefined, rainbow: undefined };
 
 interface Props {
   layout: WorldLayout;
@@ -97,7 +100,7 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
   const look = LOOK[state] ?? {};
   // seed Selly has no leaves: her side-walk pose can't be shown leafless, so she hops in her base art
   const wanted = !breathing && sellyPoses ? POSE_FOR[state] : undefined;
-  const pose = wanted === "walk" && stage.id === "seed" ? undefined : wanted;
+  const pose = wanted && stage.id === "seed" && wanted in SEED_POSE ? SEED_POSE[wanted] : wanted;
 
   // floor band where a tap calls Selly over
   const floorTop = toScreen(L, { x: 0, y: 890 }).y;
@@ -197,7 +200,8 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
             )}
           </AnimatePresence>
           {state === "sleeping" && <Zzz />}
-          {state === "cozy" && <Blanket />}
+          {/* the seed stage has no blanket art yet: a drawn one */}
+          {state === "cozy" && pose !== "blanket" && <Blanket />}
         </motion.div>
       </motion.div>
 
@@ -213,7 +217,7 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
 function PoseSprite({ pose, stage, facing }: { pose: PoseId; stage: StageId; facing: -1 | 0 | 1 }) {
   if (!sellyPoses) return null;
   const w = POSE_WIDTH[pose] * STAGE_SIZE[stage];
-  const bare = stage === "seed" && pose !== "walk";
+  const bare = stage === "seed" && (pose === "sit" || pose === "sleep");
   const src = bare ? sellyPoses.bare[pose as "sit" | "sleep"] : sellyPoses[pose];
   const head = bare ? sellyPoses.head[pose as "sit" | "sleep"] : null;
   return (
