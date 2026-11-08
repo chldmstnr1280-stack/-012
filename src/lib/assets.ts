@@ -56,6 +56,8 @@ export const sellyPoses: {
   blanket: string;
   back: string;
   rainbow: string;
+  /** asleep on a pillow under a blanket (leafy stages; the seed keeps `sleep`) */
+  nap: string;
   /** leafless versions for the seed stage, with where the seedling sits (fractions of the image) */
   bare: { sit: string; sleep: string };
   head: { sit: [number, number]; sleep: [number, number] };
@@ -66,6 +68,7 @@ export const sellyPoses: {
   blanket: "/assets/selly/pose-blanket.png",
   back: "/assets/selly/pose-back.png",
   rainbow: "/assets/selly/pose-rainbow.png",
+  nap: "/assets/selly/pose-nap.png",
   bare: { sit: "/assets/selly/pose-sit-bare.png", sleep: "/assets/selly/pose-sleep-bare.png" },
   head: { sit: [0.52, 0.235], sleep: [0.64, 0.18] },
 };

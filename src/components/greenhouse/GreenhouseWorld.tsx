@@ -36,12 +36,12 @@ const LOOK: Partial<Record<SellyState, { pose?: SellyExpression; still?: boolean
 };
 
 /** States drawn with a painted pose sprite (box-relative width; feet at 90%). */
-type PoseId = "walk" | "sit" | "sleep" | "blanket" | "back" | "rainbow";
-const POSE_FOR: Partial<Record<SellyState, PoseId>> = { walking: "walk", sitting: "sit", sleeping: "sleep", cozy: "blanket", watching: "back", cheering: "rainbow" };
+type PoseId = "walk" | "sit" | "sleep" | "blanket" | "back" | "rainbow" | "nap";
+const POSE_FOR: Partial<Record<SellyState, PoseId>> = { walking: "walk", sitting: "sit", sleeping: "nap", cozy: "blanket", watching: "back", cheering: "rainbow" };
 // sized so Selly's body matches the sitting pose (the rainbow pose also holds the rainbow)
-const POSE_WIDTH: Record<PoseId, number> = { walk: 0.66, sit: 0.68, sleep: 0.8, blanket: 0.72, back: 0.64, rainbow: 0.98 };
+const POSE_WIDTH: Record<PoseId, number> = { walk: 0.66, sit: 0.68, sleep: 0.8, blanket: 0.78, back: 0.89, rainbow: 1.05, nap: 0.86 };
 /** the weather poses have leaves; the leafless seed Selly uses these instead */
-const SEED_POSE: Partial<Record<PoseId, PoseId | undefined>> = { walk: undefined, blanket: "sit", back: undefined, rainbow: undefined };
+const SEED_POSE: Partial<Record<PoseId, PoseId | undefined>> = { walk: undefined, blanket: "sit", back: undefined, rainbow: undefined, nap: "sleep" };
 
 interface Props {
   layout: WorldLayout;
@@ -199,7 +199,8 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
               </motion.button>
             )}
           </AnimatePresence>
-          {state === "sleeping" && <Zzz />}
+          {/* the nap art has its own z's */}
+          {state === "sleeping" && pose !== "nap" && <Zzz />}
           {/* the seed stage has no blanket art yet: a drawn one */}
           {state === "cozy" && pose !== "blanket" && <Blanket />}
         </motion.div>
@@ -224,8 +225,8 @@ function PoseSprite({ pose, stage, facing }: { pose: PoseId; stage: StageId; fac
     <motion.div
       className="absolute bottom-[10%] left-1/2"
       style={{ width: `${w * 100}%`, x: "-50%", originY: 1 }}
-      animate={pose === "walk" ? { scaleX: facing < 0 ? -1 : 1 } : { scaleY: [1, pose === "sleep" ? 1.035 : 1.02, 1] }}
-      transition={pose === "walk" ? { duration: 0.2 } : { duration: pose === "sleep" ? 4.6 : 3.6, repeat: Infinity, ease: "easeInOut" }}
+      animate={pose === "walk" ? { scaleX: facing < 0 ? -1 : 1 } : { scaleY: [1, pose === "sleep" || pose === "nap" ? 1.035 : 1.02, 1] }}
+      transition={pose === "walk" ? { duration: 0.2 } : { duration: pose === "sleep" || pose === "nap" ? 4.6 : 3.6, repeat: Infinity, ease: "easeInOut" }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="" draggable={false} className="block w-full select-none" />

@@ -26,12 +26,14 @@ export interface StoryMood {
   opening: string;
   /** background level while the voice plays (0–1) */
   duck: number;
+  /** a scene to show behind the story (Selly by the window), if there is one */
+  art?: string;
 }
 
 const MOODS: Record<StoryMoodId, StoryMood> = {
   bedtime: { id: "bedtime", opening: "잠들기 전에, 아주 조용한 이야기 하나 들려줄까.", duck: 0.25 },
-  rainy: { id: "rainy", opening: "빗소리가 참 좋구나. 이 소리를 들으며 이야기 하나 해 볼까.", duck: 0.5 },
-  snowy: { id: "snowy", opening: "밖엔 눈이 소복소복. 따뜻한 온실에서 겨울 이야기를 들려주마.", duck: 0.4 },
+  rainy: { id: "rainy", opening: "빗소리가 참 좋구나. 이 소리를 들으며 이야기 하나 해 볼까.", duck: 0.5, art: "/assets/stories/rain.webp" },
+  snowy: { id: "snowy", opening: "밖엔 눈이 소복소복. 따뜻한 온실에서 겨울 이야기를 들려주마.", duck: 0.4, art: "/assets/stories/snow.webp" },
   sunny: { id: "sunny", opening: "햇살 좋은 날엔 꽃들도 이야기를 좋아한단다.", duck: 0.35 },
   cloudy: { id: "cloudy", opening: "구름이 천천히 흘러가는 날이구나. 천천히 들어 보렴.", duck: 0.35 },
   rainbow: { id: "rainbow", opening: "저 무지개 너머에 무엇이 있을지, 이야기해 줄까.", duck: 0.35 },
