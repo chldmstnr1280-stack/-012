@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useAppData } from "@/lib/data-store";
 import { useSelly } from "@/lib/selly-store";
-import { getEngine, resume, setBusVolume, suspend, unlock } from "@/lib/sound/engine";
+import { getEngine, onDuck, resume, setBusVolume, suspend, unlock } from "@/lib/sound/engine";
+import { activeNatureLayers, setNatureDuck, setNatureScene, setNatureVolume } from "@/lib/sound/nature";
+import { useAmbience } from "@/lib/game/ambience";
+import { natureOn, natureVolume, useGardenWeather } from "@/lib/garden/weather";
 import { setMusicCalm, setMusicVolume, startMusic, stopMusic } from "@/lib/sound/music";
 import { playSfx, setSfxEnabled } from "@/lib/sound/sfx";
 
@@ -16,6 +19,8 @@ export function SoundInit() {
   const { prefs } = useAppData();
   const { immersive } = useSelly();
   const [unlocked, setUnlocked] = useState(false);
+  const { weather } = useGardenWeather();
+  const tod = useAmbience();
 
   // Turn sound on with a gesture the browser accepts (end of a touch, a click, a key),
   // and keep trying on every gesture while it is not running — this also brings the
@@ -49,6 +54,18 @@ export function SoundInit() {
     setMusicCalm(immersive);
   }, [immersive]);
 
+  // nature sounds follow the greenhouse weather and time — only after the first tap
+  const natureWanted = natureOn(prefs);
+  const natureLevel = natureVolume(prefs);
+  useEffect(() => {
+    setNatureVolume(natureLevel);
+  }, [natureLevel]);
+  useEffect(() => {
+    if (!unlocked) return;
+    setNatureScene(natureWanted && natureLevel > 0 ? { weather, tod } : null);
+  }, [unlocked, natureWanted, natureLevel, weather, tod]);
+  useEffect(() => onDuck((level) => setNatureDuck(level)), []);
+
   useEffect(() => {
     const onVis = () => {
       if (!getEngine()) return;
@@ -59,12 +76,18 @@ export function SoundInit() {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
-  useEffect(() => () => stopMusic(), []);
+  useEffect(
+    () => () => {
+      stopMusic();
+      setNatureScene(null);
+    },
+    [],
+  );
 
   // development-only hook used by the audio render checks
   useEffect(() => {
     if (process.env.NODE_ENV === "production") return;
-    (window as unknown as { __sound?: object }).__sound = { playSfx, startMusic, stopMusic, unlock };
+    (window as unknown as { __sound?: object }).__sound = { playSfx, startMusic, stopMusic, unlock, activeNatureLayers };
   }, []);
   return null;
 }

@@ -6,6 +6,8 @@ import { SPOTS, depthScale, type Spot, type WorldPoint } from "@/data/greenhouse
 import { AMBIENT, CALLED_LINES, GREETINGS, WAKE_LINES, pick } from "@/data/sellyDialogues";
 import { chooseActivity, type Activity, type ActivityKind, type SellyState } from "@/lib/game/behaviorEngine";
 import { currentTimeOfDay } from "@/lib/game/ambience";
+import { currentWeather } from "@/lib/garden/weather";
+import { MORNING_WAKE, ambientLine } from "@/data/weatherLines";
 import { clampToFloor, randomFloorPoint, toWorld, type WorldLayout } from "@/lib/game/world";
 import type { VisitKind } from "@/lib/game/gameStore";
 
@@ -144,7 +146,7 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
   const runRef = useRef<(a: Activity) => void>(() => {});
   const next = useCallback(() => {
     if (paused.current) return;
-    const act = chooseActivity(history.current, currentTimeOfDay(), { canMove: !reduce });
+    const act = chooseActivity(history.current, currentTimeOfDay(), { canMove: !reduce }, currentWeather());
     history.current = [...history.current.slice(-5), act.kind];
     runRef.current(act);
   }, [reduce]);
@@ -163,9 +165,10 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
       setSpot(s);
       setFacing(s ? s.facing : 0);
       set(act.state);
-      if (act.lineKey && Math.random() < 0.4) {
-        const lines = AMBIENT[act.lineKey];
-        if (lines) say(pick(lines), 3600);
+      if (act.lineKey && Math.random() < (act.kind === "rainbow_joy" ? 0.9 : 0.4)) {
+        // weather-aware lines first (rain by the window, snow, the rainbow…)
+        const line = ambientLine(act.lineKey, currentWeather(), currentTimeOfDay()) ?? (AMBIENT[act.lineKey] ? pick(AMBIENT[act.lineKey]!) : null);
+        if (line) say(line, 3600);
       }
       if (await wait(act.durationMs, g)) next();
     },
@@ -181,8 +184,16 @@ export function useSellyBrain(layoutRef: React.RefObject<WorldLayout | null>) {
       const g = cancel();
       setSpot(SPOTS.rug);
       setFacing(0);
-      set("greeting");
-      say(pick(GREETINGS[visit]), 4200);
+      // mornings: Selly is still asleep on the cushion, then wakes up with a stretch
+      if (currentTimeOfDay() === "morning" && visit !== "sameDay") {
+        set("sleeping");
+        if (!(await wait(1600, g))) return;
+        set("greeting");
+        say(pick(MORNING_WAKE), 4200);
+      } else {
+        set("greeting");
+        say(pick(GREETINGS[visit]), 4200);
+      }
       if (await wait(4200, g)) next();
     },
     [cancel, next, say, set, wait],

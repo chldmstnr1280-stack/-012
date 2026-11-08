@@ -4,14 +4,16 @@
  * Tiny Web Audio engine. Every sound in Dear Selly is synthesized here —
  * there are no audio files, so nothing to license and nothing to download.
  *
- *   voices → [music bus | sfx bus | cue bus] → master → compressor → speakers
+ *   voices → [music | nature | story | sfx | cue bus] → master → compressor → speakers
+ *   (nature = weather sounds; story = reserved for the gardener's read-aloud stories,
+ *    which will duck music and nature while they play — see duckFor())
  *                     ↘ reverb send ↗
  *
  * Browsers only allow audio after a user gesture, so `unlock()` is called from
  * the first tap anywhere in the app.
  */
 
-type Bus = "music" | "sfx" | "cue";
+export type Bus = "music" | "nature" | "story" | "sfx" | "cue";
 
 interface Engine {
   ctx: AudioContext;
@@ -64,7 +66,7 @@ function create(): Engine | null {
     g.connect(master);
     return g;
   };
-  return { ctx, master, buses: { music: bus(0), sfx: bus(0.7), cue: bus(0.8) }, reverb, reverbIn };
+  return { ctx, master, buses: { music: bus(0), nature: bus(0), story: bus(1), sfx: bus(0.7), cue: bus(0.8) }, reverb, reverbIn };
 }
 
 export function getEngine(): Engine | null {
@@ -226,4 +228,46 @@ export function noise({ delay = 0, dur = 0.15, gain = 0.05, freq = 6000, q = 1, 
   }
   src.start(t);
   src.stop(t + dur + 0.02);
+}
+
+/**
+ * Soften the background (music + nature) while something to listen to plays on
+ * the story bus — e.g. the gardener reading a story. Returns a function that
+ * brings the background back. Levels are restored by the owners (SoundInit).
+ */
+let ducked = 1;
+const duckListeners = new Set<(level: number) => void>();
+export function duckFor(level = 0.35): () => void {
+  ducked = level;
+  duckListeners.forEach((l) => l(level));
+  return () => {
+    ducked = 1;
+    duckListeners.forEach((l) => l(1));
+  };
+}
+export const duckLevel = () => ducked;
+export function onDuck(l: (level: number) => void) {
+  duckListeners.add(l);
+  return () => {
+    duckListeners.delete(l);
+  };
+}
+
+/** A looping noise buffer (random noise loops without an audible seam). */
+let noiseBuf: AudioBuffer | null = null;
+export function noiseBuffer(ctx: AudioContext) {
+  if (noiseBuf && noiseBuf.sampleRate === ctx.sampleRate) return noiseBuf;
+  const len = ctx.sampleRate * 4;
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    // gently pinked noise (softer, less hiss than white)
+    let b = 0;
+    for (let i = 0; i < len; i++) {
+      b = 0.97 * b + 0.03 * (Math.random() * 2 - 1);
+      d[i] = b * 6 + (Math.random() * 2 - 1) * 0.15;
+    }
+  }
+  noiseBuf = buf;
+  return buf;
 }

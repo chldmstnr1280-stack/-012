@@ -148,6 +148,13 @@ export interface Prefs {
   ambience: "auto" | "morning" | "day" | "evening" | "night";
   /** daily water goal in cups (200 ml) */
   waterGoal?: number;
+  /** greenhouse weather: chosen, or "auto" (default) */
+  weather?: import("@/lib/garden/weather").WeatherPref;
+  /** greenhouse season: "auto" follows the calendar (default) */
+  season?: import("@/lib/garden/weather").SeasonPref;
+  /** nature sounds (rain, birds, wind, crickets) — default on, plays only after a tap */
+  nature?: boolean;
+  natureVolume?: number;
 }
 
 const KEY = "dear-selly:v1";

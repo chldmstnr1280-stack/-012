@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useMotionValueEvent, useTransform, type MotionValue } from "motion/react";
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useTransform, type MotionValue } from "motion/react";
 import { Selly } from "@/components/selly/Selly";
 import type { SellyBrain } from "@/components/selly/useSellyBrain";
 import type { SellyExpression } from "@/components/selly/SellyFace";
@@ -12,6 +12,8 @@ import { useSelly } from "@/lib/selly-store";
 import { toScreen, toWorld, type WorldLayout } from "@/lib/game/world";
 import { DOOR_RECT } from "@/data/greenhouseWorld";
 import { TimeLighting } from "./TimeLighting";
+import { WeatherGlass, WeatherGrade, WeatherNight, WeatherOutside } from "./weather/WeatherScene";
+import type { Season, Weather } from "@/lib/garden/weather";
 import { EMOTION_INFO, FLOWER_ASPECT, FLOWER_STAGE_NAMES, flowerArt, type Emotion } from "@/data/moodFlowers";
 import type { PlantedFlower } from "@/lib/garden";
 import { DECO_SLOTS, itemById } from "@/data/gardenItems";
@@ -28,11 +30,14 @@ const LOOK: Partial<Record<SellyState, { pose?: SellyExpression; still?: boolean
   sunbathing: { pose: "relaxed" },
   looking_at_flower: { pose: "happy" },
   watering: { pose: "happy" },
+  watching: { pose: "relaxed", still: true },
+  cozy: { still: true },
+  cheering: { pose: "happy" },
 };
 
 /** States drawn with a painted pose sprite (box-relative width; feet at 90%). */
 type PoseId = "walk" | "sit" | "sleep";
-const POSE_FOR: Partial<Record<SellyState, PoseId>> = { walking: "walk", sitting: "sit", sleeping: "sleep" };
+const POSE_FOR: Partial<Record<SellyState, PoseId>> = { walking: "walk", sitting: "sit", sleeping: "sleep", cozy: "sit" };
 const POSE_WIDTH: Record<PoseId, number> = { walk: 0.66, sit: 0.68, sleep: 0.8 };
 
 interface Props {
@@ -64,10 +69,21 @@ interface Props {
   decorating: boolean;
   activeSlot: string | null;
   onSlot: (id: string) => void;
+  /** the living greenhouse: weather and season */
+  weather: Weather;
+  season: Season;
 }
 
-export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers, deco, decorating, activeSlot, onSlot }: Props) {
+export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers, deco, decorating, activeSlot, onSlot, weather, season }: Props) {
   const { body, state, facing, spot } = brain;
+  const reduceMotion = useReducedMotion();
+  // watching the rain/snow: her eyes follow the drops, slowly left and right
+  const [glance, setGlance] = useState(0);
+  useEffect(() => {
+    if (state !== "watching" || reduceMotion) return;
+    const t = setInterval(() => setGlance((g) => (g <= 0 ? 0.7 : -0.7)), 1900);
+    return () => clearInterval(t);
+  }, [state, reduceMotion]);
   const L = layout;
 
   // world → screen for Selly's feet; her box is anchored at 50% / 90%
@@ -104,6 +120,8 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
         />
       )}
 
+      <WeatherOutside weather={weather} season={season} tod={tod} layout={L} />
+      <WeatherGlass weather={weather} season={season} tod={tod} layout={L} />
       <Door layout={L} glow={doorGlow} disabled={breathing} onTap={onDoor} />
       <GardenFinds layout={L} finds={finds} />
       <MoodGarden layout={L} flowers={flowers} />
@@ -126,7 +144,12 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
       {state === "watering" && spot?.focus && <Droplets at={toScreen(L, spot.focus)} />}
 
       <motion.div className="absolute left-0 top-0" style={{ x: left, y: top, width: size, height: size, scale, zIndex, originX: 0.5, originY: 0.9 }}>
-        <motion.div className="h-full w-full" style={{ rotate: body.tilt, originX: 0.5, originY: 0.9 }}>
+        <motion.div
+          className="h-full w-full"
+          style={{ rotate: body.tilt, originX: 0.5, originY: 0.9 }}
+          animate={state === "cheering" && !reduceMotion ? { y: [0, -16, 0, -10, 0] } : { y: 0 }}
+          transition={state === "cheering" ? { duration: 1.1, repeat: Infinity, repeatDelay: 0.8 } : { duration: 0.2 }}
+        >
           <AnimatePresence>
             {breathing && (
               <motion.div
@@ -150,7 +173,7 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
               mode={breathing ? "breathing" : "idle"}
               pose={look.pose}
               still={look.still}
-              look={state === "walking" ? facing : facing * 0.6}
+              look={state === "walking" ? facing : state === "watching" ? glance : facing * 0.6}
               onTouch={onTouchSelly}
               className="h-full w-full"
             />
@@ -174,10 +197,13 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
             )}
           </AnimatePresence>
           {state === "sleeping" && <Zzz />}
+          {state === "cozy" && <Blanket />}
         </motion.div>
       </motion.div>
 
+      <WeatherGrade weather={weather} season={season} tod={tod} layout={L} />
       <TimeLighting tod={tod} layout={L} selly={[body.x, body.y]} />
+      <WeatherNight weather={weather} season={season} tod={tod} layout={L} />
       {!breathing && <WorldBubble brain={brain} layout={L} size={size} />}
     </div>
   );
@@ -356,6 +382,24 @@ function WorldBubble({ brain, layout, size }: { brain: SellyBrain; layout: World
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/** a soft knitted blanket over Selly's lap (cosy weather) */
+function Blanket() {
+  return (
+    <motion.svg
+      viewBox="0 0 100 50"
+      className="pointer-events-none absolute bottom-[8%] left-1/2 w-[64%] -translate-x-1/2"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      aria-hidden
+    >
+      <path d="M6 14 Q50 2 94 14 L97 44 Q50 52 3 44 Z" fill="#f6c9d3" stroke="#e7a9b8" strokeWidth="1.5" />
+      <path d="M8 24 Q50 14 92 24 M7 34 Q50 25 93 34" stroke="#fbe3e9" strokeWidth="3" fill="none" strokeLinecap="round" />
+      <path d="M30 8 L32 47 M52 5 L53 49 M74 8 L72 47" stroke="#fbe3e9" strokeWidth="2" strokeDasharray="3 3" fill="none" />
+    </motion.svg>
   );
 }
 

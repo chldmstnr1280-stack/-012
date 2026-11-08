@@ -95,8 +95,39 @@ button {
   transform-origin: top center;
 }
 
+/* living greenhouse: weather (compositor-only: transform + opacity) */
+@keyframes ds-drift {
+  from { transform: translateX(-7%); }
+  to { transform: translateX(7%); }
+}
+.ds-drift { animation: ds-drift var(--dur, 70s) ease-in-out infinite alternate; }
+@keyframes ds-drip {
+  0% { transform: translateY(0); opacity: 0; }
+  8% { opacity: 1; }
+  80% { opacity: 0.9; }
+  100% { transform: translateY(var(--dist, 120px)); opacity: 0; }
+}
+.ds-drip { animation: ds-drip var(--dur, 9s) ease-in infinite; animation-delay: var(--delay, 0s); }
+@keyframes ds-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+.ds-twinkle { animation: ds-twinkle var(--dur, 3.2s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
+@keyframes ds-ripple {
+  0% { transform: scale(0.3); opacity: 0.7; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.ds-ripple { animation: ds-ripple 2.4s ease-out infinite; animation-delay: var(--delay, 0s); transform-box: fill-box; transform-origin: center; }
+@keyframes ds-beam {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.75; }
+}
+.ds-beam { animation: ds-beam 10s ease-in-out infinite; animation-delay: var(--delay, 0s); }
+
 @media (prefers-reduced-motion: reduce) {
   .lantern-glow, .light-ray, .sway { animation: none; }
+  .ds-drift, .ds-drip, .ds-twinkle, .ds-ripple, .ds-beam { animation: none; }
+  .ds-drip { opacity: 0.8; }
 }
 
 /* Clinical summary (/report/clinical): print only the paper. */

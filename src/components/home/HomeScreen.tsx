@@ -36,11 +36,16 @@ import { playSfx } from "@/lib/sound/sfx";
 import type { TalkAction } from "@/data/sellyConversations";
 import { CARE_LINES, TOUCH_LINES, pick } from "@/data/sellyDialogues";
 import { TopBar } from "./TopBar";
+import { WeatherSheet } from "./WeatherSheet";
+import { WEATHER_INFO, currentWeather, resolveWeather, useGardenWeather, type WeatherPref } from "@/lib/garden/weather";
+import { WEATHER_CHANGED, weatherTouchLine } from "@/data/weatherLines";
 import { todaysAsk } from "@/lib/wish/wishes";
 import { LevelCard } from "./LevelCard";
 import { SpeechBubble } from "./SpeechBubble";
 import { ActionDock } from "./ActionDock";
 import { CareSheet } from "./CareSheet";
+
+const nowMs = () => Date.now();
 
 type Mode = "home" | "breathing" | "talk" | "decorate" | "quiet" | "kindness";
 
@@ -66,6 +71,7 @@ export function HomeScreen() {
     }
   }, [mode]);
   const [careOpen, setCareOpen] = useState(false);
+  const [weatherOpen, setWeatherOpen] = useState(false);
   /** breathing-mode caption (in the home mode Selly speaks through her own bubble) */
   const [caption, setCaption] = useState("어떤 호흡으로\n쉬어갈까요?");
   const touchIndex = useRef(0);
@@ -159,7 +165,8 @@ export function HomeScreen() {
   const pet = () => {
     react("touch");
     touchExp();
-    brain.interact(TOUCH_LINES[touchIndex.current++ % TOUCH_LINES.length]);
+    // a line about the weather now and then (with a cooldown), otherwise the usual ones
+    brain.interact(weatherTouchLine(currentWeather(), currentTimeOfDay(), nowMs()) ?? TOUCH_LINES[touchIndex.current++ % TOUCH_LINES.length]);
   };
 
   // touching Selly: a little reaction + her menu
@@ -476,6 +483,15 @@ export function HomeScreen() {
   const decorating = mode === "decorate";
   const quiet = mode === "quiet";
   const ambience = useAmbience();
+  const garden = useGardenWeather();
+  /** choose the greenhouse weather; Selly notices when it actually changes */
+  const pickWeather = (w: WeatherPref) => {
+    playSfx("tap");
+    const before = currentWeather();
+    setPrefs({ weather: w });
+    const after = resolveWeather(w, new Date(), garden.season);
+    if (after !== before) brain.interact(WEATHER_CHANGED[after], 3200);
+  };
   const tod = quiet ? "night" : ambience;
 
   return (
@@ -500,6 +516,8 @@ export function HomeScreen() {
             finds={finds}
             petals={petals}
             tod={tod}
+            weather={garden.weather}
+            season={garden.season}
             flowers={flowers}
             deco={deco}
             decorating={decorating}
@@ -558,6 +576,31 @@ export function HomeScreen() {
               </motion.div>
             )}
           </AnimatePresence>
+          <AnimatePresence>
+            {mode === "home" && (
+              <motion.button
+                key="weather"
+                type="button"
+                aria-label={`온실 날씨: 지금 ${WEATHER_INFO[garden.weather].label}. 날씨·시간·계절·자연의 소리 바꾸기`}
+                onClick={() => {
+                  playSfx("tap");
+                  setCareOpen(false);
+                  setMenuOpen(false);
+                  setWeatherOpen((o) => !o);
+                }}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="glass pointer-events-auto absolute right-4 top-1 grid h-12 w-12 place-items-center rounded-full text-[22px] active:scale-90"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span key={garden.weather} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.6 }} transition={{ duration: 0.25 }} aria-hidden>
+                    {WEATHER_INFO[garden.weather].emoji}
+                  </motion.span>
+                </AnimatePresence>
+              </motion.button>
+            )}
+          </AnimatePresence>
         </section>
 
         {/* dock */}
@@ -572,7 +615,14 @@ export function HomeScreen() {
               </motion.div>
             ) : (
               <motion.div key="dock" className="relative" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
-                <ActionDock onBreathe={startBreathing} onCare={() => setCareOpen((o) => !o)} />
+                <ActionDock
+                  onBreathe={startBreathing}
+                  onCare={() => {
+                    setWeatherOpen(false);
+                    setCareOpen((o) => !o);
+                  }}
+                />
+                <WeatherSheet open={weatherOpen && mode === "home"} onClose={() => setWeatherOpen(false)} onWeather={pickWeather} />
                 <CareSheet open={careOpen} onClose={() => setCareOpen(false)} onCare={handleCare} onDrink={handleDrink} />
               </motion.div>
             )}
