@@ -1,5 +1,6 @@
 "use client";
 
+import type { Wish } from "@/lib/wish/wishes";
 import { useSyncExternalStore } from "react";
 import type { DateKey } from "./date";
 import type { Emotion } from "@/data/moodFlowers";
@@ -127,6 +128,8 @@ export interface AppData {
   meals: Record<DateKey, MealDay>;
   /** questions to bring to a pharmacist/doctor (picked from a list, plus one of my own) */
   consult?: { questions: string[]; custom?: string };
+  /** 셀리와 소망 빌기 (this device and the backup file only) */
+  wishes?: Wish[];
 }
 
 export interface Prefs {
@@ -405,4 +408,16 @@ export function deleteSymptoms(date: DateKey) {
 
 export function setCycleContext(patch: Partial<CycleContext>) {
   setData((d) => ({ ...d, cycleContext: { ...d.cycleContext, ...patch } }));
+}
+
+/** 셀리와 소망 빌기: add, replace or remove one wish (by id). */
+export function putWish(w: Wish) {
+  setData((d) => {
+    const list = d.wishes ?? [];
+    const i = list.findIndex((x) => x.id === w.id);
+    return { ...d, wishes: i < 0 ? [...list, w] : list.map((x) => (x.id === w.id ? w : x)) };
+  });
+}
+export function removeWish(id: string) {
+  setData((d) => ({ ...d, wishes: (d.wishes ?? []).filter((x) => x.id !== id) }));
 }

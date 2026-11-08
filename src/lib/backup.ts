@@ -1,3 +1,4 @@
+import { cleanWish, mergeWishes, type Wish } from "@/lib/wish/wishes";
 import { EMOTIONS, type Emotion } from "@/data/moodFlowers";
 import { IMPACT_IDS, ONSET_IDS, SYMPTOM_IDS, type OnsetId, type Score } from "@/data/pmsSymptoms";
 import type { DayTags, MealDay, PmsProfile, Supplement, SymptomDay } from "./data-store";
@@ -86,7 +87,7 @@ function cleanDaily(v: unknown): DailyLog | null {
 
 export type ParsedBackup = Pick<
   AppData,
-  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals" | "consult"
+  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals" | "consult" | "wishes"
 >;
 
 /** Validates an untrusted meal day: known slots and food ids only. */
@@ -224,6 +225,7 @@ export function parseBackup(
     !(Array.isArray(raw.supplements) && raw.supplements.length) &&
     !(isObj(raw.water) && Object.keys(raw.water).length) &&
     !(isObj(raw.meals) && Object.keys(raw.meals).length) &&
+    !(Array.isArray(raw.wishes) && raw.wishes.length) &&
     progress.level === 1 &&
     progress.exp === 0
   ) {
@@ -270,6 +272,7 @@ export function parseBackup(
     const custom = typeof raw.consult.custom === "string" ? raw.consult.custom.trim().slice(0, 120) : "";
     if (questions.length || custom) consult = { questions, ...(custom ? { custom } : {}) };
   }
+  const wishes = (Array.isArray(raw.wishes) ? raw.wishes : []).map(cleanWish).filter((w): w is Wish => !!w).slice(-30);
   const pmsProfile = cleanPattern(raw.pmsProfile) ?? undefined;
   const cycleRecaps: ParsedBackup["cycleRecaps"] = {};
   if (isObj(raw.cycleRecaps)) {
@@ -291,7 +294,7 @@ export function parseBackup(
   }
   return {
     ok: true,
-    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals, consult },
+    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals, consult, ...(wishes.length ? { wishes } : {}) },
   };
 }
 
@@ -351,6 +354,7 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
     suppLog,
     meals,
     consult: cur.consult ?? inc.consult,
+    wishes: inc.wishes ? mergeWishes(cur.wishes ?? [], inc.wishes) : cur.wishes,
     cycleContext: { ...inc.cycleContext, ...cur.cycleContext },
     demo: false,
   };

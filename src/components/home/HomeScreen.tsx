@@ -36,6 +36,7 @@ import { playSfx } from "@/lib/sound/sfx";
 import type { TalkAction } from "@/data/sellyConversations";
 import { CARE_LINES, TOUCH_LINES, pick } from "@/data/sellyDialogues";
 import { TopBar } from "./TopBar";
+import { todaysAsk } from "@/lib/wish/wishes";
 import { LevelCard } from "./LevelCard";
 import { SpeechBubble } from "./SpeechBubble";
 import { ActionDock } from "./ActionDock";
@@ -72,6 +73,8 @@ export function HomeScreen() {
   const appData = useAppData();
   const { entries } = appData;
   const today = useToday();
+  // 셀리와 소망 빌기: is there a question waiting today?
+  const wishAsk = !!today && !!todaysAsk(appData.wishes ?? [], today);
   const flowers = useMemo(() => (today ? plantedFlowers(appData, today) : []), [appData, today]);
   const moodDays = Object.values(entries).filter((e) => e.mood != null || e.emotion != null).length;
   const pendingAction = useRef<string | null | undefined>(undefined);
@@ -529,21 +532,30 @@ export function HomeScreen() {
           {breathing && <SpeechBubble text={caption} className="absolute left-1/2 top-2 -translate-x-1/2" />}
           <AnimatePresence>
             {mode === "home" && (
-              <motion.button
-                key="whine"
-                type="button"
-                onClick={() => {
-                  playSfx("tap");
-                  router.push("/whine");
-                }}
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="glass pointer-events-auto absolute left-4 top-1 flex flex-col items-start rounded-[18px] px-3.5 py-2 text-left active:scale-95"
-              >
-                <span className="text-[13.5px] font-bold text-ink-700">🫧 셀리에게 징징대기</span>
-                <span className="text-[10.5px] text-ink-500">오늘 있었던 일, 셀리한테 다 말해!</span>
-              </motion.button>
+              <motion.div key="pills" className="pointer-events-none absolute left-4 top-1 flex flex-col items-start gap-1.5" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("tap");
+                    router.push("/whine");
+                  }}
+                  className="glass pointer-events-auto flex flex-col items-start rounded-[18px] px-3.5 py-2 text-left active:scale-95"
+                >
+                  <span className="text-[13.5px] font-bold text-ink-700">🫧 셀리에게 징징대기</span>
+                  <span className="text-[10.5px] text-ink-500">오늘 있었던 일, 셀리한테 다 말해!</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("tap");
+                    router.push("/wish");
+                  }}
+                  className="glass pointer-events-auto relative flex items-center rounded-[18px] px-3.5 py-2 text-left text-[13px] font-bold text-ink-700 active:scale-95"
+                >
+                  {wishAsk ? "🌠 셀리가 소망 안부를 물어봐" : "🌠 셀리와 소망 빌기"}
+                  {wishAsk && <span aria-label="새 안부" className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#e76f86] ring-2 ring-white" />}
+                </button>
+              </motion.div>
             )}
           </AnimatePresence>
         </section>
