@@ -10,10 +10,15 @@ import { MAX_TURNS, parseReply, type WhineMode, type WhineReply, type WhineTurn 
  * turns to /api/whine and keeps nothing.
  */
 export async function askSelly(mode: WhineMode, turns: WhineTurn[], useAI: boolean): Promise<{ reply: WhineReply; ai: boolean }> {
-  const last = turns[turns.length - 1]?.text ?? "";
-  if (isCrisis(last)) return { reply: CRISIS_REPLY, ai: false };
+  // the user may send several lines in a row: read them together
+  let i = turns.length;
+  while (i > 0 && turns[i - 1].role === "user") i--;
+  const run = turns.slice(i);
+  if (run.some((t) => isCrisis(t.text))) return { reply: CRISIS_REPLY, ai: false };
+  const last = run.map((t) => t.text).join(" ");
   const avoid = [...turns].reverse().find((t) => t.role === "selly")?.text;
-  const local = () => ({ reply: fallbackReply(last, mode, avoid), ai: false });
+  const rounds = turns.filter((t) => t.role === "selly").length;
+  const local = () => ({ reply: fallbackReply(last, mode, avoid, Math.random, rounds), ai: false });
   if (IS_TOSS || !useAI) return local();
 
   const ctrl = new AbortController();

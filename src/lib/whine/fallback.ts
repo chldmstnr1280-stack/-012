@@ -150,6 +150,21 @@ const GENERIC: Record<WhineMode, Line[]> = {
   ],
 };
 
+/** after a few rounds of whining: lighter lines, so it ends a little brighter */
+const LIFT: Record<WhineMode, Line[]> = {
+  together: [
+    ["으아아 하고 다 쏟아내니까 쪼끔 시원하다!! 헤헤 😆", "HAPPY"],
+    ["우리 오늘 징징 국가대표다!! 금메달 줄게 🥇", "HAPPY"],
+    ["이만큼 투덜댔으면 오늘 몫은 끝!! 이제 말랑해질 차례야", "HAPPY"],
+    ["셀리 볼 빵빵했던 거 이제 좀 쪼그라들었어. 너도?", "HAPPY"],
+  ],
+  listen: [
+    ["많이 꺼내 놓았네. 숨 한 번 크게 쉬어 볼까.", "COMFORTING"],
+    ["이야기해 줘서 고마워. 나도 마음이 따뜻해졌어.", "COMFORTING"],
+    ["여기까지 말한 것만으로도 충분해.", "COMFORTING"],
+  ],
+};
+
 const EMOTION_FOR: Record<WhineAnimation, WhineEmotion> = {
   IDLE: "listening",
   LISTENING: "listening",
@@ -161,11 +176,16 @@ const EMOTION_FOR: Record<WhineAnimation, WhineEmotion> = {
   SLEEPY: "sleepy",
 };
 
-/** Built-in reply. `avoid` = Selly's last line, so she doesn't repeat herself. */
-export function fallbackReply(text: string, mode: WhineMode, avoid?: string, rand = Math.random): WhineReply {
+/**
+ * Built-in reply. `avoid` = Selly's last line, so she doesn't repeat herself.
+ * `round` = how many times Selly has answered already; from the 3rd answer on
+ * she sometimes turns things lighter.
+ */
+export function fallbackReply(text: string, mode: WhineMode, avoid?: string, rand = Math.random, round = 0): WhineReply {
   if (isCrisis(text)) return CRISIS_REPLY;
   const topic = TOPICS.find((t) => t.match.test(text));
-  const pool = (topic ? topic[mode] : GENERIC[mode]).filter(([m]) => m !== avoid);
+  const lift = round >= 2 && rand() < 0.5;
+  const pool = (lift ? LIFT[mode] : topic ? topic[mode] : GENERIC[mode]).filter(([m]) => m !== avoid);
   const [message, animation] = pool[Math.floor(rand() * pool.length)] ?? GENERIC[mode][0];
   return { message, animation, emotion: EMOTION_FOR[animation], suggestedAction: null };
 }
