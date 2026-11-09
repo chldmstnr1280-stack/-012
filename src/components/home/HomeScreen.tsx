@@ -562,17 +562,6 @@ export function HomeScreen() {
                   <span className="text-[13.5px] font-bold text-ink-700">🫧 셀리에게 징징대기</span>
                   <span className="text-[10.5px] text-ink-500">오늘 있었던 일, 셀리한테 다 말해!</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    playSfx("tap");
-                    router.push("/wish");
-                  }}
-                  className="glass pointer-events-auto relative flex items-center rounded-[18px] px-3.5 py-2 text-left text-[13px] font-bold text-ink-700 active:scale-95"
-                >
-                  {wishAsk ? "🌠 셀리가 소망 안부를 물어봐" : "🌠 셀리와 소망 빌기"}
-                  {wishAsk && <span aria-label="새 안부" className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#e76f86] ring-2 ring-white" />}
-                </button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -598,6 +587,27 @@ export function HomeScreen() {
                     {WEATHER_INFO[garden.weather].emoji}
                   </motion.span>
                 </AnimatePresence>
+              </motion.button>
+            )}
+          </AnimatePresence>
+          {/* 셀리와 소망 빌기 — a round icon under the weather; a dot when Selly has today's question */}
+          <AnimatePresence>
+            {mode === "home" && (
+              <motion.button
+                key="wish"
+                type="button"
+                aria-label={wishAsk ? "셀리와 소망 빌기: 오늘의 소망 안부가 있어요" : "셀리와 소망 빌기"}
+                onClick={() => {
+                  playSfx("tap");
+                  router.push("/wish");
+                }}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="glass pointer-events-auto absolute right-4 top-[60px] grid h-12 w-12 place-items-center rounded-full text-[22px] active:scale-90"
+              >
+                <span aria-hidden>🌠</span>
+                {wishAsk && <span aria-hidden className="absolute right-0 top-0 h-3 w-3 rounded-full bg-[#e76f86] ring-2 ring-white" />}
               </motion.button>
             )}
           </AnimatePresence>

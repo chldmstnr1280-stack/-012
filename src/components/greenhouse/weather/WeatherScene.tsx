@@ -65,13 +65,20 @@ function GlassClip({ id, layout }: { id: string; layout: WorldLayout }) {
 
 /** the glass with feathered edges — colour washes fade out instead of ending in a hard line */
 function GlassMask({ id, layout }: { id: string; layout: WorldLayout }) {
+  // The glass shape filled with a radial fade (strong in the middle, gone at the frame).
+  // A gradient inside a mask works in every browser — Safari ignores blur filters in masks.
+  const c = toScreen(layout, { x: (GLASS_BOX.x0 + GLASS_BOX.x1) / 2, y: (GLASS_BOX.y0 + GLASS_BOX.y1) / 2 - 40 });
+  const rx = ((GLASS_BOX.x1 - GLASS_BOX.x0) / 2) * layout.s;
+  const ry = ((GLASS_BOX.y1 - GLASS_BOX.y0) / 2) * layout.s;
   return (
     <>
-      <filter id={`${id}-f`} x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation={14 * layout.s} />
-      </filter>
+      <radialGradient id={`${id}-g`} gradientUnits="userSpaceOnUse" cx={c.x} cy={c.y} r={rx} gradientTransform={`translate(${c.x} ${c.y}) scale(1 ${ry / rx}) translate(${-c.x} ${-c.y})`}>
+        <stop offset="0" stopColor="#fff" />
+        <stop offset="0.6" stopColor="#fff" stopOpacity="0.9" />
+        <stop offset="1" stopColor="#fff" stopOpacity="0" />
+      </radialGradient>
       <mask id={id} maskUnits="userSpaceOnUse" x={0} y={0} width={layout.w} height={layout.h}>
-        <path d={glassPath(layout)} fill="#fff" filter={`url(#${id}-f)`} />
+        <path d={glassPath(layout)} fill={`url(#${id}-g)`} />
       </mask>
     </>
   );
@@ -146,9 +153,19 @@ export function WeatherOutside({ weather, season, tod, layout: L }: SceneProps) 
               )}
               {/* soft mist low in the garden */}
               {(cloudy || weather === "rainbow") && <rect x={box0.x} y={box0.y} width={box1.x - box0.x} height={box1.y - box0.y} fill="url(#ds-fog)" opacity={weather === "rainbow" ? 0.4 : 0.8} />}
-              {weather === "snow" && <SnowGround layout={L} />}
+
               {weather === "rain" && <Puddles layout={L} />}
             </g>
+            {weather === "snow" && (
+              <>
+                <defs>
+                  <GlassClip id="ds-glass-snow-ground" layout={L} />
+                </defs>
+                <g clipPath="url(#ds-glass-snow-ground)">
+                  <SnowGround layout={L} />
+                </g>
+              </>
+            )}
           </svg>
           {weather === "rainbow" && tod !== "night" && <Rainbow layout={L} />}
         </motion.div>
@@ -177,7 +194,8 @@ function SnowGround({ layout: L }: { layout: WorldLayout }) {
     <g>
       <path d={d} fill="#fbfcff" opacity={0.95} />
       {/* left and right drifts along the bottom panes */}
-      <ellipse cx={g(432, 784).x} cy={g(432, 784).y} rx={66 * L.s} ry={12 * L.s} fill="#fbfcff" opacity={0.95} />
+      {/* a soft drift resting on the lower-left pane's bottom edge */}
+      <path d={`M${g(372, 784).x} ${g(372, 784).y} Q${g(430, 758).x} ${g(430, 758).y} ${g(500, 784).x} ${g(500, 784).y} Z`} fill="#fbfcff" opacity={0.95} />
       <ellipse cx={g(712, 545).x} cy={g(712, 545).y} rx={24 * L.s} ry={4 * L.s} fill="#fbfcff" opacity={0.85} />
       {/* snowman */}
       <g>
@@ -246,6 +264,8 @@ function Rainbow({ layout: L }: { layout: WorldLayout }) {
 
 /** What falls outside and the drops on the glass — behind Selly and everything in the room. */
 export function WeatherGlass({ weather, season, tod, layout: L }: SceneProps) {
+  const fc = toScreen(L, { x: (GLASS_BOX.x0 + GLASS_BOX.x1) / 2, y: (GLASS_BOX.y0 + GLASS_BOX.y1) / 2 - 40 });
+  const frost = { cx: fc.x, cy: fc.y, rx: ((GLASS_BOX.x1 - GLASS_BOX.x0) / 2) * L.s, ry: ((GLASS_BOX.y1 - GLASS_BOX.y0) / 2) * L.s };
   const night = tod === "night";
   const precip: PrecipKind | null =
     weather === "rain" ? "rain" : weather === "snow" ? "snow" : season === "autumn" && weather !== "rainbow" ? "leaves" : season === "spring" && weather === "clear" ? "petals" : null;
@@ -269,15 +289,25 @@ export function WeatherGlass({ weather, season, tod, layout: L }: SceneProps) {
                   <stop offset="0.45" stopColor="#e8f0ff" stopOpacity="0.5" />
                   <stop offset="1" stopColor="#c8d6ee" stopOpacity="0.15" />
                 </radialGradient>
-                <radialGradient id="ds-frost" cx="50%" cy="45%" r="70%">
-                  <stop offset="0.55" stopColor="#fff" stopOpacity="0" />
-                  <stop offset="1" stopColor="#fff" stopOpacity="0.75" />
+                {/* frost as a soft ring inside the glass: clear in the middle, frosty toward
+                    the frame, then fading out before the cut edge (no hard line) */}
+                <radialGradient
+                  id="ds-frost"
+                  gradientUnits="userSpaceOnUse"
+                  cx={frost.cx}
+                  cy={frost.cy}
+                  r={frost.rx}
+                  gradientTransform={`translate(${frost.cx} ${frost.cy}) scale(1 ${frost.ry / frost.rx}) translate(${-frost.cx} ${-frost.cy})`}
+                >
+                  <stop offset="0.45" stopColor="#fff" stopOpacity="0" />
+                  <stop offset="0.78" stopColor="#fff" stopOpacity="0.55" />
+                  <stop offset="1" stopColor="#fff" stopOpacity="0" />
                 </radialGradient>
               </defs>
               <g clipPath={`url(#ds-glass-top-${weather})`}>
                 {weather === "snow" ? (
                   // frost creeping in from the edges of the glass
-                  <rect x={toScreen(L, { x: GLASS_BOX.x0, y: 0 }).x} y={toScreen(L, { x: 0, y: GLASS_BOX.y0 }).y} width={(GLASS_BOX.x1 - GLASS_BOX.x0) * L.s} height={(GLASS_BOX.y1 - GLASS_BOX.y0) * L.s} fill="url(#ds-frost)" opacity={0.7} />
+                  <rect x={toScreen(L, { x: GLASS_BOX.x0, y: 0 }).x} y={toScreen(L, { x: 0, y: GLASS_BOX.y0 }).y} width={(GLASS_BOX.x1 - GLASS_BOX.x0) * L.s} height={(GLASS_BOX.y1 - GLASS_BOX.y0) * L.s} fill="url(#ds-frost)" opacity={0.8} />
                 ) : (
                   <>
                     {BEADS.slice(0, weather === "rainbow" ? 14 : 30).map((b, i) => {
