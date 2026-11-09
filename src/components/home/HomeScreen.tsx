@@ -37,6 +37,9 @@ import type { TalkAction } from "@/data/sellyConversations";
 import { CARE_LINES, TOUCH_LINES, pick } from "@/data/sellyDialogues";
 import { TopBar } from "./TopBar";
 import { WeatherSheet } from "./WeatherSheet";
+import { AfterCheck } from "@/components/checkin/AfterCheck";
+import { noteActivityDone } from "@/lib/checkin/checkin";
+import { toKey } from "@/lib/date";
 import { WEATHER_INFO, currentWeather, resolveWeather, useGardenWeather, type WeatherPref } from "@/lib/garden/weather";
 import { WEATHER_CHANGED, weatherTouchLine } from "@/data/weatherLines";
 import { todaysAsk } from "@/lib/wish/wishes";
@@ -91,6 +94,8 @@ export function HomeScreen() {
   const [doorGlow, setDoorGlow] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [finds, setFinds] = useState<FindKind[]>([]);
+  /** small lights from today's 몸의 날씨 check-ins */
+  const [lights, setLights] = useState(0);
   const [petals, setPetals] = useState(false);
   const [deco, setDeco] = useState<Record<string, string>>({});
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
@@ -294,8 +299,12 @@ export function HomeScreen() {
   };
   // the first-appearance effect runs once; it reaches the latest version through this ref
   const startKindnessRef = useRef(startKindness);
+  // deep links from the 몸의 날씨 check-in: ?do=quiet | talk
+  const startQuietRef = useRef<() => void>(() => {});
+  const startTalkRef = useRef<() => void>(() => {});
   useEffect(() => {
     startKindnessRef.current = startKindness;
+    startQuietRef.current = startQuiet;
   });
   const endKindness = useCallback(() => {
     setMode("home");
@@ -307,6 +316,7 @@ export function HomeScreen() {
     const k = readGame().kindness ?? { total: 0, lastDate: null };
     const first = k.lastDate !== today;
     updateGame(() => ({ kindness: { total: k.total + 1, lastDate: today, dates: [...(k.dates ?? []), today].slice(-200) } }));
+    noteActivityDone("kindness");
     if (first) {
       addExp(5);
       showToast(`다정한 말 연습 ${k.total + 1}번째 · 성장 +5`);
@@ -324,6 +334,10 @@ export function HomeScreen() {
     setImmersive(true);
     brainRef.current.engage();
   };
+
+  useEffect(() => {
+    startTalkRef.current = startTalk;
+  });
 
   const endTalk = useCallback(() => {
     setMode("home");
@@ -433,6 +447,7 @@ export function HomeScreen() {
     // runs exactly once; not cancelled by later layout updates
     setTimeout(() => {
       setFinds(game.finds);
+      setLights(game.checkinLights && game.checkinLights.date === toKey(new Date()) ? game.checkinLights.n : 0);
       setDeco(game.deco ?? {});
       if (back) {
         // back from a walk: petals drift in, Selly comes through the door and rests
@@ -442,6 +457,11 @@ export function HomeScreen() {
         setTimeout(() => setPetals(false), 6500);
       } else if (action === "breathe") startBreathing();
       else if (action === "kind") startKindnessRef.current();
+      else if (action === "quiet") startQuietRef.current();
+      else if (action === "talk") {
+        brainRef.current.start(visit);
+        setTimeout(() => startTalkRef.current(), 1200);
+      }
       else {
         brainRef.current.start(visit);
         react("greet");
@@ -462,6 +482,7 @@ export function HomeScreen() {
       brainRef.current.setBreathing(false);
       if (completed) {
         const { exp } = completeTask("breath");
+        noteActivityDone("breathe");
         setTimeout(() => brainRef.current.say("잘했어!\n마음이 한결 가벼워졌지? ♡", 5000), 1400);
         showToast(exp ? `${minutes}분 호흡 완료 · 성장 +${exp}` : `${minutes}분 호흡 완료 · 오늘도 숨 고르기 성공`);
         setTimeout(() => react("cheer"), 1500);
@@ -514,6 +535,7 @@ export function HomeScreen() {
             onDoor={() => setInviteOpen(true)}
             doorGlow={doorGlow}
             finds={finds}
+            lights={lights}
             petals={petals}
             tod={tod}
             weather={garden.weather}
@@ -632,6 +654,7 @@ export function HomeScreen() {
                     setCareOpen((o) => !o);
                   }}
                 />
+                {!careOpen && !weatherOpen && <AfterCheck />}
                 <WeatherSheet open={weatherOpen && mode === "home"} onClose={() => setWeatherOpen(false)} onWeather={pickWeather} />
                 <CareSheet open={careOpen} onClose={() => setCareOpen(false)} onCare={handleCare} onDrink={handleDrink} />
               </motion.div>

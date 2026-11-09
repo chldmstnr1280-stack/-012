@@ -5,7 +5,7 @@ import { useReducedMotion } from "motion/react";
 import { toScreen, type WorldLayout } from "@/lib/game/world";
 import { GLASS_BOX, glassPath } from "./geometry";
 
-export type PrecipKind = "rain" | "snow" | "leaves" | "petals";
+export type PrecipKind = "rain" | "snow" | "leaves" | "petals" | "wind";
 
 /** a rough guess at a low-power phone: fewer particles there */
 function lowPower() {
@@ -14,7 +14,7 @@ function lowPower() {
   return (n.hardwareConcurrency ?? 8) <= 4 || (n.deviceMemory ?? 8) <= 3;
 }
 
-const COUNT: Record<PrecipKind, number> = { rain: 80, snow: 70, leaves: 9, petals: 12 };
+const COUNT: Record<PrecipKind, number> = { rain: 80, snow: 70, leaves: 9, petals: 12, wind: 16 };
 
 interface P {
   x: number;
@@ -51,8 +51,8 @@ export function PrecipCanvas({ kind, layout, strength = 1 }: { kind: PrecipKind;
     const s = L.s;
     let n = Math.round(COUNT[kind] * strength * (lowPower() ? 0.5 : 1));
     const make = (top: boolean): P => ({
-      x: a.x + Math.random() * W,
-      y: top ? a.y - Math.random() * 40 : a.y + Math.random() * H,
+      x: kind === "wind" && top ? a.x - 20 - Math.random() * 40 : a.x + Math.random() * W,
+      y: kind === "wind" ? a.y + Math.random() * H : top ? a.y - Math.random() * 40 : a.y + Math.random() * H,
       v: kind === "rain" ? (700 + Math.random() * 400) * s : kind === "snow" ? (28 + Math.random() * 40) * s : (40 + Math.random() * 30) * s,
       r: kind === "rain" ? (26 + Math.random() * 22) * s : kind === "snow" ? (2 + Math.random() * 3) * Math.max(0.8, s) : (5 + Math.random() * 4) * Math.max(0.7, s),
       ph: Math.random() * Math.PI * 2,
@@ -87,7 +87,7 @@ export function PrecipCanvas({ kind, layout, strength = 1 }: { kind: PrecipKind;
         }
         ctx.fill();
       } else {
-        const cols = kind === "leaves" ? LEAF : PETAL;
+        const cols = kind === "leaves" ? LEAF : kind === "wind" ? [...PETAL, "#cfe3b0", "#e6f0c8"] : PETAL;
         for (const p of ps) {
           const x = p.x + Math.sin(t / 1100 + p.ph) * 22 * s;
           ctx.save();
@@ -131,6 +131,14 @@ export function PrecipCanvas({ kind, layout, strength = 1 }: { kind: PrecipKind;
       for (const p of ps) {
         p.y += p.v * dt;
         if (kind === "rain") p.x -= p.v * dt * 0.12;
+        if (kind === "wind") {
+          // carried sideways by the wind, bobbing up and down
+          p.y -= p.v * dt;
+          p.x += p.v * dt * 4.5;
+          p.y += Math.sin(t / 500 + p.ph) * 0.6;
+          if (p.x > b.x + 20) Object.assign(p, make(true));
+          continue;
+        }
         if (p.y > b.y + 10) Object.assign(p, make(true));
       }
       draw(t);

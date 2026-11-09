@@ -19,6 +19,7 @@ import { unlock } from "@/lib/sound/engine";
 import { pick } from "@/data/sellyDialogues";
 import { missionOfTheDay, type WalkMission } from "@/data/walkMissions";
 import { savePhoto, takePhoto } from "@/lib/walk/photos";
+import { noteActivityDone } from "@/lib/checkin/checkin";
 
 const DURATIONS: { label: string; min: number | null }[] = [
   { label: "5분", min: 5 },
@@ -197,6 +198,7 @@ export function WalkScreen() {
         walks: [...(d.walks ?? []), { date: today, minutes: mins }].slice(-200),
       }));
       if (growth) addExp(15);
+      noteActivityDone("walk");
       const t = setTimeout(() => setSummary({ minutes: mins, steps, finds, text: pick(WALK_LINES.summary) }), 0);
       return () => clearTimeout(t);
     }

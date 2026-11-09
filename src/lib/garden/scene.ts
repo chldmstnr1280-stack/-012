@@ -42,6 +42,6 @@ const MOODS: Record<StoryMoodId, StoryMood> = {
 /** Night wins (a bedtime story); otherwise the weather picks the mood. */
 export function storyMoodFor(scene: GardenScene): StoryMood {
   if (scene.tod === "night") return MOODS.bedtime;
-  const byWeather: Record<Weather, StoryMoodId> = { rain: "rainy", snow: "snowy", clear: "sunny", cloudy: "cloudy", rainbow: "rainbow" };
+  const byWeather: Record<Weather, StoryMoodId> = { rain: "rainy", snow: "snowy", clear: "sunny", cloudy: "cloudy", windy: "cloudy", rainbow: "rainbow" };
   return MOODS[byWeather[scene.weather]];
 }

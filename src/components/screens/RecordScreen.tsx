@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSelly } from "@/lib/selly-store";
 import { addDays, formatShort, useToday, type DateKey } from "@/lib/date";
 import { CONDITION_KEYS, saveEntry, setDayTags, useAppData, type ConditionKey, type DailyEntry, type Level5 } from "@/lib/data-store";
@@ -79,6 +80,21 @@ export function RecordScreen() {
               ]}
             />
           </div>
+          {tab === "day" && date === today && (
+            // the 30-second body check-in comes first; the full record stays below
+            <div className="mb-3 flex gap-2">
+              <Link href="/checkin" className="flex flex-1 items-center justify-between rounded-[22px] bg-[linear-gradient(90deg,#eef5e6,#fbeef0)] px-4 py-3 shadow-[0_6px_18px_-12px_rgba(110,88,60,0.5)] active:scale-[0.99]">
+                <span>
+                  <span className="block text-[14.5px] font-bold text-ink-700">🌦️ 오늘, 몸의 날씨</span>
+                  <span className="text-[11.5px] text-ink-500">몸 → 마음 → 있었던 일, 30초</span>
+                </span>
+                <span className="text-[13px] font-bold text-sage-700">시작</span>
+              </Link>
+              <Link href="/checkin/notes" aria-label="셀리가 발견한 작은 패턴" className="grid w-14 place-items-center rounded-[22px] bg-white/80 text-[20px] shadow-[0_6px_18px_-12px_rgba(110,88,60,0.5)]">
+                🔍
+              </Link>
+            </div>
+          )}
           {tab === "day" ? (
             <RecordForm key={date} date={date} isToday={date === today} />
           ) : tab === "pms" ? (

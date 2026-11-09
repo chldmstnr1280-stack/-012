@@ -75,9 +75,11 @@ interface Props {
   /** the living greenhouse: weather and season */
   weather: Weather;
   season: Season;
+  /** today's 몸의 날씨 check-ins (0–3): one soft light each */
+  lights?: number;
 }
 
-export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers, deco, decorating, activeSlot, onSlot, weather, season }: Props) {
+export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers, deco, decorating, activeSlot, onSlot, weather, season, lights = 0 }: Props) {
   const { body, state, facing, spot } = brain;
   const reduceMotion = useReducedMotion();
   // watching the rain/snow: her eyes follow the drops, slowly left and right
@@ -130,6 +132,7 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
       <MoodGarden layout={L} flowers={flowers} />
       <Decorations layout={L} deco={deco} decorating={decorating} activeSlot={activeSlot} onSlot={onSlot} />
       {petals && <FallingPetals />}
+      <CheckinLights layout={L} n={lights} />
 
       {OBJECTS.map((o) => (
         <WorldObject
@@ -387,6 +390,36 @@ function WorldBubble({ brain, layout, size }: { brain: SellyBrain; layout: World
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/**
+ * One small floating light per 몸의 날씨 check-in today — the same light for any
+ * feeling (recording is what's celebrated, never a particular emotion).
+ */
+const LIGHT_SPOTS = [
+  { x: 470, y: 840 },
+  { x: 690, y: 820 },
+  { x: 560, y: 790 },
+];
+function CheckinLights({ layout: L, n }: { layout: WorldLayout; n: number }) {
+  return (
+    <>
+      {LIGHT_SPOTS.slice(0, n).map((p, i) => {
+        const s = toScreen(L, p);
+        return (
+          <motion.span
+            key={i}
+            aria-hidden
+            className="pointer-events-none absolute h-2.5 w-2.5 rounded-full bg-[#fff6d6] shadow-[0_0_14px_6px_rgba(255,236,170,0.75)]"
+            style={{ left: s.x, top: s.y, zIndex: 1200 }}
+            initial={{ opacity: 0, scale: 0.3 }}
+            animate={{ opacity: [0.55, 1, 0.55], scale: 1, y: [0, -10, 0] }}
+            transition={{ opacity: { duration: 3.2, repeat: Infinity, delay: i * 0.6 }, y: { duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.8 }, scale: { duration: 0.8 } }}
+          />
+        );
+      })}
+    </>
   );
 }
 

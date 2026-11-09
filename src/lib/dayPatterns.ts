@@ -14,7 +14,8 @@ export const MIN_TAGGED = 3;
 const quadrantOf = (id: ContextTagId): QuadrantId | null => {
   const t = TAGS[id];
   if (t.dimension !== "feeling") return null;
-  return QUADRANTS.find((q) => q.valence === t.valence && q.arousal === t.arousal)!.id;
+  // a feeling with no place on the two axes (e.g. "복잡한 마음") belongs to no quadrant
+  return QUADRANTS.find((q) => q.valence === t.valence && q.arousal === t.arousal)?.id ?? null;
 };
 
 export interface DayPatterns {

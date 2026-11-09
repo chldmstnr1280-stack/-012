@@ -130,6 +130,8 @@ export interface AppData {
   consult?: { questions: string[]; custom?: string };
   /** 셀리와 소망 빌기 (this device and the backup file only) */
   wishes?: Wish[];
+  /** 오늘, 몸의 날씨 check-ins (this device and the backup file; their tags also join dayTags) */
+  checkins?: import("@/lib/checkin/checkin").CheckIn[];
 }
 
 export interface Prefs {
@@ -155,6 +157,8 @@ export interface Prefs {
   /** nature sounds (rain, birds, wind, crickets) — default on, plays only after a tap */
   nature?: boolean;
   natureVolume?: number;
+  /** "셀리가 발견한 작은 패턴" — personal pattern notes from check-ins (default on; can be turned off) */
+  patterns?: boolean;
 }
 
 const KEY = "dear-selly:v1";

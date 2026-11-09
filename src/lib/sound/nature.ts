@@ -29,7 +29,7 @@ export function layersFor(weather: Weather, tod: TimeOfDay): LayerId[] {
   const night = tod === "night";
   const out: LayerId[] = [];
   if (weather === "rain") out.push("rain");
-  if (weather === "cloudy") out.push("wind");
+  if (weather === "cloudy" || weather === "windy") out.push("wind");
   if (weather === "snow") out.push("winter");
   if ((weather === "clear" || weather === "rainbow") && !night) out.push("birds");
   if (night && weather !== "rain" && weather !== "snow") out.push("crickets");

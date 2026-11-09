@@ -44,7 +44,7 @@ export type ActivityKind =
   | "rainbow_joy";
 
 /** the weather outside (see src/lib/garden/weather.ts) */
-export type WeatherKind = "clear" | "cloudy" | "rain" | "snow" | "rainbow";
+export type WeatherKind = "clear" | "cloudy" | "windy" | "rain" | "snow" | "rainbow";
 
 export interface Activity {
   kind: ActivityKind;
@@ -76,6 +76,7 @@ const MAKE: Record<ActivityKind, () => Activity> = {
 const WEATHER_WEIGHTS: Record<WeatherKind, Partial<Record<ActivityKind, number>>> = {
   clear: { sunbathe: 1.6, stroll: 1.2, visit_flowers: 1.2, watch_window: 0.4, blanket: 0 },
   cloudy: { watch_window: 3, sit: 1.6, blanket: 1.5, sunbathe: 0.2, nap: 1.2 },
+  windy: { watch_window: 3, stroll: 1.2, visit_flowers: 1.3, sit: 1.2, blanket: 0.8, sunbathe: 0.6 },
   rain: { watch_window: 4, blanket: 2.5, sit: 1.5, sunbathe: 0, stroll: 0.5, tend_plants: 0.5 },
   snow: { watch_window: 4, blanket: 3.5, sit: 1.2, sunbathe: 0, stroll: 0.4, tend_plants: 0.4 },
   rainbow: { rainbow_joy: 4, stroll: 2, visit_flowers: 1.5, watch_window: 1.5, blanket: 0 },

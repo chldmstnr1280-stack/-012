@@ -31,6 +31,7 @@ const FADE = { duration: 1.4, ease: "easeInOut" } as const;
 const SKY: Record<Weather, [string, string, number] | null> = {
   clear: null,
   cloudy: ["#c3c8d2", "#e1e3e6", 0.5],
+  windy: ["#c9dcef", "#eef1ea", 0.25],
   rain: ["#8b96a9", "#b6bfcb", 0.58],
   snow: ["#d5dbe6", "#f1f3f7", 0.48],
   rainbow: ["#bcd6ef", "#f6efe2", 0.22],
@@ -143,7 +144,7 @@ export function WeatherOutside({ weather, season, tod, layout: L }: SceneProps) 
                     const w = c.w * L.s;
                     const col = weather === "rain" ? "#9aa3b2" : cloudy ? "#e4e6ea" : "#ffffff";
                     return (
-                      <g key={i} className="ds-drift" style={{ ["--dur" as string]: `${c.dur}s` }}>
+                      <g key={i} className="ds-drift" style={{ ["--dur" as string]: `${weather === "windy" ? c.dur / 4 : c.dur}s` }}>
                         <ellipse cx={p.x} cy={p.y} rx={w * 0.55} ry={w * 0.2} fill={col} />
                         <ellipse cx={p.x + w * 0.2} cy={p.y - w * 0.1} rx={w * 0.3} ry={w * 0.18} fill={col} />
                       </g>
@@ -268,7 +269,7 @@ export function WeatherGlass({ weather, season, tod, layout: L }: SceneProps) {
   const frost = { cx: fc.x, cy: fc.y, rx: ((GLASS_BOX.x1 - GLASS_BOX.x0) / 2) * L.s, ry: ((GLASS_BOX.y1 - GLASS_BOX.y0) / 2) * L.s };
   const night = tod === "night";
   const precip: PrecipKind | null =
-    weather === "rain" ? "rain" : weather === "snow" ? "snow" : season === "autumn" && weather !== "rainbow" ? "leaves" : season === "spring" && weather === "clear" ? "petals" : null;
+    weather === "rain" ? "rain" : weather === "snow" ? "snow" : weather === "windy" ? "wind" : season === "autumn" && weather !== "rainbow" ? "leaves" : season === "spring" && weather === "clear" ? "petals" : null;
   return (
     <div className="pointer-events-none absolute inset-0" style={{ zIndex: 2 }} aria-hidden>
       <AnimatePresence>
@@ -373,6 +374,7 @@ function NightSky({ layout: L, few }: { layout: WorldLayout; few: boolean }) {
 const GRADE: Record<Weather, string | null> = {
   clear: "rgba(255,236,200,0.08)",
   cloudy: "rgba(112,122,142,0.16)",
+  windy: "rgba(236,240,232,0.06)",
   rain: "rgba(72,92,132,0.2)",
   snow: "rgba(128,146,194,0.13)",
   rainbow: "rgba(255,240,222,0.1)",

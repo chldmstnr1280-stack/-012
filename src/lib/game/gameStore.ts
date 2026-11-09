@@ -47,6 +47,8 @@ export interface GameData {
   missions?: { id: string; date: string; found: boolean; photo?: string }[];
   /** local date of the last mission that granted growth */
   lastMissionGrowth?: string | null;
+  /** 몸의 날씨 check-ins today → small lights in the garden (same for any feeling; max 3) */
+  checkinLights?: { date: string; n: number };
 }
 
 const EMPTY: GameData = { version: 1, lastVisit: null, finds: [], pendingReturn: null, walkIntroSeen: false, lastWalkGrowth: null, deco: {}, careShown: [] };

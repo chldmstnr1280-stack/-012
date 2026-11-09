@@ -13,7 +13,7 @@ import { toKey, type DateKey } from "@/lib/date";
  * only source is the app's own gentle daily weather (by season), and a real
  * weather API can be added later as another source without touching the scene.
  */
-export const WEATHERS = ["clear", "cloudy", "rain", "snow", "rainbow"] as const;
+export const WEATHERS = ["clear", "cloudy", "windy", "rain", "snow", "rainbow"] as const;
 export type Weather = (typeof WEATHERS)[number];
 export type WeatherPref = Weather | "auto";
 
@@ -24,6 +24,7 @@ export type SeasonPref = Season | "auto";
 export const WEATHER_INFO: Record<Weather, { emoji: string; label: string }> = {
   clear: { emoji: "☀️", label: "맑음" },
   cloudy: { emoji: "☁️", label: "흐림" },
+  windy: { emoji: "🌬️", label: "바람" },
   rain: { emoji: "🌧️", label: "비" },
   snow: { emoji: "❄️", label: "눈" },
   rainbow: { emoji: "🌈", label: "무지개" },
@@ -53,10 +54,10 @@ export interface WeatherSource {
 
 /** How often each weather comes on its own, by season. Snow only in winter. */
 const DAILY_ODDS: Record<Season, Partial<Record<Weather, number>>> = {
-  spring: { clear: 4, cloudy: 2, rain: 2, rainbow: 1 },
-  summer: { clear: 4, cloudy: 1.5, rain: 3, rainbow: 1.2 },
-  autumn: { clear: 4, cloudy: 3, rain: 1.5, rainbow: 0.6 },
-  winter: { clear: 3, cloudy: 3, snow: 3.5, rain: 0.3, rainbow: 0.2 },
+  spring: { clear: 4, cloudy: 2, windy: 1, rain: 2, rainbow: 1 },
+  summer: { clear: 4, cloudy: 1.5, windy: 0.6, rain: 3, rainbow: 1.2 },
+  autumn: { clear: 4, cloudy: 3, windy: 1.5, rain: 1.5, rainbow: 0.6 },
+  winter: { clear: 3, cloudy: 3, windy: 1, snow: 3.5, rain: 0.3, rainbow: 0.2 },
 };
 
 /** stable 0..1 from a string (same day → same weather on every device) */

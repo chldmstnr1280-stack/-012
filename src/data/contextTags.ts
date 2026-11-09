@@ -18,7 +18,8 @@ import type { Emotion } from "./moodFlowers";
  * Privacy: stored on this device and in the backup file only — never part of
  * the health-record server sync.
  */
-export const ONTOLOGY_VERSION = 1;
+/** v2 (2026-11-09): items for the 몸의 날씨 check-in — body signals, more fine feelings, a few situations */
+export const ONTOLOGY_VERSION = 2;
 
 export type Dimension = "situation" | "state" | "feeling" | "need";
 export type NeedAction = "rest" | "quiet" | "breathe-long" | "breathe-sleep" | "walk" | "talk" | "kindness";
@@ -74,6 +75,9 @@ export const DIMENSIONS = [
           { id: "conflict", label: "다툼·갈등" },
           { id: "good_event", label: "좋은 일" },
           { id: "travel", label: "여행" },
+          { id: "busy", label: "일이 많음" },
+          { id: "cycle_related", label: "생리주기와 관련 있는 것 같음" },
+          { id: "ordinary_day", label: "특별한 일 없음" },
         ],
       },
       {
@@ -81,6 +85,7 @@ export const DIMENSIONS = [
         label: "생활",
         items: [
           { id: "late_sleep", label: "늦게 잠" },
+          { id: "short_sleep", label: "잠이 부족함" },
           { id: "exercise", label: "운동함" },
           { id: "caffeine", label: "카페인" },
           { id: "alcohol", label: "술" },
@@ -115,6 +120,12 @@ export const DIMENSIONS = [
           { id: "sick", label: "감기·아픔" },
           { id: "appetite_up", label: "식욕 많음" },
           { id: "appetite_down", label: "입맛 없음" },
+          { id: "chest_tight", label: "가슴이 답답함" },
+          { id: "stiff_shoulders", label: "어깨·목이 뻣뻣함" },
+          { id: "stomach_upset", label: "배가 불편함" },
+          { id: "racing_heart", label: "심장이 빨리 뜀" },
+          { id: "heavy_head", label: "머리가 무겁거나 아픔" },
+          { id: "body_at_ease", label: "몸이 편안함" },
         ],
       },
     ],
@@ -142,6 +153,7 @@ export const DIMENSIONS = [
           { id: "content", label: "만족", valence: 1, arousal: "low", family: "calm" },
           { id: "grateful", label: "감사", valence: 1, arousal: "low", family: "calm" },
           { id: "relieved", label: "안도", valence: 1, arousal: "low", family: "calm" },
+          { id: "at_ease", label: "편안함", valence: 1, arousal: "low", family: "calm" },
         ],
       },
       {
@@ -153,6 +165,9 @@ export const DIMENSIONS = [
           { id: "irritated", label: "짜증", valence: -1, arousal: "high", family: "anxious" },
           { id: "angry", label: "화남", valence: -1, arousal: "high", family: "anxious" },
           { id: "overwhelmed", label: "벅참", valence: -1, arousal: "high", family: "anxious" },
+          { id: "uneasy", label: "불안", valence: -1, arousal: "high", family: "anxious" },
+          { id: "tense", label: "긴장", valence: -1, arousal: "high", family: "anxious" },
+          { id: "wronged", label: "억울함", valence: -1, arousal: "high", family: "anxious" },
         ],
       },
       {
@@ -164,7 +179,15 @@ export const DIMENSIONS = [
           { id: "empty", label: "공허함", valence: -1, arousal: "low", family: "sad" },
           { id: "lethargic", label: "무기력", valence: -1, arousal: "low", family: "tired" },
           { id: "worn_out", label: "녹초", valence: -1, arousal: "low", family: "tired" },
+          { id: "sorrow", label: "슬픔", valence: -1, arousal: "low", family: "sad" },
+          { id: "weary", label: "피로감", valence: -1, arousal: "low", family: "tired" },
         ],
+      },
+      {
+        id: "complex",
+        label: "여러 마음",
+        // no single place on the two axes: never rolled up into a quadrant or a colour
+        items: [{ id: "mixed", label: "복잡한 마음" }],
       },
     ],
   },

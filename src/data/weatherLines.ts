@@ -9,6 +9,7 @@ import type { Weather } from "@/lib/garden/weather";
 export const TOUCH_WEATHER: Record<Weather, string[]> = {
   clear: ["오늘은 햇살이 따뜻해!", "햇볕 쬐니까 잎이 반짝반짝해", "기지개 쭉~ 날씨 좋다!"],
   cloudy: ["구름이 천천히 움직이고 있어.", "흐린 날은 빛이 부드러워서 좋아", "구름 이불 덮은 하늘 같아"],
+  windy: ["바람이 꽃잎을 데려가고 있어!", "휘이~ 바람 소리 들려?", "창밖 나뭇잎이 춤춰"],
   rain: ["빗소리가 좋다. 조금만 더 듣고 있을까?", "톡톡, 유리에 빗방울이 노크해", "비 오는 날엔 온실이 더 포근해"],
   snow: ["우와! 눈이 내려!", "밖은 추운데 여긴 따뜻해", "저기 눈사람이 우릴 보고 있어!"],
   rainbow: ["저기 봐! 무지개야!", "비 그치고 나니까 꽃이 반짝여!", "무지개 끝엔 뭐가 있을까?"],
@@ -20,6 +21,7 @@ export const NIGHT_TOUCH = ["별이 반짝반짝해", "반딧불이가 놀러 �
 export const WEATHER_CHANGED: Record<Weather, string> = {
   clear: "햇살이다! 기지개 쭉~",
   cloudy: "구름이 놀러 왔네",
+  windy: "휘이~ 바람이 분다!",
   rain: "앗, 비가 와! 창가에서 구경할래",
   snow: "눈이다!! 우와아",
   rainbow: "비가 그쳤어… 저기 봐, 무지개야!",
@@ -32,6 +34,7 @@ const AMBIENT_WEATHER: Partial<Record<string, Partial<Record<Weather, string[]>>
   watching: {
     clear: ["창밖에 새가 지나갔어!"],
     cloudy: ["구름 모양이 꼭 양 같아", "창밖이 차분해"],
+    windy: ["바람에 나뭇잎이 날아가", "바람이 창문을 살살 두드려"],
     rain: ["빗방울이 또르르 미끄럼 타", "빗소리 들으니까 마음이 편해"],
     snow: ["눈이 소복소복 쌓이고 있어", "저 눈사람, 추울까?"],
     rainbow: ["무지개가 아직 있어!"],

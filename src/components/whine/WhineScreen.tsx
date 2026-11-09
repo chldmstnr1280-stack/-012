@@ -12,6 +12,7 @@ import { playSfx } from "@/lib/sound/sfx";
 import { IS_TOSS } from "@/lib/platform";
 import { askSelly, readAIChoice, saveAIChoice, type AIChoice } from "@/lib/whine/client";
 import { isCrisis } from "@/lib/whine/safety";
+import { noteActivityDone } from "@/lib/checkin/checkin";
 import { MAX_INPUT, type WhineAction, type WhineAnimation, type WhineMode } from "@/lib/whine/types";
 
 const QUICK = ["😫 집 가고 싶어!", "😤 아 진짜 짜증 나!", "😭 너무 힘들어!", "🥺 나 좀 위로해 줘!", "😴 아무것도 하기 싫어!"];
@@ -291,6 +292,7 @@ export function WhineScreen() {
     setTyping(false);
     sellySays("오늘도 나한테 이야기해 줘서 고마워!", "HAPPY");
     setEnded(true);
+    noteActivityDone("whine");
   };
 
   const finish = () => {
