@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 /**
@@ -22,18 +22,29 @@ const SPOTS = [
 export function PopBubbles({ words, calm, onPop, onDone }: { words: string[]; calm: boolean; onPop: () => void; onDone: (popped: number) => void }) {
   const reduce = useReducedMotion();
   const [popped, setPopped] = useState<number[]>([]);
+  // a popping bubble keeps its old click handler while it fades out, so track pops
+  // in a ref: a second tap on the same bubble is ignored and onDone runs once
+  const poppedRef = useRef<Set<number>>(new Set());
+  const done = useRef(false);
   const [bursts, setBursts] = useState<{ id: number; x: number; y: number }[]>([]);
   const left = words.length - popped.length;
 
+  const finish = (n: number) => {
+    if (done.current) return;
+    done.current = true;
+    onDone(n);
+  };
+
   const pop = (i: number) => {
-    if (popped.includes(i)) return;
-    const next = [...popped, i];
+    if (poppedRef.current.has(i) || done.current) return;
+    poppedRef.current.add(i);
+    const next = [...poppedRef.current];
     setPopped(next);
     const [x, y] = SPOTS[i % SPOTS.length];
     setBursts((b) => [...b, { id: i, x, y }]);
     setTimeout(() => setBursts((b) => b.filter((p) => p.id !== i)), 700);
     onPop();
-    if (next.length === words.length) setTimeout(() => onDone(next.length), 650);
+    if (next.length === words.length) setTimeout(() => finish(next.length), 650);
   };
 
   return (
@@ -58,7 +69,7 @@ export function PopBubbles({ words, calm, onPop, onDone }: { words: string[]; ca
                 style={{ left: `${SPOTS[i % SPOTS.length][0]}%`, top: `${SPOTS[i % SPOTS.length][1]}%` }}
                 initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.3, y: 40 }}
                 animate={reduce ? { opacity: 1 } : { opacity: 1, scale: 1, y: [0, -10, 0], x: [0, i % 2 ? 6 : -6, 0] }}
-                exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.5 }}
+                exit={reduce ? { opacity: 0, pointerEvents: "none" } : { opacity: 0, scale: 1.5, pointerEvents: "none" }}
                 transition={reduce ? { duration: 0.2 } : { opacity: { duration: 0.3 }, scale: { type: "spring", stiffness: 200, damping: 14, delay: i * 0.08 }, y: { duration: 3 + (i % 3) * 0.6, repeat: Infinity, ease: "easeInOut" }, x: { duration: 4 + (i % 2), repeat: Infinity, ease: "easeInOut" } }}
               >
                 <span className="line-clamp-3 break-keep text-[12px] leading-tight text-ink-700">{w.length > 22 ? `${w.slice(0, 21)}…` : w}</span>
@@ -82,7 +93,7 @@ export function PopBubbles({ words, calm, onPop, onDone }: { words: string[]; ca
           ))}
         </AnimatePresence>
       </div>
-      <button type="button" onClick={() => onDone(popped.length)} className="mx-auto mb-[calc(env(safe-area-inset-bottom)+18px)] rounded-full px-4 py-2 text-[12.5px] text-ink-500 underline-offset-2 active:underline">
+      <button type="button" onClick={() => finish(poppedRef.current.size)} className="mx-auto mb-[calc(env(safe-area-inset-bottom)+18px)] rounded-full px-4 py-2 text-[12.5px] text-ink-500 underline-offset-2 active:underline">
         그냥 마칠래
       </button>
     </motion.div>
