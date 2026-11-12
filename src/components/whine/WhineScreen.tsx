@@ -10,6 +10,7 @@ import { HelpCard } from "@/components/pms/HelpCard";
 import { useSelly } from "@/lib/selly-store";
 import { playSfx } from "@/lib/sound/sfx";
 import { IS_TOSS } from "@/lib/platform";
+import { useTossBack } from "@/lib/platform/back";
 import { askSelly, readAIChoice, saveAIChoice, type AIChoice } from "@/lib/whine/client";
 import { isCrisis } from "@/lib/whine/safety";
 import { noteActivityDone } from "@/lib/checkin/checkin";
@@ -322,6 +323,12 @@ export function WhineScreen() {
     setNoticeOpen(false);
   };
 
+  // Toss back closes what's open on this screen first
+  useTossBack(noticeOpen || popping, () => {
+    if (noticeOpen) setNoticeOpen(false);
+    else if (popping) setPopping(false);
+  });
+
   const lastSelly = [...msgs].reverse().find((m) => m.role === "selly");
   const showHelp = msgs.some((m) => m.action === "help");
   const busy = typing;
@@ -330,9 +337,14 @@ export function WhineScreen() {
     <main className="relative flex h-full w-full flex-col overflow-clip bg-[linear-gradient(180deg,#f3f7ee_0%,#fbf6ec_55%,#f8efe4_100%)]">
       {/* top */}
       <header className="flex shrink-0 items-center gap-2 px-3 pb-1 pt-[calc(env(safe-area-inset-top)+10px)]">
-        <button type="button" aria-label="정원으로 돌아가기" onClick={() => router.push("/")} className="glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-500 active:scale-90">
-          <ChevronLeft size={22} />
-        </button>
+        {/* Toss build: the Toss navigation bar has the back button */}
+        {IS_TOSS ? (
+          <span className="w-11 shrink-0" aria-hidden />
+        ) : (
+          <button type="button" aria-label="정원으로 돌아가기" onClick={() => router.push("/")} className="glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-500 active:scale-90">
+            <ChevronLeft size={22} />
+          </button>
+        )}
         <h1 className="min-w-0 flex-1 truncate text-center text-[16px] font-bold text-ink-700">셀리에게 징징대기</h1>
         <button type="button" onClick={switchMode} aria-label={`지금은 ${MODE_INFO[mode].label} 모드, 눌러서 바꾸기`} className="glass h-11 shrink-0 rounded-full px-3 text-[12px] font-bold text-ink-700 active:scale-95">
           {MODE_INFO[mode].label}

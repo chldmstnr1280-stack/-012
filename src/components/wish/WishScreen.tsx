@@ -13,6 +13,8 @@ import { putWish, useAppData } from "@/lib/data-store";
 import { formatMonthDay, useToday } from "@/lib/date";
 import { useSelly } from "@/lib/selly-store";
 import { playSfx } from "@/lib/sound/sfx";
+import { useTossBack } from "@/lib/platform/back";
+import { IS_TOSS } from "@/lib/platform";
 import { ANSWERS, ASK, HARD_LABEL, LINES, MAX_WISHES, REPLY, fill, type WishAnswer } from "@/data/wishes";
 import { answer, canSmaller, checkedOn, daysAway, hardLately, smaller, todaysAsk, type Wish } from "@/lib/wish/wishes";
 
@@ -106,6 +108,11 @@ export function WishScreen() {
     setAsk({ wish: w, text: fill(anyOf(ASK), { step: w.step, wish: w.text }) });
   };
 
+  useTossBack(newOpen || !!detail, () => {
+    if (detail) setDetail(null);
+    else setNewOpen(false);
+  });
+
   const afterWish = after ? wishes.find((w) => w.id === after.wishId) : undefined;
   // "today is hard" again within a week → where to get help, softly
   const showHelp = !!today && after?.a === "hard" && hardLately(wishes, today);
@@ -127,9 +134,14 @@ export function WishScreen() {
       </div>
 
       <header className="relative z-10 flex shrink-0 items-center gap-2 px-3 pb-1 pt-[calc(env(safe-area-inset-top)+10px)]">
-        <button type="button" aria-label="정원으로 돌아가기" onClick={() => router.push("/")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/15 text-white active:scale-90">
-          <ChevronLeft size={22} />
-        </button>
+        {/* Toss build: the Toss navigation bar has the back button */}
+        {IS_TOSS ? (
+          <span className="w-11 shrink-0" aria-hidden />
+        ) : (
+          <button type="button" aria-label="정원으로 돌아가기" onClick={() => router.push("/")} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/15 text-white active:scale-90">
+            <ChevronLeft size={22} />
+          </button>
+        )}
         <h1 className="min-w-0 flex-1 truncate text-center text-[16px] font-bold">셀리와 소망 빌기</h1>
         <span className="w-11" />
       </header>

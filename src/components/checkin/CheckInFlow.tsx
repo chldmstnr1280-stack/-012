@@ -14,6 +14,8 @@ import { ACTIVITIES, LANE_INFO, respond, saveCheckIn, updateCheckIn, noteActivit
 import { setPrefs } from "@/lib/data-store";
 import { updateGame, readGame } from "@/lib/game/gameStore";
 import { openExternal } from "@/lib/platform";
+import { IS_TOSS } from "@/lib/platform";
+import { useTossBack } from "@/lib/platform/back";
 import { useSelly } from "@/lib/selly-store";
 import { playSfx } from "@/lib/sound/sfx";
 import { toKey } from "@/lib/date";
@@ -52,6 +54,7 @@ export function CheckInFlow() {
     return () => setImmersive(false);
   }, [setImmersive]);
 
+  const stepNo = ORDER.indexOf(step);
   const go = (s: Step) => {
     playSfx("tap");
     setStep(s);
@@ -117,16 +120,28 @@ export function CheckInFlow() {
     router.push(ACTIVITIES[a].href ?? "/");
   };
 
+  // Toss back: close an open sheet, else go to the previous step (on the first step and
+  // the result, Toss's own back applies)
+  useTossBack(safety || stretch || (stepNo > 0 && step !== "result"), () => {
+    if (stretch) setStretch(false);
+    else if (safety) setSafety(false);
+    else back();
+  });
+
   const r = saved ? respond(saved) : null;
-  const stepNo = ORDER.indexOf(step);
 
   return (
     <main className="relative flex h-full w-full flex-col overflow-hidden bg-[linear-gradient(180deg,#f4f7ee_0%,#fbf6ec_55%,#f7ece6_100%)]">
       {/* top */}
       <header className="flex shrink-0 items-center gap-2 px-3 pb-1 pt-[calc(env(safe-area-inset-top)+10px)]">
-        <button type="button" aria-label={stepNo === 0 || step === "result" ? "정원으로 돌아가기" : "이전 단계"} onClick={back} className="glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-500 active:scale-90">
-          <ChevronLeft size={22} />
-        </button>
+        {/* Toss build: the Toss navigation bar's back goes to the previous step (see useTossBack) */}
+        {IS_TOSS ? (
+          <span className="w-11 shrink-0" aria-hidden />
+        ) : (
+          <button type="button" aria-label={stepNo === 0 || step === "result" ? "정원으로 돌아가기" : "이전 단계"} onClick={back} className="glass grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-500 active:scale-90">
+            <ChevronLeft size={22} />
+          </button>
+        )}
         <div className="flex flex-1 flex-col items-center">
           <h1 className="text-[15px] font-bold text-ink-700">오늘, 몸의 날씨</h1>
           {step !== "result" && (

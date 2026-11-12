@@ -37,6 +37,8 @@ import type { TalkAction } from "@/data/sellyConversations";
 import { CARE_LINES, TOUCH_LINES, pick } from "@/data/sellyDialogues";
 import { TopBar } from "./TopBar";
 import { WeatherSheet } from "./WeatherSheet";
+import { useTossBack } from "@/lib/platform/back";
+import { IS_TOSS } from "@/lib/platform";
 import { AfterCheck } from "@/components/checkin/AfterCheck";
 import { noteActivityDone } from "@/lib/checkin/checkin";
 import { toKey } from "@/lib/date";
@@ -515,6 +517,20 @@ export function HomeScreen() {
   };
   const tod = quiet ? "night" : ambience;
 
+  // Toss build: the navigation bar's back closes whatever is open on the home screen
+  // (a breathing session, a talk, a sheet…) before leaving the app
+  useTossBack(mode !== "home" || careOpen || weatherOpen || menuOpen || inviteOpen, () => {
+    if (inviteOpen) setInviteOpen(false);
+    else if (weatherOpen) setWeatherOpen(false);
+    else if (careOpen) setCareOpen(false);
+    else if (menuOpen) setMenuOpen(false);
+    else if (mode === "breathing") endBreathing(false);
+    else if (mode === "talk") endTalk();
+    else if (mode === "kindness") endKindness();
+    else if (mode === "quiet") endQuiet();
+    else if (mode === "decorate") endDecorate();
+  });
+
   return (
     <main ref={mainRef} className="relative h-full w-full overflow-clip">
       <GreenhouseBackground dim={breathing} placement={layout ?? undefined} />
@@ -558,9 +574,12 @@ export function HomeScreen() {
               </motion.div>
             ) : (
               <motion.div key="breath-top" className="absolute inset-x-0 top-0 flex items-center justify-center px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <button type="button" aria-label="호흡 종료" onClick={() => endBreathing(false)} className="absolute left-3 grid h-11 w-11 place-items-center rounded-full text-white">
-                  <ChevronLeft size={26} />
-                </button>
+                {/* Toss build: the Toss navigation bar's back ends the session (useTossBack) */}
+                {!IS_TOSS && (
+                  <button type="button" aria-label="호흡 종료" onClick={() => endBreathing(false)} className="absolute left-3 grid h-11 w-11 place-items-center rounded-full text-white">
+                    <ChevronLeft size={26} />
+                  </button>
+                )}
                 <h2 className="text-glow text-[20px] font-bold text-white">호흡하기</h2>
               </motion.div>
             )}
