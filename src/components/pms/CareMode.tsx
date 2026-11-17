@@ -39,8 +39,10 @@ export function CareMode() {
   const soon = !!today && !!fc && !inWindow && [1, 2, 3].some((n) => fc.window.has(addDays(today, n)));
   const log = data.careLog ?? [];
   const todays = today ? log.filter((c) => c.date === today) : [];
-  // what the user said helped before (their own words only)
+  // what the user said helped before (their own words only) — those come first
+  const helpedCount = (k: string) => log.filter((c) => c.kind === k && c.helped === "yes").length;
   const helpedBefore = [...new Set(log.filter((c) => c.helped === "yes").map((c) => c.kind))];
+  const items = [...CARE_ITEMS].sort((a, b) => helpedCount(b.kind) - helpedCount(a.kind));
 
   const pick = (kind: (typeof CARE_ITEMS)[number]["kind"]) => {
     playSfx("tap");
@@ -73,7 +75,7 @@ export function CareMode() {
       </section>
 
       <ul className="mt-3 grid gap-2">
-        {CARE_ITEMS.map((c) => (
+        {items.map((c) => (
           <li key={c.kind}>
             <button type="button" onClick={() => pick(c.kind)} className="flex min-h-[60px] w-full items-center gap-3 rounded-[20px] bg-white/85 px-4 py-2.5 text-left shadow-[0_4px_12px_-8px_rgba(110,88,60,0.45)] active:scale-[0.99]">
               <span className="text-[22px]" aria-hidden>
@@ -83,7 +85,7 @@ export function CareMode() {
                 <span className="block text-[14.5px] font-bold text-ink-700">{c.label}</span>
                 <span className="text-[12px] text-ink-500">{c.hint}</span>
               </span>
-              {helpedBefore.includes(c.kind) && <span className="rounded-full bg-sage-50 px-2 py-0.5 text-[10.5px] font-bold text-sage-700">지난번에 도움됐어요</span>}
+              {helpedBefore.includes(c.kind) && <span className="shrink-0 rounded-full bg-sage-50 px-2 py-0.5 text-[10.5px] font-bold text-sage-700">도움됐어요 {helpedCount(c.kind)}번</span>}
             </button>
           </li>
         ))}

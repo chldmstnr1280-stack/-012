@@ -49,6 +49,8 @@ export interface GameData {
   lastMissionGrowth?: string | null;
   /** 몸의 날씨 check-ins today → small lights in the garden (same for any feeling; max 3) */
   checkinLights?: { date: string; n: number };
+  /** days a 징징대기 ended (only the date — never what was said), for Selly's next-day letter */
+  whineDates?: string[];
   /** period starts whose "지난 주기 돌아보기" card was closed */
   recapClosed?: string[];
 }

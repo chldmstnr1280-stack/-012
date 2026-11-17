@@ -37,6 +37,8 @@ import type { TalkAction } from "@/data/sellyConversations";
 import { CARE_LINES, TOUCH_LINES, pick } from "@/data/sellyDialogues";
 import { TopBar } from "./TopBar";
 import { WeatherSheet } from "./WeatherSheet";
+import { LetterView } from "@/components/letters/LetterView";
+import { checkLetters } from "@/lib/letters/client";
 import { useTossBack } from "@/lib/platform/back";
 import { IS_TOSS } from "@/lib/platform";
 import { AfterCheck } from "@/components/checkin/AfterCheck";
@@ -77,6 +79,7 @@ export function HomeScreen() {
   }, [mode]);
   const [careOpen, setCareOpen] = useState(false);
   const [weatherOpen, setWeatherOpen] = useState(false);
+  const [letterOpen, setLetterOpen] = useState<string | null>(null);
   /** breathing-mode caption (in the home mode Selly speaks through her own bubble) */
   const [caption, setCaption] = useState("어떤 호흡으로\n쉬어갈까요?");
   const touchIndex = useRef(0);
@@ -452,6 +455,9 @@ export function HomeScreen() {
     setTimeout(() => {
       setFinds(game.finds);
       setLights(game.checkinLights && game.checkinLights.date === toKey(new Date()) ? game.checkinLights.n : 0);
+      // 셀리의 편지: a new one → Selly says so a little later (after her hello)
+      const arrived = checkLetters();
+      if (arrived) setTimeout(() => brainRef.current.say("편지 왔어! 💌\n우체통 열어 봐", 4200), 5200);
       setDeco(game.deco ?? {});
       if (back) {
         // back from a walk: petals drift in, Selly comes through the door and rests
@@ -509,6 +515,8 @@ export function HomeScreen() {
   const quiet = mode === "quiet";
   const ambience = useAmbience();
   const garden = useGardenWeather();
+  const unreadLetter = [...(appData.letterBox?.items ?? [])].reverse().find((l) => !l.read) ?? null;
+  const shownLetter = letterOpen ? appData.letterBox?.items.find((l) => l.id === letterOpen) : undefined;
   /** choose the greenhouse weather; Selly notices when it actually changes */
   const pickWeather = (w: WeatherPref) => {
     playSfx("tap");
@@ -521,8 +529,9 @@ export function HomeScreen() {
 
   // Toss build: the navigation bar's back closes whatever is open on the home screen
   // (a breathing session, a talk, a sheet…) before leaving the app
-  useTossBack(mode !== "home" || careOpen || weatherOpen || menuOpen || inviteOpen, () => {
-    if (inviteOpen) setInviteOpen(false);
+  useTossBack(mode !== "home" || careOpen || weatherOpen || menuOpen || inviteOpen || !!letterOpen, () => {
+    if (letterOpen) setLetterOpen(null);
+    else if (inviteOpen) setInviteOpen(false);
     else if (weatherOpen) setWeatherOpen(false);
     else if (careOpen) setCareOpen(false);
     else if (menuOpen) setMenuOpen(false);
@@ -633,6 +642,28 @@ export function HomeScreen() {
               </motion.button>
             )}
           </AnimatePresence>
+          {/* 셀리의 편지 — a round mailbox under the wish; the flag (dot) is up while a letter is unread */}
+          <AnimatePresence>
+            {mode === "home" && (
+              <motion.button
+                key="mail"
+                type="button"
+                aria-label={unreadLetter ? "셀리의 편지가 왔어요. 열어 보기" : "셀리의 편지함"}
+                onClick={() => {
+                  playSfx("tap");
+                  if (unreadLetter) setLetterOpen(unreadLetter.id);
+                  else router.push("/letters");
+                }}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="glass pointer-events-auto absolute right-4 top-[119px] grid h-12 w-12 place-items-center rounded-full text-[21px] active:scale-90"
+              >
+                <span aria-hidden>{unreadLetter ? "💌" : "📮"}</span>
+                {unreadLetter && <span aria-hidden className="absolute right-0 top-0 h-3 w-3 rounded-full bg-[#e76f86] ring-2 ring-white" />}
+              </motion.button>
+            )}
+          </AnimatePresence>
           {/* 셀리와 소망 빌기 — a round icon under the weather; a dot when Selly has today's question */}
           <AnimatePresence>
             {mode === "home" && (
@@ -684,6 +715,7 @@ export function HomeScreen() {
         </div>
       </div>
 
+      <AnimatePresence>{shownLetter && <LetterView key={shownLetter.id} letter={shownLetter} sealed={!shownLetter.read} onClose={() => setLetterOpen(null)} />}</AnimatePresence>
       <SellyMenu open={menuOpen && mode === "home"} onPick={handleMenu} onClose={() => setMenuOpen(false)} />
       <SellyTalk open={mode === "talk"} onAction={handleTalkAction} onClose={endTalk} />
       <KindnessPractice open={mode === "kindness"} recommend={kindRecommend} onReact={kindReact} onDone={kindDone} onClose={endKindness} />

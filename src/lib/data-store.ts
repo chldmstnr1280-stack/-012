@@ -141,6 +141,8 @@ export interface AppData {
   lateChecks?: import("@/lib/pms/late").LateCheck[];
   /** each logged period start vs. what was expected — to see how good the estimates are (device + backup file) */
   predictionLog?: import("@/lib/pms/late").PredictionEntry[];
+  /** 셀리의 편지 (this device and the backup file only; chosen on the device) */
+  letterBox?: import("@/lib/letters/engine").LetterBox;
   /** 오늘, 몸의 날씨 check-ins (this device and the backup file; their tags also join dayTags) */
   checkins?: import("@/lib/checkin/checkin").CheckIn[];
 }
@@ -170,6 +172,8 @@ export interface Prefs {
   natureVolume?: number;
   /** "셀리가 발견한 작은 패턴" — personal pattern notes from check-ins (default on; can be turned off) */
   patterns?: boolean;
+  /** 셀리의 편지: how often, from what hour, which topics */
+  letters?: Partial<import("@/lib/letters/engine").LetterPrefs>;
 }
 
 const KEY = "dear-selly:v1";

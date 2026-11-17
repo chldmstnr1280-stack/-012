@@ -1,3 +1,5 @@
+import { LETTER_BY_ID, SCIENCE_BY_ID, type ScienceId } from "@/data/letters";
+import type { LetterRec } from "@/lib/letters/engine";
 import { cleanCare, mergeById, type CareEntry } from "@/lib/pms/careMode";
 import type { LateCheck, PredictionEntry } from "@/lib/pms/late";
 import { cleanWish, mergeWishes, type Wish } from "@/lib/wish/wishes";
@@ -90,7 +92,7 @@ function cleanDaily(v: unknown): DailyLog | null {
 
 export type ParsedBackup = Pick<
   AppData,
-  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals" | "consult" | "wishes" | "checkins" | "careLog" | "lateChecks" | "predictionLog"
+  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals" | "consult" | "wishes" | "checkins" | "careLog" | "lateChecks" | "predictionLog" | "letterBox"
 >;
 
 /** Validates an untrusted meal day: known slots and food ids only. */
@@ -236,6 +238,7 @@ export function parseBackup(
     !(Array.isArray(raw.wishes) && raw.wishes.length) &&
     !(Array.isArray(raw.checkins) && raw.checkins.length) &&
     !(Array.isArray(raw.careLog) && raw.careLog.length) &&
+    !(isObj(raw.letterBox) && Array.isArray(raw.letterBox.items) && raw.letterBox.items.length) &&
     progress.level === 1 &&
     progress.exp === 0
   ) {
@@ -291,6 +294,16 @@ export function parseBackup(
   const predictionLog = (Array.isArray(raw.predictionLog) ? raw.predictionLog : []).filter(
     (e): e is PredictionEntry => isObj(e) && isDate(e.start) && (e.expected === null || isDate(e.expected)) && (e.diff === null || Number.isInteger(e.diff)) && Number.isInteger(e.basis) && typeof e.at === "number",
   ).map((e) => ({ start: e.start, expected: e.expected, diff: e.diff, basis: e.basis, irregular: e.irregular === true, at: e.at })).slice(-36);
+  const letterItems = (isObj(raw.letterBox) && Array.isArray(raw.letterBox.items) ? raw.letterBox.items : [])
+    .filter((l): l is LetterRec => isObj(l) && typeof l.id === "string" && l.id.length <= 40 && typeof l.tpl === "string" && !!LETTER_BY_ID[l.tpl] && isDate(l.date) && typeof l.at === "number")
+    .map((l) => ({
+      id: l.id, tpl: l.tpl, date: l.date, at: l.at,
+      ...(typeof l.card === "string" && SCIENCE_BY_ID[l.card as ScienceId] ? { card: l.card as ScienceId } : {}),
+      ...(typeof l.pattern === "string" && l.pattern ? { pattern: l.pattern.slice(0, 300) } : {}),
+      ...(l.read === true ? { read: true } : {}), ...(l.fav === true ? { fav: true } : {}),
+      updatedAt: typeof l.updatedAt === "number" ? l.updatedAt : 0,
+    }))
+    .slice(-200);
   const pmsProfile = cleanPattern(raw.pmsProfile) ?? undefined;
   const cycleRecaps: ParsedBackup["cycleRecaps"] = {};
   if (isObj(raw.cycleRecaps)) {
@@ -312,7 +325,7 @@ export function parseBackup(
   }
   return {
     ok: true,
-    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals, consult, ...(wishes.length ? { wishes } : {}), ...(checkins.length ? { checkins } : {}), ...(careLog.length ? { careLog } : {}), ...(lateChecks.length ? { lateChecks } : {}), ...(predictionLog.length ? { predictionLog } : {}) },
+    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals, consult, ...(wishes.length ? { wishes } : {}), ...(checkins.length ? { checkins } : {}), ...(careLog.length ? { careLog } : {}), ...(lateChecks.length ? { lateChecks } : {}), ...(predictionLog.length ? { predictionLog } : {}), ...(letterItems.length ? { letterBox: { items: letterItems } } : {}) },
   };
 }
 
@@ -374,6 +387,7 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
     consult: cur.consult ?? inc.consult,
     wishes: inc.wishes ? mergeWishes(cur.wishes ?? [], inc.wishes) : cur.wishes,
     checkins: inc.checkins ? mergeCheckIns(cur.checkins ?? [], inc.checkins) : cur.checkins,
+    letterBox: inc.letterBox ? { ...(cur.letterBox ?? {}), items: mergeById(cur.letterBox?.items ?? [], inc.letterBox.items, 200, (l) => l.at) } : cur.letterBox,
     careLog: inc.careLog ? mergeById(cur.careLog ?? [], inc.careLog, 500, (c) => c.at) : cur.careLog,
     lateChecks: inc.lateChecks ? [...(cur.lateChecks ?? []), ...inc.lateChecks.filter((c) => !(cur.lateChecks ?? []).some((x) => x.at === c.at))].sort((a, b) => a.at - b.at).slice(-60) : cur.lateChecks,
     predictionLog: inc.predictionLog ? [...new Map([...(inc.predictionLog ?? []), ...(cur.predictionLog ?? [])].map((e) => [e.start, e])).values()].sort((a, b) => (a.start < b.start ? -1 : 1)).slice(-36) : cur.predictionLog,

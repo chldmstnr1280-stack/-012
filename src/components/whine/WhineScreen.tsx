@@ -14,6 +14,8 @@ import { useTossBack } from "@/lib/platform/back";
 import { askSelly, readAIChoice, saveAIChoice, type AIChoice } from "@/lib/whine/client";
 import { isCrisis } from "@/lib/whine/safety";
 import { noteActivityDone } from "@/lib/checkin/checkin";
+import { updateGame } from "@/lib/game/gameStore";
+import { toKey } from "@/lib/date";
 import { MAX_INPUT, type WhineAction, type WhineAnimation, type WhineMode } from "@/lib/whine/types";
 
 const QUICK = ["😫 집 가고 싶어!", "😤 아 진짜 짜증 나!", "😭 너무 힘들어!", "🥺 나 좀 위로해 줘!", "😴 아무것도 하기 싫어!"];
@@ -294,6 +296,9 @@ export function WhineScreen() {
     sellySays("오늘도 나한테 이야기해 줘서 고마워!", "HAPPY");
     setEnded(true);
     noteActivityDone("whine");
+    // only the date, never what was said — for Selly's next-day letter
+    const day = toKey(new Date());
+    updateGame((g) => ({ whineDates: [...(g.whineDates ?? []).filter((d) => d !== day), day].slice(-30) }));
   };
 
   const finish = () => {
