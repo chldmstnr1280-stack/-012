@@ -26,3 +26,30 @@ export function sellyPmsLine(p: PmsPattern, anyRecords: boolean): string {
   const head = `지난 ${n}번의 주기에서 보통 생리 시작 약 ${onset}일 전부터 증상이 기록됐어.`;
   return what ? `${head} 자주 함께한 건 ${iya(what)}.` : head;
 }
+
+/**
+ * One sentence per repeated symptom, from the user's own records aligned to
+ * each logged period start: "지난 N번의 주기 중 K번, 생리 시작 A~B일 전부터
+ * {증상}이(가) 기록되었어요." Only analysable cycles count (≥ 2 needed), only
+ * recorded days count, and it says when, never why.
+ */
+export function onsetLines(p: PmsPattern, symptoms: Record<string, { scores: Partial<Record<string, number>>; none?: true }>): string[] {
+  if (!p.enough) return [];
+  const out: string[] = [];
+  for (const r of p.repeated.slice(0, 3)) {
+    const firsts: number[] = [];
+    for (const c of p.cycles) {
+      const offs = c.cells.filter((cell) => cell.offset < 0 && cell.recorded && !symptoms[cell.date]?.none && (symptoms[cell.date]?.scores[r.id] ?? 0) >= 1).map((cell) => -cell.offset);
+      if (offs.length) firsts.push(Math.max(...offs));
+    }
+    if (firsts.length < 2) continue;
+    const a = Math.min(...firsts);
+    const b = Math.max(...firsts);
+    const label = SYMPTOM_LABEL[r.id];
+    const when = a === b ? `${a}일 전` : `${a}~${b}일 전`;
+    out.push(`지난 ${p.cycles.length}번의 주기 중 ${firsts.length}번, 생리 시작 ${when}부터 ‘${label}’${hasBatchim(label) ? "이" : "가"} 기록되었어요.`);
+  }
+  return out;
+}
+
+export const NOT_ENOUGH = "아직 기록이 충분하지 않아요. 몇 번의 월경주기 동안 변화를 살펴보면 나만의 패턴을 이해하는 데 도움이 될 수 있어요.";

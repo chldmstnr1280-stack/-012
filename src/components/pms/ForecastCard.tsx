@@ -46,8 +46,13 @@ export function ForecastCard({ f, today, hasProfile, recapDue }: { f: PmsForecas
               </ul>
             </div>
           )}
-          {!f.nextStart && <p className="text-[12px] text-ink-500">생리 시작일을 기록하면 날짜도 함께 보여 줄게요.</p>}
+          {f.paused ? (
+            <p className="text-[12px] text-ink-500">예상했던 시작일이 지나서 날짜는 잠시 보여 주지 않아요. 생리가 시작되면 기록해 주세요. 그 날을 기준으로 다시 계산할게요.</p>
+          ) : (
+            !f.nextStart && <p className="text-[12px] text-ink-500">생리 시작일을 기록하면 날짜도 함께 보여 줄게요.</p>
+          )}
           {f.irregular && <p className="text-[12px] text-[#7a5a14]">주기 길이 차이가 커서 날짜가 덜 정확할 수 있어요.</p>}
+          {!f.irregular && f.basis < 2 && f.nextStart && <p className="text-[12px] text-[#7a5a14]">{f.basis === 0 ? "주기 길이 기록이 아직 없어서 기본 28일 주기로 계산했어요." : "주기 기록이 한 번뿐이라 날짜가 덜 정확할 수 있어요."}</p>}
         </div>
       )}
 
@@ -67,7 +72,7 @@ export function ForecastCard({ f, today, hasProfile, recapDue }: { f: PmsForecas
         </Link>
       </div>
       <p className="mt-2 text-[11px] leading-relaxed text-ink-300">
-        내 기록을 앞으로 이어 본 참고용이에요. 기록이 쌓일수록 ‘평소 패턴’보다 ‘주기별 돌아보기’, 그다음 ‘지난 주기 기록’을 우선해요. 진단이 아니에요.
+        최근 기록을 바탕으로 예상한 기간이에요. 실제 증상 발생 시점은 달라질 수 있어요. 내 기록을 앞으로 이어 본 참고용이에요. 기록이 쌓일수록 ‘평소 패턴’보다 ‘주기별 돌아보기’, 그다음 ‘지난 주기 기록’을 우선해요. 진단이 아니에요.
       </p>
     </SectionCard>
   );

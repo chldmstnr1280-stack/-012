@@ -1,3 +1,5 @@
+import { cleanCare, mergeById, type CareEntry } from "@/lib/pms/careMode";
+import type { LateCheck, PredictionEntry } from "@/lib/pms/late";
 import { cleanWish, mergeWishes, type Wish } from "@/lib/wish/wishes";
 import { cleanCheckIn, mergeCheckIns, type CheckIn } from "@/lib/checkin/checkin";
 import { EMOTIONS, type Emotion } from "@/data/moodFlowers";
@@ -88,7 +90,7 @@ function cleanDaily(v: unknown): DailyLog | null {
 
 export type ParsedBackup = Pick<
   AppData,
-  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals" | "consult" | "wishes" | "checkins"
+  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals" | "consult" | "wishes" | "checkins" | "careLog" | "lateChecks" | "predictionLog"
 >;
 
 /** Validates an untrusted meal day: known slots and food ids only. */
@@ -163,13 +165,18 @@ export function cleanSymptomDay(v: unknown): SymptomDay | null {
       if (sc != null) impact[id] = sc;
     }
   const none = v.none === true ? (true as const) : undefined;
-  if (!none && !Object.keys(scores).length && !Object.keys(impact).length)
+  const sleepHours =
+    typeof v.sleepHours === "number" && Number.isFinite(v.sleepHours) && v.sleepHours >= 0 && v.sleepHours <= 16
+      ? Math.round(v.sleepHours * 2) / 2
+      : undefined;
+  const note = typeof v.note === "string" && v.note.trim() ? v.note.trim().slice(0, 300) : undefined;
+  if (!none && !Object.keys(scores).length && !Object.keys(impact).length && sleepHours == null && !note)
     return null;
   const updatedAt =
     typeof v.updatedAt === "number" && Number.isFinite(v.updatedAt)
       ? v.updatedAt
       : 0;
-  return { scores, impact, none, updatedAt };
+  return { scores, impact, none, ...(sleepHours != null ? { sleepHours } : {}), ...(note ? { note } : {}), updatedAt };
 }
 
 export function parseBackup(
@@ -228,6 +235,7 @@ export function parseBackup(
     !(isObj(raw.meals) && Object.keys(raw.meals).length) &&
     !(Array.isArray(raw.wishes) && raw.wishes.length) &&
     !(Array.isArray(raw.checkins) && raw.checkins.length) &&
+    !(Array.isArray(raw.careLog) && raw.careLog.length) &&
     progress.level === 1 &&
     progress.exp === 0
   ) {
@@ -276,6 +284,13 @@ export function parseBackup(
   }
   const wishes = (Array.isArray(raw.wishes) ? raw.wishes : []).map(cleanWish).filter((w): w is Wish => !!w).slice(-30);
   const checkins = (Array.isArray(raw.checkins) ? raw.checkins : []).map(cleanCheckIn).filter((c): c is CheckIn => !!c).slice(-400);
+  const careLog = (Array.isArray(raw.careLog) ? raw.careLog : []).map(cleanCare).filter((c): c is CareEntry => !!c).slice(-500);
+  const lateChecks = (Array.isArray(raw.lateChecks) ? raw.lateChecks : []).filter(
+    (c): c is LateCheck => isObj(c) && isDate(c.expected) && ["started", "not_yet", "later"].includes(c.answer as string) && typeof c.at === "number",
+  ).map((c) => ({ expected: c.expected, answer: c.answer, at: c.at })).slice(-60);
+  const predictionLog = (Array.isArray(raw.predictionLog) ? raw.predictionLog : []).filter(
+    (e): e is PredictionEntry => isObj(e) && isDate(e.start) && (e.expected === null || isDate(e.expected)) && (e.diff === null || Number.isInteger(e.diff)) && Number.isInteger(e.basis) && typeof e.at === "number",
+  ).map((e) => ({ start: e.start, expected: e.expected, diff: e.diff, basis: e.basis, irregular: e.irregular === true, at: e.at })).slice(-36);
   const pmsProfile = cleanPattern(raw.pmsProfile) ?? undefined;
   const cycleRecaps: ParsedBackup["cycleRecaps"] = {};
   if (isObj(raw.cycleRecaps)) {
@@ -297,7 +312,7 @@ export function parseBackup(
   }
   return {
     ok: true,
-    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals, consult, ...(wishes.length ? { wishes } : {}), ...(checkins.length ? { checkins } : {}) },
+    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals, consult, ...(wishes.length ? { wishes } : {}), ...(checkins.length ? { checkins } : {}), ...(careLog.length ? { careLog } : {}), ...(lateChecks.length ? { lateChecks } : {}), ...(predictionLog.length ? { predictionLog } : {}) },
   };
 }
 
@@ -359,6 +374,9 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
     consult: cur.consult ?? inc.consult,
     wishes: inc.wishes ? mergeWishes(cur.wishes ?? [], inc.wishes) : cur.wishes,
     checkins: inc.checkins ? mergeCheckIns(cur.checkins ?? [], inc.checkins) : cur.checkins,
+    careLog: inc.careLog ? mergeById(cur.careLog ?? [], inc.careLog, 500, (c) => c.at) : cur.careLog,
+    lateChecks: inc.lateChecks ? [...(cur.lateChecks ?? []), ...inc.lateChecks.filter((c) => !(cur.lateChecks ?? []).some((x) => x.at === c.at))].sort((a, b) => a.at - b.at).slice(-60) : cur.lateChecks,
+    predictionLog: inc.predictionLog ? [...new Map([...(inc.predictionLog ?? []), ...(cur.predictionLog ?? [])].map((e) => [e.start, e])).values()].sort((a, b) => (a.start < b.start ? -1 : 1)).slice(-36) : cur.predictionLog,
     cycleContext: { ...inc.cycleContext, ...cur.cycleContext },
     demo: false,
   };

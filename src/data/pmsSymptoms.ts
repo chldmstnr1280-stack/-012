@@ -10,6 +10,7 @@ export const SYMPTOM_GROUPS = [
     id: "emotional",
     label: "감정",
     items: [
+      { id: "tearful", label: "눈물이 남" },
       { id: "irritability", label: "짜증" },
       { id: "anxiety", label: "불안" },
       { id: "low_mood", label: "우울감" },
@@ -22,10 +23,10 @@ export const SYMPTOM_GROUPS = [
     label: "신체",
     items: [
       { id: "bloating", label: "복부 팽만" },
-      { id: "breast_tenderness", label: "유방 압통" },
+      { id: "breast_tenderness", label: "가슴(유방) 통증" },
       { id: "headache", label: "두통" },
       { id: "fatigue", label: "피로" },
-      { id: "cramps", label: "생리통" },
+      { id: "cramps", label: "복통·생리통" },
     ],
   },
   {
@@ -34,7 +35,7 @@ export const SYMPTOM_GROUPS = [
     items: [
       { id: "poor_focus", label: "집중력 저하" },
       { id: "appetite", label: "식욕 변화" },
-      { id: "sleep_problems", label: "수면 문제" },
+      { id: "sleep_problems", label: "수면 변화" },
       { id: "hard_daily_tasks", label: "일상 활동의 어려움" },
     ],
   },

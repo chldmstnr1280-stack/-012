@@ -31,6 +31,10 @@ export interface PmsForecast {
   symptoms: { id: SymptomId; score: number }[];
   symptomSource: ForecastSource | null;
   irregular: boolean;
+  /** the expected start has passed with no new period logged: no window is shown until one is */
+  paused: boolean;
+  /** how many cycle lengths the date rests on (0 = default 28 days) */
+  basis: number;
 }
 
 const median = (xs: number[]) => {
@@ -81,7 +85,9 @@ export function forecastPms(data: AppData, info: CycleInfo, pattern: PmsPattern)
   symptoms = symptoms.sort((a, b) => b.score - a.score).slice(0, 5);
 
   const window = new Set<DateKey>();
-  if (onset != null && info.nextStart) for (let i = Math.min(PRE_DAYS, Math.max(1, onset)); i >= 1; i--) window.add(addDays(info.nextStart, -i));
+  // "the date passed" never means "PMS is still going on": wait for the next logged start
+  const paused = info.overdue > 0;
+  if (!paused && onset != null && info.nextStart) for (let i = Math.min(PRE_DAYS, Math.max(1, onset)); i >= 1; i--) window.add(addDays(info.nextStart, -i));
 
-  return { nextStart: info.nextStart, onset, onsetSource, window, symptoms, symptomSource, irregular: info.irregular };
+  return { nextStart: paused ? null : info.nextStart, onset, onsetSource, window, symptoms, symptomSource, irregular: info.irregular, paused, basis: info.basis };
 }

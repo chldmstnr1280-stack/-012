@@ -23,7 +23,9 @@ export type CareAction =
   | "talk" // 이야기하기
   | "record" // 오늘의 기록
   | "record-pms" // 오늘의 증상 기록
-  | "kindness"; // 마음 전하기 (자기자비 연습)
+  | "kindness" // 마음 전하기 (자기자비 연습)
+  | "care-mode" // PMS 돌봄 모드
+  | "late-check"; // 예상 시작일이 지났을 때: 달력에서 확인
 
 export const ACTION_LABEL: Record<CareAction, string> = {
   rest: "함께 쉬기",
@@ -36,6 +38,8 @@ export const ACTION_LABEL: Record<CareAction, string> = {
   record: "기록하기",
   "record-pms": "증상 기록",
   kindness: "마음 전하기",
+  "care-mode": "돌봄 모드",
+  "late-check": "달력에서 확인",
 };
 
 export interface CareContext {
@@ -62,6 +66,10 @@ export interface CareContext {
   pmsBasis?: "records" | "recaps" | "profile";
   /** what the user said they want today (바람 tags that Selly can answer) */
   needs?: ContextTagId[];
+  /** the expected start passed with no new period logged, and the user hasn't answered about it yet */
+  lateUnanswered?: boolean;
+  /** the expected pre-period window starts within 3 days (reference only) */
+  pmsSoon?: boolean;
 }
 
 export interface CareRule {
@@ -95,6 +103,13 @@ export const CARE_RULES: CareRule[] = [
     when: (c) => !!c.needs?.length,
     line: (c) => TAGS[c.needs![0]].selly ?? "",
     actions: [],
+  },
+  {
+    id: "late",
+    // never "late" for sure — it may just not be logged
+    when: (c) => !!c.lateUnanswered,
+    line: "예상했던 시작일이 지났어.\n혹시 기록할 게 있을까?",
+    actions: ["late-check"],
   },
   {
     id: "period-tired",
@@ -173,7 +188,13 @@ export const CARE_RULES: CareRule[] = [
       if (c.pmsBasis === "recaps") return what ? `지난번엔 이맘때\n${what}${hasJong(what) ? "이" : "가"} 있었다고 했지. 오늘은 어때?` : "지난번엔 이맘때\n증상이 있었다고 했지. 오늘은 어때?";
       return what ? `지난 주기엔 이맘때\n${eul(what)} 기록했었어. 오늘은 어때?` : "지난 주기엔 이맘때\n증상을 기록했었어. 오늘은 어때?";
     },
-    actions: ["record-pms", "walk"],
+    actions: ["record-pms", "care-mode"],
+  },
+  {
+    id: "pms-soon",
+    when: (c) => !!c.pmsSoon && c.tod !== "night",
+    line: "곧 생리 전 기간이 시작될 것 같아(예측).\n이번 주엔 나를 조금 더 챙겨 볼까?",
+    actions: ["care-mode"],
   },
   {
     id: "period-soon",

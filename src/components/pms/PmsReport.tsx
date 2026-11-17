@@ -11,7 +11,7 @@ import { analyzeCycle } from "@/lib/cycle";
 import { addDays, formatMonthDay, type DateKey } from "@/lib/date";
 import type { AppData } from "@/lib/data-store";
 import { analysePms, PRE_DAYS, type CycleMemory, type DayCell } from "@/lib/pms/analysis";
-import { sellyPmsLine } from "@/lib/pms/insight";
+import { NOT_ENOUGH, onsetLines, sellyPmsLine } from "@/lib/pms/insight";
 import { focusSymptoms, pickCare } from "@/lib/pms/care";
 import { CareCards } from "./CareCards";
 import { ForecastCard } from "./ForecastCard";
@@ -38,6 +38,7 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
   const care = useMemo(() => pickCare(focusSymptoms(p), p.enough), [p]);
   const tagSummary = useMemo(() => compareTags(data, today), [data, today]);
   const forecast = useMemo(() => forecastPms(data, info, p), [data, info, p]);
+  const onset = useMemo(() => onsetLines(p, data.symptoms), [p, data.symptoms]);
   // the latest logged period (started in the last 3 weeks) that has neither a look-back nor enough daily records
   const recapDue = useMemo(() => {
     const last = groupPeriods(data.periodDays).filter((x) => x.start <= today).pop();
@@ -58,6 +59,25 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
             분석한 주기 {p.cycles.length}개{!p.enough && " · 비교하려면 2개 이상 필요해요"}
           </p>
         </div>
+      </section>
+
+      {/* 나만의 PMS 패턴 — repeated symptoms, aligned to real logged starts (≥ 2 cycles) */}
+      <section className="glass rounded-[26px] p-4" aria-label="나만의 PMS 패턴">
+        <p className="text-[14px] font-bold text-ink-700">나만의 PMS 패턴</p>
+        {onset.length ? (
+          <>
+            <ul className="mt-1.5 space-y-1">
+              {onset.map((l) => (
+                <li key={l} className="break-keep text-[13.5px] leading-relaxed text-ink-700">
+                  {l}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-ink-300">실제로 기록한 생리 시작일을 기준으로, 기록한 날만 세었어요. 기록하지 않은 날은 ‘증상 없음’으로 치지 않아요. 다음 주기에 같은 시점에 증상이 온다는 뜻은 아니고, 감정 변화가 PMS 때문이라고 말할 수도 없어요.</p>
+          </>
+        ) : (
+          <p className="mt-1.5 break-keep text-[13.5px] leading-relaxed text-ink-700">{NOT_ENOUGH}</p>
+        )}
       </section>
 
       <ForecastCard f={forecast} today={today} hasProfile={!!data.pmsProfile} recapDue={recapDue} />

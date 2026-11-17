@@ -1,3 +1,4 @@
+import { answerFor } from "@/lib/pms/late";
 import { analyzeCycle, currentPhase } from "@/lib/cycle";
 import { addDays, type DateKey } from "@/lib/date";
 import type { AppData } from "@/lib/data-store";
@@ -28,6 +29,8 @@ export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): Pi
     pastSymptom: fc.symptoms[0]?.id,
     pmsBasis: fc.symptomSource ?? fc.onsetSource ?? undefined,
     needs: (data.dayTags[today]?.tags ?? []).filter((id) => TAGS[id].dimension === "need" && TAGS[id].action),
+    lateUnanswered: info.overdue > 0 && !!info.expectedStart && answerFor(data.lateChecks ?? [], info.expectedStart, today) == null,
+    pmsSoon: !fc.window.has(today) && [1, 2, 3].some((n) => fc.window.has(addDays(today, n))),
   };
   return pickSuggestion(ctx);
 }

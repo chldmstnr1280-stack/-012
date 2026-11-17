@@ -102,6 +102,11 @@ async function uploadAll(uid: string) {
   }
 }
 
+/** A newer server copy replaces the day, but sleep hours and the note never go to the server: keep this device's copy. */
+export function mergeRemoteDay(local: SymptomDay | undefined, remote: SymptomDay): SymptomDay {
+  return { ...remote, ...(local?.sleepHours != null ? { sleepHours: local.sleepHours } : {}), ...(local?.note ? { note: local.note } : {}) };
+}
+
 /** Merge server records into the device: newer symptom day wins; period days are united. */
 async function pullMerge(uid: string) {
   const sb = supabase();
@@ -118,7 +123,7 @@ async function pullMerge(uid: string) {
     if (!remote) continue;
     const local = symptoms[r.day];
     if (!local || remote.updatedAt > local.updatedAt) {
-      symptoms[r.day] = remote;
+      symptoms[r.day] = mergeRemoteDay(local, remote);
       changed = true;
     }
   }

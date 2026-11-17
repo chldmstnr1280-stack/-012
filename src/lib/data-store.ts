@@ -1,5 +1,6 @@
 "use client";
 
+import { logNewStart } from "@/lib/pms/late";
 import type { Wish } from "@/lib/wish/wishes";
 import { useSyncExternalStore } from "react";
 import type { DateKey } from "./date";
@@ -51,6 +52,10 @@ export interface SymptomDay {
   impact: Partial<Record<ImpactId, Score>>;
   /** the user said "no symptoms today" */
   none?: true;
+  /** hours slept (optional; this device and the backup file only — not sent to the server) */
+  sleepHours?: number;
+  /** a short note (optional; this device and the backup file only — not sent to the server) */
+  note?: string;
   updatedAt: number;
 }
 
@@ -130,6 +135,12 @@ export interface AppData {
   consult?: { questions: string[]; custom?: string };
   /** 셀리와 소망 빌기 (this device and the backup file only) */
   wishes?: Wish[];
+  /** PMS 돌봄 모드 · 생리 지연 돌봄: what was chosen and whether it helped (device + backup file) */
+  careLog?: import("@/lib/pms/careMode").CareEntry[];
+  /** answers to "생리가 시작됐나요?" after an expected start passed (device + backup file) */
+  lateChecks?: import("@/lib/pms/late").LateCheck[];
+  /** each logged period start vs. what was expected — to see how good the estimates are (device + backup file) */
+  predictionLog?: import("@/lib/pms/late").PredictionEntry[];
   /** 오늘, 몸의 날씨 check-ins (this device and the backup file; their tags also join dayTags) */
   checkins?: import("@/lib/checkin/checkin").CheckIn[];
 }
@@ -236,7 +247,10 @@ export function setPeriodDays(days: DateKey[], on: boolean) {
   setData((d) => {
     const set = new Set(d.periodDays);
     days.forEach((k) => (on ? set.add(k) : set.delete(k)));
-    return { ...d, periodDays: [...set].sort() };
+    const periodDays = [...set].sort();
+    // a new period start after the last one: note how far it was from the estimate
+    const log = on ? logNewStart(d.periodDays, periodDays, d.predictionLog ?? []) : d.predictionLog;
+    return { ...d, periodDays, ...(log ? { predictionLog: log } : {}) };
   });
   healthListeners.forEach((l) => l({ kind: "period", days, on }));
 }

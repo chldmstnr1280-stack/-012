@@ -1,3 +1,4 @@
+import { noteCareDone } from "@/lib/pms/careMode";
 import { BODY, FEELINGS, SITUATIONS, BODY_WEATHERS, type BodyWeather } from "@/data/checkin";
 import { CONTEXT_TAG_IDS, TAGS, type ContextTagId } from "@/data/contextTags";
 import { getData, setData, setDayTags } from "@/lib/data-store";
@@ -120,6 +121,7 @@ export function saveCheckIn(c: Omit<CheckIn, "id" | "date" | "added" | "updatedA
   const rec: CheckIn = { ...c, id: uid(c.at), date, added, updatedAt: c.at };
   setData((d) => ({ ...d, checkins: [...(d.checkins ?? []), rec].slice(-400) }));
   if (added.length) setDayTags(date, [...before, ...added]);
+  noteCareDone("record", c.at);
   return rec;
 }
 
@@ -147,6 +149,8 @@ export function deleteCheckIn(id: string) {
 
 /** An activity finished somewhere in the app: mark today's check-in that offered it. */
 export function noteActivityDone(a: ActivityId, now = Date.now()) {
+  // the same walk or breath may have been picked from PMS 돌봄 모드
+  if (a === "walk" || a === "breathe") noteCareDone(a, now);
   const today = toKey(new Date(now));
   const c = [...(getData().checkins ?? [])].reverse().find((x) => x.date === today && x.chosen === a && !x.done);
   if (c) updateCheckIn(c.id, { done: true });

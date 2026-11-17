@@ -1,5 +1,9 @@
 "use client";
 
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+import { LateCycleCard } from "./LateCycleCard";
+import { CareRecapCard } from "./CareRecapCard";
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SubPage } from "@/components/screens/SubPage";
@@ -7,7 +11,7 @@ import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { analyzeCycle } from "@/lib/cycle";
 import { analysePms, hasSymptomRecord } from "@/lib/pms/analysis";
 import { forecastPms } from "@/lib/pms/forecast";
-import { fromKey, useToday, type DateKey } from "@/lib/date";
+import { addDays, fromKey, useToday, type DateKey } from "@/lib/date";
 import { useAppData } from "@/lib/data-store";
 import { DemoBanner } from "@/components/report/DemoBanner";
 import { MonthCalendar, type MonthCursor } from "./MonthCalendar";
@@ -39,6 +43,8 @@ export function CalendarScreen() {
     () => (today ? forecastPms(data, info, analysePms(data.periodDays, data.symptoms, today, info.nextStart)).window : new Set<DateKey>()),
     [data, today, info],
   );
+  // PMS 돌봄 모드 is offered from 3 days before the expected window until it ends
+  const careNear = !!today && [0, 1, 2, 3].some((n) => pmsWindow.has(addDays(today, n)));
 
   const month: MonthCursor | null = cursor ?? (today ? { year: fromKey(today).getFullYear(), month: fromKey(today).getMonth() } : null);
 
@@ -80,6 +86,18 @@ export function CalendarScreen() {
                       onSelect={setSelected}
                     />
                     <CurrentCycleCard info={info} today={today} />
+                    <LateCycleCard info={info} today={today} />
+                    <CareRecapCard today={today} />
+                    <Link href={careNear ? "/pms/care?from=pms" : "/pms/care"} className="glass flex items-center gap-3 rounded-[22px] px-4 py-3.5">
+                      <span className="text-[20px]" aria-hidden>
+                        🌷
+                      </span>
+                      <span className="flex-1">
+                        <span className="block text-[14px] font-bold text-ink-700">{careNear ? "이번 주에는 나를 조금 더 세심하게 돌봐볼까요?" : "돌봄 모드"}</span>
+                        <span className="text-[11.5px] text-ink-500">{careNear ? "생리 전 기간으로 예상되는 때예요 (예측)" : "언제든 나를 돌보는 방법 하나 고르기"}</span>
+                      </span>
+                      <ChevronRight size={16} className="text-ink-300" />
+                    </Link>
                   </>
                 ) : (
                   <CycleAnalysis info={info} today={today} />

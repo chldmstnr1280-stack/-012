@@ -282,6 +282,8 @@ export function HomeScreen() {
     else if (a === "record") router.push("/record");
     else if (a === "record-pms") router.push("/record?tab=pms");
     else if (a === "kindness") startKindness();
+    else if (a === "care-mode") router.push("/pms/care?from=pms");
+    else if (a === "late-check") router.push("/calendar");
   };
 
   /** 마음 전하기 — self-compassion practice; recommends the gentle 3-step break on heavier days */

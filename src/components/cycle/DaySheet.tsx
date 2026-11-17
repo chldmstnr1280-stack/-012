@@ -8,7 +8,7 @@ import { useSelly } from "@/lib/selly-store";
 import type { CycleInfo } from "@/lib/cycle";
 import { setPeriodDays, useAppData, type DailyEntry } from "@/lib/data-store";
 import { CONTEXT_TAG_LABEL, DIMENSIONS, TAGS } from "@/data/contextTags";
-import { SYMPTOM_LABEL, type SymptomId } from "@/data/pmsSymptoms";
+import { SCORE_LABEL, SYMPTOM_LABEL, type Score, type SymptomId } from "@/data/pmsSymptoms";
 import { MoodFace, MOODS } from "@/components/ui/MoodFace";
 import { CYCLE_COLORS as C } from "./colors";
 
@@ -212,11 +212,14 @@ function PmsDayLine({ date }: { date: DateKey }) {
   const sym = data.symptoms[date];
   const tags = data.dayTags[date]?.tags ?? [];
   const strong = sym && !sym.none ? (Object.entries(sym.scores) as [SymptomId, number][]).filter(([, v]) => v >= 1).sort((a, b) => b[1] - a[1]) : [];
-  const symText = !sym ? null : sym.none ? "증상 없음" : strong.length ? strong.slice(0, 3).map(([id, v]) => `${SYMPTOM_LABEL[id]} ${v}`).join(" · ") : null;
+  // every rated symptom with its word, not just the top three
+  const symText = !sym ? null : sym.none ? "증상 없음" : strong.length ? strong.map(([id, v]) => `${SYMPTOM_LABEL[id]} ${SCORE_LABEL[v as Score]}`).join(" · ") : null;
   return (
     <Link href={`/record?date=${date}&tab=pms`} className="mt-2 flex items-center gap-2 rounded-2xl bg-white/70 px-4 py-3 text-[12.5px]">
       <span className="min-w-0 flex-1">
         <span className="block text-ink-700">{symText ? `증상: ${symText}` : "증상 기록 없음"}</span>
+        {sym?.sleepHours != null && <span className="block text-ink-500">수면: {sym.sleepHours}시간</span>}
+        {sym?.note && <span className="block truncate text-ink-500">메모: {sym.note}</span>}
         {DIMENSIONS.map((d) => {
           const these = tags.filter((t) => TAGS[t].dimension === d.id);
           return these.length ? (

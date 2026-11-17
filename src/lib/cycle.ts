@@ -31,6 +31,20 @@ export interface CycleInfo {
   fertileDays: Set<DateKey>;
   ovulationDays: Set<DateKey>;
   nextStart: DateKey | null;
+  /**
+   * The start first expected after the last logged period (last start + average
+   * cycle), before `nextStart` is moved forward when logging lapses. Kept so a
+   * passed expected date stays visible instead of silently jumping a cycle.
+   */
+  expectedStart: DateKey | null;
+  /**
+   * Days since `expectedStart` with no new period logged (0 = not passed).
+   * Only means "the estimate has passed" — never that a period is late for sure
+   * (it may simply not be logged yet).
+   */
+  overdue: number;
+  /** how many cycle lengths the estimate rests on (0 = default 28 days) */
+  basis: number;
 }
 
 /** Group sorted period days into periods; a 1-day gap still counts as the same period. */
@@ -67,6 +81,7 @@ export function analyzeCycle(periodDays: DateKey[], today: DateKey | null, horiz
   const ovulationDays = new Set<DateKey>();
   const logged = new Set(periodDays);
   let nextStart: DateKey | null = null;
+  let expectedStart: DateKey | null = null;
 
   const markWindow = (cycleStart: DateKey, length = avgCycle) => {
     const ov = addDays(cycleStart, length - LUTEAL);
@@ -80,6 +95,7 @@ export function analyzeCycle(periodDays: DateKey[], today: DateKey | null, horiz
     // past cycles: ovulation counted back from the actual next start
     periods.slice(0, -1).forEach((p, i) => markWindow(p.start, diffDays(p.start, periods[i + 1].start)));
     let start = addDays(last.start, avgCycle);
+    expectedStart = start;
     // keep predictions from landing in the past when logging lapsed
     if (today) while (diffDays(start, today) > avgPeriod) start = addDays(start, avgCycle);
     nextStart = start;
@@ -109,6 +125,9 @@ export function analyzeCycle(periodDays: DateKey[], today: DateKey | null, horiz
     fertileDays,
     ovulationDays,
     nextStart,
+    expectedStart,
+    overdue: today && expectedStart && today > expectedStart ? diffDays(expectedStart, today) : 0,
+    basis: recent.length,
   };
 }
 

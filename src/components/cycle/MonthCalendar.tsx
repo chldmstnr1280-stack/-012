@@ -141,8 +141,8 @@ export function MonthCalendar({
 
       <ul className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1.5 text-[11.5px] text-ink-500">
         <Legend swatch={<span className="h-3 w-3 rounded-full" style={{ background: C.periodFill, boxShadow: `inset 0 0 0 1.5px ${C.period}` }} />} label="생리일" />
-        <Legend swatch={<span className="h-3 w-3 rounded-full" style={{ background: C.fertileFill, boxShadow: `inset 0 0 0 1.5px ${C.fertile}` }} />} label="가임기" />
-        <Legend swatch={<span className="h-3 w-3 rounded-full" style={{ boxShadow: `inset 0 0 0 2px ${C.ovulation}` }} />} label="배란일" />
+        <Legend swatch={<span className="h-3 w-3 rounded-full" style={{ background: C.fertileFill, boxShadow: `inset 0 0 0 1.5px ${C.fertile}` }} />} label="가임기(예측)" />
+        <Legend swatch={<span className="h-3 w-3 rounded-full" style={{ boxShadow: `inset 0 0 0 2px ${C.ovulation}` }} />} label="배란 예정일(예측)" />
         <Legend swatch={<span className="h-3 w-3 rounded-full" style={{ border: `1.5px dashed ${C.period}` }} />} label="예정일" />
         <Legend swatch={<span className="h-[5px] w-[5px] rounded-full bg-sage-500" />} label="기록" />
         <Legend
