@@ -131,6 +131,9 @@ export function CareMode() {
         <Link href="/report" className="text-[12px] text-ink-500 underline underline-offset-2">
           지난 주기 돌아보기 · 내 패턴
         </Link>
+        <Link href="/calendar?tab=rhythm" className="text-[12px] text-ink-500 underline underline-offset-2">
+          이번 달 나의 리듬 · 쉬는 칸 정하기
+        </Link>
       </div>
       <p className="mt-3 px-2 text-center text-[11px] leading-relaxed text-ink-300">
         하지 못해도 괜찮아요. 고른 것과 ‘도움이 되었나요’ 답은 이 기기와 기록 파일에만 저장돼요. 도움이 되었다고 해도, 그 돌봄이 의학적으로 효과가 있다는 뜻은 아니에요.

@@ -63,6 +63,12 @@ export function ForecastCard({ f, today, hasProfile, recapDue }: { f: PmsForecas
             <ChevronRight size={16} />
           </Link>
         )}
+        {f.nextStart && !f.paused && (
+          <Link href="/calendar?tab=rhythm" className="flex items-center gap-2 rounded-2xl bg-sage-50 px-3.5 py-2.5 text-[13px] font-bold text-sage-700">
+            <span className="flex-1">이번 달 나의 리듬 · 쉬는 칸 미리 정하기</span>
+            <ChevronRight size={16} />
+          </Link>
+        )}
         <Link
           href="/pms/profile"
           className={`flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold ${hasProfile ? "bg-white/60 text-ink-500" : "bg-sage-50 text-sage-700"}`}

@@ -1,10 +1,11 @@
 "use client";
 
+import { RhythmView } from "./RhythmView";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { LateCycleCard } from "./LateCycleCard";
 import { CareRecapCard } from "./CareRecapCard";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SubPage } from "@/components/screens/SubPage";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
@@ -19,12 +20,19 @@ import { CurrentCycleCard } from "./CurrentCycleCard";
 import { CycleAnalysis } from "./CycleAnalysis";
 import { DaySheet } from "./DaySheet";
 
-type Tab = "calendar" | "analysis";
+type Tab = "calendar" | "rhythm" | "analysis";
 
 export function CalendarScreen() {
   const today = useToday();
   const data = useAppData();
   const [tab, setTab] = useState<Tab>("calendar");
+  // /calendar?tab=rhythm opens 이번 달 나의 리듬
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("tab");
+    if (q !== "rhythm" && q !== "analysis") return;
+    const t = setTimeout(() => setTab(q), 0);
+    return () => clearTimeout(t);
+  }, []);
   const [cursor, setCursor] = useState<MonthCursor | null>(null);
   const [selected, setSelected] = useState<DateKey | null>(null);
 
@@ -58,6 +66,7 @@ export function CalendarScreen() {
             onChange={setTab}
             options={[
               { value: "calendar", label: "캘린더" },
+              { value: "rhythm", label: "나의 리듬" },
               { value: "analysis", label: "주기 분석" },
             ]}
           />
@@ -99,6 +108,8 @@ export function CalendarScreen() {
                       <ChevronRight size={16} className="text-ink-300" />
                     </Link>
                   </>
+                ) : tab === "rhythm" ? (
+                  <RhythmView today={today} />
                 ) : (
                   <CycleAnalysis info={info} today={today} />
                 )}
