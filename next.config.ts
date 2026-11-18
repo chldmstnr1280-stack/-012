@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
   cacheComponents: !isToss,
   partialPrefetching: !isToss,
   turbopack: {
+    // Toss build: visit counting (web only) is swapped for an empty component
+    ...(isToss ? { resolveAlias: { "@vercel/analytics/next": "./src/components/layout/NoAnalytics.tsx" } } : {}),
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
