@@ -5,6 +5,7 @@ import "./globals.css";
 import { SellyProvider } from "@/lib/selly-store";
 import { MobileFrame } from "@/components/layout/MobileFrame";
 import { PwaInit } from "@/components/layout/PwaInit";
+import { SiteAnalytics } from "@/components/layout/SiteAnalytics";
 import { IS_TOSS } from "@/lib/platform";
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SellyProvider>
           <MobileFrame>{children}</MobileFrame>
         </SellyProvider>
+        {!IS_TOSS && <SiteAnalytics />}
       </body>
     </html>
   );
