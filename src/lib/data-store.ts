@@ -143,6 +143,8 @@ export interface AppData {
   predictionLog?: import("@/lib/pms/late").PredictionEntry[];
   /** 이번 달 나의 리듬: days the user marked important / rest (device + backup file) */
   plan?: Record<DateKey, import("@/lib/rhythm").DayPlan>;
+  /** 나에게 와닿는 자기자비 연습: choices and 0–3 ratings only (no typed text) */
+  kindLog?: import("@/lib/kindness/journey").KindSession[];
   /** 셀리의 편지 (this device and the backup file only; chosen on the device) */
   letterBox?: import("@/lib/letters/engine").LetterBox;
   /** 오늘, 몸의 날씨 check-ins (this device and the backup file; their tags also join dayTags) */

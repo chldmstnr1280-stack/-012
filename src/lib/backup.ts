@@ -1,3 +1,4 @@
+import { cleanKindLog } from "@/lib/kindness/journey";
 import { cleanPlan } from "@/lib/rhythm";
 import { LETTER_BY_ID, SCIENCE_BY_ID, type ScienceId } from "@/data/letters";
 import type { LetterRec } from "@/lib/letters/engine";
@@ -93,7 +94,7 @@ function cleanDaily(v: unknown): DailyLog | null {
 
 export type ParsedBackup = Pick<
   AppData,
-  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals" | "consult" | "wishes" | "checkins" | "careLog" | "lateChecks" | "predictionLog" | "letterBox" | "plan"
+  "entries" | "periodDays" | "progress" | "daily" | "symptoms" | "cycleContext" | "dayTags" | "pmsProfile" | "cycleRecaps" | "water" | "supplements" | "suppLog" | "meals" | "consult" | "wishes" | "checkins" | "careLog" | "lateChecks" | "predictionLog" | "letterBox" | "plan" | "kindLog"
 >;
 
 /** Validates an untrusted meal day: known slots and food ids only. */
@@ -240,6 +241,7 @@ export function parseBackup(
     !(Array.isArray(raw.checkins) && raw.checkins.length) &&
     !(Array.isArray(raw.careLog) && raw.careLog.length) &&
     !(isObj(raw.plan) && Object.keys(raw.plan).length) &&
+    !(Array.isArray(raw.kindLog) && raw.kindLog.length) &&
     !(isObj(raw.letterBox) && Array.isArray(raw.letterBox.items) && raw.letterBox.items.length) &&
     progress.level === 1 &&
     progress.exp === 0
@@ -327,7 +329,7 @@ export function parseBackup(
   }
   return {
     ok: true,
-    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals, consult, ...(wishes.length ? { wishes } : {}), ...(checkins.length ? { checkins } : {}), ...(careLog.length ? { careLog } : {}), ...(lateChecks.length ? { lateChecks } : {}), ...(predictionLog.length ? { predictionLog } : {}), ...(letterItems.length ? { letterBox: { items: letterItems } } : {}), ...(Object.keys(cleanPlan(raw.plan)).length ? { plan: cleanPlan(raw.plan) } : {}) },
+    data: { entries, periodDays, progress, daily, symptoms, cycleContext, dayTags, pmsProfile, cycleRecaps, water, supplements, suppLog, meals, consult, ...(wishes.length ? { wishes } : {}), ...(checkins.length ? { checkins } : {}), ...(careLog.length ? { careLog } : {}), ...(lateChecks.length ? { lateChecks } : {}), ...(predictionLog.length ? { predictionLog } : {}), ...(letterItems.length ? { letterBox: { items: letterItems } } : {}), ...(Object.keys(cleanPlan(raw.plan)).length ? { plan: cleanPlan(raw.plan) } : {}), ...(cleanKindLog(raw.kindLog).length ? { kindLog: cleanKindLog(raw.kindLog) } : {}) },
   };
 }
 
@@ -391,6 +393,7 @@ export function mergeBackup(cur: AppData, inc: ParsedBackup): AppData {
     checkins: inc.checkins ? mergeCheckIns(cur.checkins ?? [], inc.checkins) : cur.checkins,
     plan: inc.plan ? Object.fromEntries([...new Set([...Object.keys(cur.plan ?? {}), ...Object.keys(inc.plan)])].map((k) => { const a = cur.plan?.[k]; const b = inc.plan![k]; return [k, !a || (b && b.updatedAt > a.updatedAt) ? b : a]; })) : cur.plan,
     letterBox: inc.letterBox ? { ...(cur.letterBox ?? {}), items: mergeById(cur.letterBox?.items ?? [], inc.letterBox.items, 200, (l) => l.at) } : cur.letterBox,
+    kindLog: inc.kindLog ? mergeById(cur.kindLog ?? [], inc.kindLog, 200, (k) => k.at) : cur.kindLog,
     careLog: inc.careLog ? mergeById(cur.careLog ?? [], inc.careLog, 500, (c) => c.at) : cur.careLog,
     lateChecks: inc.lateChecks ? [...(cur.lateChecks ?? []), ...inc.lateChecks.filter((c) => !(cur.lateChecks ?? []).some((x) => x.at === c.at))].sort((a, b) => a.at - b.at).slice(-60) : cur.lateChecks,
     predictionLog: inc.predictionLog ? [...new Map([...(inc.predictionLog ?? []), ...(cur.predictionLog ?? [])].map((e) => [e.start, e])).values()].sort((a, b) => (a.start < b.start ? -1 : 1)).slice(-36) : cur.predictionLog,

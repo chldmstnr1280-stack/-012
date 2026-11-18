@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { Mic, MicOff, X } from "lucide-react";
 import {
@@ -143,6 +144,22 @@ function Practice({ recommend, onReact, onDone, onClose }: { recommend?: Practic
             </span>
           </button>
         ))}
+        {/* the deeper, felt practice (its own page) */}
+        <Link
+          href="/kind"
+          onClick={onClose}
+          className="flex items-center gap-3 rounded-2xl bg-[#fdf1f3] px-4 py-3 text-left shadow-[0_4px_14px_-10px_rgba(110,88,60,0.5)] active:scale-[0.98]"
+        >
+          <span className="text-[24px]" aria-hidden>
+            🤲
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-[15px] font-bold text-ink-700">
+              나에게 와닿는 연습 <span className="rounded-full bg-white px-2 py-0.5 text-[10.5px] text-[#b9727b]">3분 · 새로</span>
+            </span>
+            <span className="block break-keep text-[12px] text-ink-500">비판의 목소리 알아보기 → 친구에게 하듯 → 몸으로 → 믿어지는 말</span>
+          </span>
+        </Link>
       </div>
     );
   } else if (step.k === "w-pick") {
