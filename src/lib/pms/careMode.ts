@@ -25,7 +25,7 @@ export interface CareEntry {
 export const CARE_ITEMS: { kind: CareKind; label: string; emoji: string; hint: string; href: string; doneOnTap: boolean }[] = [
   { kind: "sleep", label: "충분한 수면과 휴식", emoji: "🌙", hint: "셀리와 쿠션에서 잠깐 쉬기", href: "/?do=rest", doneOnTap: true },
   { kind: "meal", label: "규칙적인 식사", emoji: "🍚", hint: "먹은 것 가볍게 남기기", href: "/record?tab=care", doneOnTap: true },
-  { kind: "walk", label: "가벼운 산책", emoji: "🌿", hint: "셀리와 5분 걷기", href: "/walk", doneOnTap: false },
+  { kind: "walk", label: "가벼운 산책", emoji: "🌿", hint: "셀리와 1,000걸음 · 햇빛 조각 모으기", href: "/walk", doneOnTap: false },
   { kind: "record", label: "감정 기록", emoji: "🌦️", hint: "몸의 날씨, 30초", href: "/checkin", doneOnTap: false },
   { kind: "breathe", label: "호흡과 이완", emoji: "🫁", hint: "1분 길게 내쉬기", href: "/?do=breathe", doneOnTap: false },
   { kind: "alone", label: "혼자만의 시간 갖기", emoji: "🕯️", hint: "조용한 온실", href: "/?do=quiet", doneOnTap: true },

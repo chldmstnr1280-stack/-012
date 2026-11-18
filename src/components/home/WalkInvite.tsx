@@ -2,11 +2,11 @@
 
 import { AnimatePresence, motion } from "motion/react";
 
-const OPTIONS: { label: string; value: string }[] = [
-  { label: "5분", value: "5" },
-  { label: "10분", value: "10" },
-  { label: "15분", value: "15" },
-  { label: "자유 산책", value: "free" },
+const OPTIONS: { label: string; hint: string; value: string }[] = [
+  { label: "1,000걸음", hint: "약 10분", value: "1000" },
+  { label: "2,000걸음", hint: "약 20분", value: "2000" },
+  { label: "3,000걸음", hint: "약 30분", value: "3000" },
+  { label: "자유 산책", hint: "원하는 만큼", value: "free" },
 ];
 
 /** "셀리와 산책할까?" — opened from the greenhouse door or Selly's menu. */
@@ -26,16 +26,17 @@ export function WalkInvite({ open, onPick, onClose }: { open: boolean; onPick: (
             className="relative mx-3 mb-[calc(env(safe-area-inset-bottom)+12px)] w-full rounded-[28px] bg-cream-50 p-5 shadow-[0_-12px_40px_-16px_rgba(80,60,40,0.5)]"
           >
             <p className="text-center text-[18px] font-bold text-ink-700">셀리와 산책할까?</p>
-            <p className="mt-1 text-center text-[12.5px] text-ink-500">짧아도 좋아. 같이 바람 쐬러 가자 🌿</p>
+            <p className="mt-1 text-center text-[12.5px] text-ink-500">100걸음마다 햇빛 조각 하나 ☀️ 같이 모으러 가자</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               {OPTIONS.map((o) => (
                 <button
                   key={o.value}
                   type="button"
                   onClick={() => onPick(o.value)}
-                  className="h-12 rounded-2xl bg-white text-[15px] font-bold text-sage-700 shadow-[0_4px_12px_-8px_rgba(110,88,60,0.45)] active:scale-95"
+                  className="flex h-14 flex-col items-center justify-center rounded-2xl bg-white text-[15px] font-bold text-sage-700 shadow-[0_4px_12px_-8px_rgba(110,88,60,0.45)] active:scale-95"
                 >
                   {o.label}
+                  <span className="text-[11px] font-normal text-ink-500">{o.hint}</span>
                 </button>
               ))}
             </div>

@@ -14,6 +14,7 @@ import { stickers, weeklyGoals, type Sticker } from "@/lib/game/collection";
 import { readGame, updateGame } from "@/lib/game/gameStore";
 import { useSelly } from "@/lib/selly-store";
 import { playSfx } from "@/lib/sound/sfx";
+import { JAR_SIZE, stopOf, sunOf } from "@/lib/walk/sunlight";
 import { deletePhoto, listPhotos, type WalkPhoto } from "@/lib/walk/photos";
 
 const noop = () => () => {};
@@ -42,6 +43,7 @@ export function CollectionScreen() {
   const g = readGame();
   const week = weeklyGoals(data, g, today);
   const book = stickers(g);
+  const sun = sunOf(g);
 
   const claim = () => {
     updateGame((d) => ({ weeklyClaimed: [...(d.weeklyClaimed ?? []), week.week] }));
@@ -117,6 +119,15 @@ export function CollectionScreen() {
             {book.groups.map((gr) => (
               <div key={gr.id}>
                 <p className="mb-1.5 text-[12.5px] font-bold text-ink-500">{gr.title}</p>
+                {gr.id === "sun" && (
+                  <Link href="/walk" className="mb-2 flex items-center gap-2 rounded-2xl bg-[#fff8e3] px-3 py-2 text-[12.5px] text-[#7a5a14]">
+                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-white">
+                      <span className="block h-full rounded-full bg-gradient-to-r from-[#ffcf6b] to-[#ffb547]" style={{ width: `${(sun.inJar / JAR_SIZE) * 100}%` }} />
+                    </span>
+                    <span className="shrink-0 font-bold tabular-nums">☀️ {sun.inJar}/{JAR_SIZE}</span>
+                    <span className="shrink-0">· 다음 {stopOf(sun.jars + 1).emoji}</span>
+                  </Link>
+                )}
                 <ul className="grid grid-cols-4 gap-2">
                   {gr.items.map((s) => (
                     <li key={s.id}>

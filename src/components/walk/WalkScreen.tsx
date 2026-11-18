@@ -20,13 +20,23 @@ import { pick } from "@/data/sellyDialogues";
 import { missionOfTheDay, type WalkMission } from "@/data/walkMissions";
 import { savePhoto, takePhoto } from "@/lib/walk/photos";
 import { noteActivityDone } from "@/lib/checkin/checkin";
+import { DAILY_CAP, JAR_SIZE, addSun, capped, goalMinutes, piecesFor, stopOf, sunOf, type SunState, type SunStop } from "@/lib/walk/sunlight";
 
-const DURATIONS: { label: string; min: number | null }[] = [
-  { label: "5분", min: 5 },
-  { label: "10분", min: 10 },
-  { label: "15분", min: 15 },
-  { label: "자유 산책", min: null },
+/** goals in steps — a few minutes felt too short to be a real walk */
+const GOALS: { label: string; hint: string; steps: number | null }[] = [
+  { label: "1,000걸음", hint: "약 10분", steps: 1000 },
+  { label: "2,000걸음", hint: "약 20분", steps: 2000 },
+  { label: "3,000걸음", hint: "약 30분", steps: 3000 },
+  { label: "자유 산책", hint: "원하는 만큼", steps: null },
 ];
+/** /walk?m=… — steps, or the old minute links */
+const goalFromQuery = (q: string | null): number | null | undefined => {
+  if (q === "free") return null;
+  const n = Number(q);
+  if ([1000, 2000, 3000].includes(n)) return n;
+  if ([5, 10, 15].includes(n)) return n * 200;
+  return undefined;
+};
 
 const fmt = (ms: number) => {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -53,11 +63,14 @@ export function WalkScreen() {
   const wake = useWakeLock();
   const releaseWake = wake.release;
   const [time, setTime] = useState<WalkTime>("day");
-  const [minutes, setMinutes] = useState<number | null | undefined>(undefined); // undefined = not chosen yet
+  const [goal, setGoal] = useState<number | null | undefined>(undefined); // steps; null = free; undefined = not chosen yet
+  const [sunStart, setSunStart] = useState<SunState | null>(null);
+  const [flying, setFlying] = useState<number[]>([]);
+  const shownPieces = useRef(0);
   const [firstTime, setFirstTime] = useState(false);
   const [pocket, setPocket] = useState(false);
   const [line, setLine] = useState<{ id: number; text: string } | null>(null);
-  const [summary, setSummary] = useState<{ minutes: number; steps: number | null; finds: FindKind[]; text: string } | null>(null);
+  const [summary, setSummary] = useState<{ minutes: number; steps: number | null; finds: FindKind[]; text: string; sun: { added: number; stops: SunStop[]; after: SunState } } | null>(null);
   const lineId = useRef(0);
   // walk mission (optional): today's suggestion, can be swapped or skipped
   const [missionOffset, setMissionOffset] = useState(0);
@@ -86,9 +99,8 @@ export function WalkScreen() {
     setImmersive(true);
     const t = setTimeout(() => {
       setTime(currentTimeOfDay());
-      const q = new URLSearchParams(window.location.search).get("m");
-      if (q === "free") setMinutes(null);
-      else if (q && [5, 10, 15].includes(Number(q))) setMinutes(Number(q));
+      setGoal(goalFromQuery(new URLSearchParams(window.location.search).get("m")));
+      setSunStart(sunOf(readGame(), toKey(new Date())));
       setFirstTime(!readGame().walkIntroSeen);
       setMission(missionOfTheDay(toKey(new Date()), currentTimeOfDay() === "night"));
     }, 0);
@@ -102,7 +114,9 @@ export function WalkScreen() {
     unlock();
     await wake.acquire();
     updateGame(() => ({ walkIntroSeen: true }));
-    const access = await s.start(minutes ?? null);
+    setSunStart(sunOf(readGame(), toKey(new Date())));
+    shownPieces.current = 0;
+    const access = await s.start(goal ?? null);
     say(pick(WALK_LINES.start));
     if (access !== "granted") showToast("마음 산책으로 함께 걸을게요 🌿");
     if (mission && !missionOff) setTimeout(() => say(`${mission.emoji} 오늘의 미션!\n${mission.intro}`, 7000), 4600);
@@ -157,13 +171,39 @@ export function WalkScreen() {
   const activeMission = mission && !missionOff ? mission : null;
   useEffect(() => {
     if (s.phase !== "walking" || !activeMission || missionResult || reminded.current) return;
-    const at = s.targetMs ? s.targetMs * 0.45 : 240_000;
-    if (s.elapsed >= at) {
+    const half = s.goalSteps && s.mode === "motion" ? s.steps >= s.goalSteps * 0.45 : s.elapsed >= (s.targetMs ? s.targetMs * 0.45 : 240_000);
+    if (half) {
       reminded.current = true;
       const t = setTimeout(() => say(`${activeMission.emoji} 미션 기억나?\n${activeMission.title}!`, 5000), 0);
       return () => clearTimeout(t);
     }
-  }, [s.phase, s.elapsed, s.targetMs, activeMission, missionResult, say]);
+  }, [s.phase, s.elapsed, s.targetMs, s.goalSteps, s.mode, s.steps, activeMission, missionResult, say]);
+
+  // 햇빛 조각: every 100 steps (or minute of a 마음 산책) a piece flies into the jar
+  const pieces = sunStart ? capped(piecesFor(s.mode, s.steps, s.elapsed), sunStart) : 0;
+  const jarNow = sunStart ? sunStart.inJar + pieces : 0;
+  const capReached = !!sunStart && pieces > 0 && pieces >= capped(Number.MAX_SAFE_INTEGER, sunStart);
+  useEffect(() => {
+    if (s.phase !== "walking" || !sunStart || pieces <= shownPieces.current) return;
+    const from = shownPieces.current;
+    shownPieces.current = pieces;
+    const t = setTimeout(() => {
+      setFlying((f) => [...f, pieces].slice(-4));
+      playSfx("sun");
+      // the jar just filled → a journey stop
+      const before = Math.floor((sunStart.inJar + from) / JAR_SIZE);
+      const after = Math.floor((sunStart.inJar + pieces) / JAR_SIZE);
+      if (after > before) {
+        const stop = stopOf(sunStart.jars + after);
+        setTimeout(() => {
+          playSfx("cheer");
+          if ("vibrate" in navigator) navigator.vibrate([40, 60, 40]);
+          say(`${stop.emoji} ${stop.line}`, 6000);
+        }, 700);
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [pieces, s.phase, sunStart, say]);
 
   // prompts from the session → Selly's bubble
   useEffect(() => {
@@ -189,17 +229,19 @@ export function WalkScreen() {
       const steps = s.mode === "motion" && s.steps > 0 ? s.steps : null;
       const today = toKey(new Date());
       if (steps) addSteps(today, steps);
+      const sun = addSun(piecesFor(s.mode, s.steps, s.elapsed), today);
+      if (sun.stops.length) addExp(20);
       const g = readGame();
       const growth = g.lastWalkGrowth !== today && s.elapsed >= 60_000;
       updateGame((d) => ({
         finds: [...d.finds, ...finds].slice(-60),
-        pendingReturn: { finds, minutes: mins },
+        pendingReturn: { finds, minutes: mins, ...(sun.added ? { sun: { added: sun.added, stops: sun.stops.map((x) => x.n) } } : {}) },
         lastWalkGrowth: growth ? today : d.lastWalkGrowth,
         walks: [...(d.walks ?? []), { date: today, minutes: mins }].slice(-200),
       }));
       if (growth) addExp(15);
       noteActivityDone("walk");
-      const t = setTimeout(() => setSummary({ minutes: mins, steps, finds, text: pick(WALK_LINES.summary) }), 0);
+      const t = setTimeout(() => setSummary({ minutes: mins, steps, finds, text: pick(WALK_LINES.summary), sun }), 0);
       return () => clearTimeout(t);
     }
   }, [s.phase, s.elapsed, s.mode, s.steps, summary, say, addExp, releaseWake]);
@@ -256,16 +298,44 @@ export function WalkScreen() {
             <X size={20} />
           </button>
           <div className="glass flex flex-col items-center rounded-[20px] px-4 py-1.5">
-            <span className="text-[20px] font-bold tabular-nums text-ink-700">{remaining != null ? fmt(remaining) : fmt(s.elapsed)}</span>
-            <span className="text-[11px] text-ink-500">
-              {s.mode === "motion" ? `움직임 감지 중 · 약 ${s.steps.toLocaleString("ko-KR")}걸음` : "마음 산책 중"}
-            </span>
+            {s.mode === "motion" ? (
+              <span className="text-[20px] font-bold tabular-nums text-ink-700">
+                {s.steps.toLocaleString("ko-KR")}
+                <span className="text-[12px] font-normal text-ink-500">{s.goalSteps ? ` / ${s.goalSteps.toLocaleString("ko-KR")}걸음` : "걸음"}</span>
+              </span>
+            ) : (
+              <span className="text-[20px] font-bold tabular-nums text-ink-700">{remaining != null ? fmt(remaining) : fmt(s.elapsed)}</span>
+            )}
+            <span className="text-[11px] text-ink-500">{s.mode === "motion" ? `약 ${fmt(s.elapsed)} · 걸음은 어림값` : "마음 산책 · 1분마다 햇빛 조각"}</span>
           </div>
           <button type="button" aria-label="주머니 모드" onClick={() => setPocket(true)} className="glass grid h-11 w-11 place-items-center rounded-full text-ink-500 active:scale-90">
             <Moon size={19} />
           </button>
         </div>
       )}
+
+      {/* 햇빛 조각 병 */}
+      {s.phase === "walking" && !pocket && sunStart && (
+        <div className="absolute inset-x-0 top-[calc(env(safe-area-inset-top)+76px)] z-50 flex justify-center">
+          <SunJar fill={jarNow % JAR_SIZE} full={jarNow > 0 && jarNow % JAR_SIZE === 0} cap={capReached} />
+        </div>
+      )}
+      <div className="pointer-events-none absolute inset-0 z-[51]" aria-hidden>
+        <AnimatePresence>
+          {flying.map((k) => (
+            <motion.span
+              key={k}
+              className="absolute text-[22px] drop-shadow-[0_0_8px_rgba(255,214,102,0.9)]"
+              initial={{ left: "40%", top: "62%", opacity: 0, scale: 0.4 }}
+              animate={{ left: "50%", top: "11%", opacity: [0, 1, 1, 0], scale: [0.4, 1.2, 1, 0.5] }}
+              transition={{ duration: 1.3, ease: "easeInOut" }}
+              onAnimationComplete={() => setFlying((f) => f.filter((x) => x !== k))}
+            >
+              ☀️
+            </motion.span>
+          ))}
+        </AnimatePresence>
+      </div>
 
       {/* mission chip + sheet */}
       {s.phase === "walking" && !pocket && activeMission && (
@@ -350,23 +420,34 @@ export function WalkScreen() {
             {firstTime && (
               <p className="mt-3 rounded-2xl bg-[#eef5e9] px-4 py-3 text-center text-[14px] font-bold text-sage-700">걸을 때는 셀리보다 주변을 봐주세요 🌿</p>
             )}
-            <div className="mt-3 grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="산책 시간">
-              {DURATIONS.map((d) => {
-                const on = minutes === d.min;
+            <div className="mt-3 grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="오늘 걸을 만큼">
+              {GOALS.map((d) => {
+                const on = goal === d.steps;
                 return (
                   <button
                     key={d.label}
                     type="button"
                     role="radio"
                     aria-checked={on}
-                    onClick={() => setMinutes(d.min)}
-                    className={`h-11 rounded-2xl text-[13px] font-bold transition ${on ? "bg-sage-500 text-white" : "bg-white text-ink-500"}`}
+                    onClick={() => setGoal(d.steps)}
+                    className={`flex h-14 flex-col items-center justify-center rounded-2xl text-[13px] font-bold transition ${on ? "bg-sage-500 text-white" : "bg-white text-ink-500"}`}
                   >
                     {d.label}
+                    <span className={`text-[10.5px] font-normal ${on ? "text-white/85" : "text-ink-300"}`}>{d.hint}</span>
                   </button>
                 );
               })}
             </div>
+            {sunStart && (
+              <div className="mt-3 flex items-center gap-3 rounded-2xl bg-[#fff8e3] px-4 py-2.5">
+                <SunJar fill={sunStart.inJar} small />
+                <p className="min-w-0 flex-1 break-keep text-[12.5px] leading-snug text-[#7a5a14]">
+                  <b>햇빛 조각 모으러 가자 ☀️</b>
+                  <br />
+                  100걸음마다 1조각 · {JAR_SIZE - sunStart.inJar}조각 더 모으면 <b>{stopOf(sunStart.jars + 1).emoji} {stopOf(sunStart.jars + 1).name}</b>
+                </p>
+              </div>
+            )}
             {mission && (
               <div className={`mt-3 rounded-2xl px-4 py-3 ${missionOff ? "bg-white/50" : "bg-[#fff7ea]"}`}>
                 <div className="flex items-center gap-2">
@@ -389,7 +470,7 @@ export function WalkScreen() {
               </div>
             )}
             <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
-              휴대폰 움직임으로 걸음을 대략 어림해요(정확한 만보기는 아니에요). 허용하지 않아도 <b className="text-ink-700">마음 산책</b>으로 함께 걸어요.
+              휴대폰 움직임으로 걸음을 대략 어림해요(정확한 만보기는 아니에요). 허용하지 않아도 <b className="text-ink-700">마음 산책</b>으로 함께 걸어요 — 그때는 1분마다 햇빛 조각 하나{goal ? `, 약 ${goalMinutes(goal)}분` : ""}.
               {!wake.supported && " 이 기기에서는 화면이 꺼질 수 있지만, 산책 시간은 계속 흘러요."}
             </p>
             <div className="mt-4 flex gap-2">
@@ -398,7 +479,7 @@ export function WalkScreen() {
               </button>
               <button
                 type="button"
-                disabled={minutes === undefined}
+                disabled={goal === undefined}
                 onClick={begin}
                 className="h-12 flex-1 rounded-full bg-gradient-to-b from-[#9cc095] to-[#7ea47a] text-[15px] font-bold text-white shadow-[0_10px_24px_-10px_rgba(90,130,85,0.8)] disabled:opacity-50"
               >
@@ -431,6 +512,30 @@ export function WalkScreen() {
                 <p className="text-[18px] font-bold tabular-nums text-ink-700">{summary.steps ? `약 ${summary.steps.toLocaleString("ko-KR")}걸음` : "마음 산책"}</p>
               </div>
             </div>
+            {summary.sun.added > 0 || summary.sun.stops.length > 0 ? (
+              <div className="mt-3 rounded-2xl bg-[#fff8e3] px-4 py-3 text-left">
+                <div className="flex items-center gap-3">
+                  <SunJar fill={summary.sun.after.inJar} full={summary.sun.stops.length > 0 && summary.sun.after.inJar === 0} small />
+                  <p className="min-w-0 flex-1 text-[13px] text-[#7a5a14]">
+                    <b className="text-[15px]">햇빛 조각 +{summary.sun.added}</b>
+                    <br />
+                    햇빛 병 {summary.sun.after.inJar}/{JAR_SIZE} · 다음은 {stopOf(summary.sun.after.jars + 1).emoji} {stopOf(summary.sun.after.jars + 1).name}
+                  </p>
+                </div>
+                {summary.sun.stops.map((st) => (
+                  <div key={st.n} className="mt-2 rounded-xl bg-white/80 px-3 py-2 text-[12.5px] text-ink-700">
+                    <b>
+                      {st.emoji} {st.name} 도착!
+                    </b>{" "}
+                    햇빛 병이 꽉 찼어요 · 햇살 스티커 · 성장 +20
+                    <br />
+                    <span className="text-ink-500">온실에 돌아가면 햇살이 쏟아져요 ☀️</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-[12px] text-ink-500">{sunOf(readGame(), toKey(new Date())).today.n >= DAILY_CAP ? "오늘 햇빛은 충분히 모았어요. 내일 또 모으러 가자 ☀️" : "100걸음마다 햇빛 조각 하나 · 다음 산책에서 모아 보자 ☀️"}</p>
+            )}
             <p className="mt-4 text-[12.5px] text-ink-500">오늘 발견한 것</p>
             <ul className="mt-2 flex flex-wrap justify-center gap-1.5">
               {summary.finds.map((f, i) => (
@@ -489,6 +594,48 @@ function PocketMode({ remaining, elapsed, prompt, onExit }: { remaining: number 
       {prompt && <p className="mb-6 px-10 text-center text-[13px] text-[#6f6a5e]">{prompt.replace("\n", " ")}</p>}
       <p className="text-[13px] tabular-nums text-[#5b574d]">{remaining != null ? `남은 시간 ${fmt(remaining)}` : `함께 걸은 시간 ${fmt(elapsed)}`}</p>
       <p className="mt-1 text-[11px] text-[#3e3b34]">두 번 탭하면 돌아가요</p>
+    </motion.div>
+  );
+}
+
+/** Selly's sunlight jar: a little glass jar that fills with light, piece by piece. */
+function SunJar({ fill, full, small, cap }: { fill: number; full?: boolean; small?: boolean; cap?: boolean }) {
+  const ratio = full ? 1 : fill / JAR_SIZE;
+  const shown = full ? JAR_SIZE : fill;
+  const jar = (
+    <svg viewBox="0 0 40 52" className={small ? "h-12 w-9 shrink-0" : "h-9 w-7 shrink-0"} aria-hidden>
+      <defs>
+        <clipPath id={`jar-${small ? "s" : "b"}`}>
+          <path d="M8 14 Q4 18 4 26 V44 Q4 50 10 50 H30 Q36 50 36 44 V26 Q36 18 32 14 Z" />
+        </clipPath>
+        <linearGradient id="sunfill" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stopColor="#ffb547" />
+          <stop offset="1" stopColor="#ffe48a" />
+        </linearGradient>
+      </defs>
+      <g clipPath={`url(#jar-${small ? "s" : "b"})`}>
+        <rect x="0" y="0" width="40" height="52" fill="#fffaf0" />
+        <motion.rect x="0" width="40" height="52" fill="url(#sunfill)" initial={false} animate={{ y: 50 - 36 * ratio }} transition={{ type: "spring", stiffness: 120, damping: 18 }} />
+      </g>
+      <path d="M8 14 Q4 18 4 26 V44 Q4 50 10 50 H30 Q36 50 36 44 V26 Q36 18 32 14 Z" fill="none" stroke="#d9b56a" strokeWidth="2" />
+      <rect x="9" y="6" width="22" height="8" rx="3" fill="#c99a5b" />
+      <path d="M10 22 Q9 30 10 40" stroke="#fff" strokeOpacity="0.7" strokeWidth="2" fill="none" strokeLinecap="round" />
+    </svg>
+  );
+  if (small) return jar;
+  return (
+    <motion.div
+      className="glass flex items-center gap-2 rounded-full py-1 pl-2 pr-3.5"
+      animate={full ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+      transition={{ duration: 0.6 }}
+      role="status"
+      aria-label={`햇빛 병 ${shown}/${JAR_SIZE}조각`}
+    >
+      {jar}
+      <span className="text-[13px] font-bold tabular-nums text-[#8a6224]">
+        ☀️ {shown}/{JAR_SIZE}
+      </span>
+      {cap && <span className="text-[10.5px] text-ink-500">오늘 햇빛은 충분해</span>}
     </motion.div>
   );
 }

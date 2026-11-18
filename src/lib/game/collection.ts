@@ -1,4 +1,5 @@
 import { WALK_MISSIONS } from "@/data/walkMissions";
+import { JAR_SIZE, JOURNEY, stopOf } from "@/lib/walk/sunlight";
 import { FIND_KINDS, FIND_LABEL, type FindKind, type GameData } from "./gameStore";
 import type { AppData } from "@/lib/data-store";
 import { addDays, fromKey, type DateKey } from "@/lib/date";
@@ -104,7 +105,18 @@ export function stickers(g: GameData) {
     tint: "#fff3d2",
   }));
 
+  const jars = Math.floor((g.sun?.total ?? 0) / JAR_SIZE);
+  const sun: Sticker[] = [...JOURNEY, ...(jars > JOURNEY.length ? Array.from({ length: jars - JOURNEY.length }, (_, i) => stopOf(JOURNEY.length + i + 1)) : [])].map((st) => ({
+    id: `sun-${st.n}`,
+    emoji: st.emoji,
+    name: st.name,
+    hint: `햇빛 병을 ${st.n}번 채우면 도착해요`,
+    earned: jars >= st.n,
+    tint: "#fff3d2",
+  }));
+
   const groups = [
+    { id: "sun", title: "햇살 여정", items: sun },
     { id: "mission", title: "산책 미션", items: mission },
     { id: "kind", title: "다정한 말", items: kindness },
     { id: "walk", title: "함께 걸은 길", items: walks },

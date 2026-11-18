@@ -1,5 +1,6 @@
 "use client";
 
+import { stopOf } from "@/lib/walk/sunlight";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useTransform } from "motion/react";
 import { ChevronLeft } from "lucide-react";
@@ -102,6 +103,8 @@ export function HomeScreen() {
   /** small lights from today's 몸의 날씨 check-ins */
   const [lights, setLights] = useState(0);
   const [petals, setPetals] = useState(false);
+  /** 햇빛 병이 꽉 차서 돌아온 날: sunlight pours through the glass */
+  const [sunburst, setSunburst] = useState<string | null>(null);
   const [deco, setDeco] = useState<Record<string, string>>({});
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<PickedSuggestion | null>(null);
@@ -462,9 +465,14 @@ export function HomeScreen() {
       if (back) {
         // back from a walk: petals drift in, Selly comes through the door and rests
         setPetals(true);
-        brainRef.current.returnFromWalk(WALK_LINES.home);
+        const stop = back.sun?.stops.length ? stopOf(back.sun.stops[back.sun.stops.length - 1]) : null;
+        brainRef.current.returnFromWalk(stop ? `${stop.emoji} 햇빛 병 가득 채워 왔어!\n온실에 햇살이 쏟아진다~` : back.sun?.added ? `햇빛 조각 ${back.sun.added}개 모아 왔어 ☀️\n${WALK_LINES.home}` : WALK_LINES.home);
         react("cheer");
         setTimeout(() => setPetals(false), 6500);
+        if (stop) {
+          setSunburst(stop.name);
+          setTimeout(() => setSunburst(null), 9000);
+        }
       } else if (action === "breathe") startBreathing();
       else if (action === "kind") startKindnessRef.current();
       else if (action === "quiet") startQuietRef.current();
@@ -573,6 +581,40 @@ export function HomeScreen() {
             activeSlot={activeSlot}
             onSlot={(id) => setActiveSlot((a) => (a === id ? null : id))}
           />
+        )}
+
+        {/* 햇빛 병이 꽉 찬 날: warm light pours in through the glass */}
+        <AnimatePresence>
+          {sunburst && (
+            <motion.div key="sunburst" className="pointer-events-none absolute inset-0 z-[5] overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 2.5 } }} transition={{ duration: 1.6 }} aria-hidden>
+              <div className="absolute inset-0 bg-[radial-gradient(120%_70%_at_70%_0%,rgba(255,214,120,0.55),rgba(255,200,110,0.18)_45%,transparent_75%)] mix-blend-screen" />
+              {[0, 1, 2, 3, 4].map((i) => (
+                <motion.div
+                  key={i}
+                  className="absolute -top-[10%] h-[120%] w-[14%] origin-top bg-gradient-to-b from-[rgba(255,236,170,0.75)] to-transparent blur-[6px]"
+                  style={{ left: `${18 + i * 16}%`, rotate: 18 }}
+                  animate={{ opacity: [0.15, 0.6, 0.25, 0.5] }}
+                  transition={{ duration: 3 + i * 0.4, repeat: Infinity, repeatType: "mirror" }}
+                />
+              ))}
+              {Array.from({ length: 14 }, (_, i) => (
+                <motion.span
+                  key={`s${i}`}
+                  className="absolute text-[14px]"
+                  style={{ left: `${(i * 37) % 92 + 4}%`, top: `${(i * 23) % 60 + 8}%` }}
+                  animate={{ opacity: [0, 1, 0], y: [0, 18, 36], scale: [0.6, 1, 0.6] }}
+                  transition={{ duration: 3.2, delay: (i % 7) * 0.45, repeat: Infinity }}
+                >
+                  ✨
+                </motion.span>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {sunburst && (
+          <motion.p key="sunburst-label" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+150px)] z-[30] text-center" role="status">
+            <span className="glass inline-block rounded-full px-4 py-2 text-[13.5px] font-bold text-[#8a6224]">☀️ {sunburst} 도착 · 햇살 스티커를 받았어요</span>
+          </motion.p>
         )}
 
         {/* header */}

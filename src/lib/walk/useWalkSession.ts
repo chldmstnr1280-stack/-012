@@ -4,18 +4,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motionValue } from "motion/react";
 import { pickPrompt, type WalkPrompt, type WalkTime } from "@/data/walkingPrompts";
 import { requestMotionAccess, startStepDetector, type StepDetector } from "./stepDetector";
+import { goalMinutes } from "./sunlight";
 
 export type WalkPhase = "intro" | "walking" | "ending" | "summary";
 /** motion = steps from the motion sensor; mind = "마음 산책" (time only) */
 export type WalkMode = "motion" | "mind";
 
 const GROUND_SPEED = 58; // px/s at an easy pace
-const FIRST_PROMPT_MS = 60_000;
+const FIRST_PROMPT_MS = 75_000; // not at the same moment as the first sunlight piece
 
 export function useWalkSession(time: WalkTime, onCue: () => void) {
   const [phase, setPhase] = useState<WalkPhase>("intro");
   const [mode, setMode] = useState<WalkMode>("mind");
-  const [targetMs, setTargetMs] = useState<number | null>(null);
+  /** goal in steps (null = 자유 산책); a 마음 산책 turns it into minutes */
+  const [goalSteps, setGoalSteps] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [moving, setMoving] = useState(false);
   const [cadence, setCadence] = useState(1.8);
@@ -24,6 +26,7 @@ export function useWalkSession(time: WalkTime, onCue: () => void) {
   const [distance] = useState(() => motionValue(0));
 
   const startedAt = useRef(0);
+  const stepsRef = useRef(0);
   const lastStep = useRef(0);
   const sampled = useRef(false);
   const detector = useRef<StepDetector | null>(null);
@@ -43,8 +46,9 @@ export function useWalkSession(time: WalkTime, onCue: () => void) {
   };
 
   /** Must run from the user's tap (motion permission on iOS). */
-  const start = useCallback(async (minutes: number | null) => {
-    setTargetMs(minutes ? minutes * 60_000 : null);
+  const start = useCallback(async (goal: number | null) => {
+    setGoalSteps(goal);
+    stepsRef.current = 0;
     const access = await requestMotionAccess();
     startedAt.current = Date.now();
     nextPrompt.current = FIRST_PROMPT_MS;
@@ -54,7 +58,8 @@ export function useWalkSession(time: WalkTime, onCue: () => void) {
       detector.current = startStepDetector(
         (cad) => {
           lastStep.current = Date.now();
-          setSteps((s) => s + 1);
+          stepsRef.current += 1;
+          setSteps(stepsRef.current);
           setCadence((c) => c * 0.7 + Math.max(1.2, Math.min(2.6, cad)) * 0.3);
         },
         () => {
@@ -107,10 +112,10 @@ export function useWalkSession(time: WalkTime, onCue: () => void) {
         setPrompt({ id: counter.current, p });
         cueRef.current();
       }
-      if (targetMs && e >= targetMs) end();
+      if (goalSteps && (mode === "motion" ? stepsRef.current >= goalSteps : e >= goalMinutes(goalSteps) * 60_000)) end();
     }, 400);
     return () => clearInterval(id);
-  }, [phase, mode, targetMs, time, end]);
+  }, [phase, mode, goalSteps, time, end]);
 
   // scenery scroll
   useEffect(() => {
@@ -134,5 +139,8 @@ export function useWalkSession(time: WalkTime, onCue: () => void) {
 
   const dismissPrompt = useCallback(() => setPrompt(null), []);
 
-  return { phase, mode, targetMs, elapsed, moving, cadence, steps, prompt, distance, start, end, dismissPrompt };
+  // a 마음 산책 with a step goal runs for the matching time
+  const targetMs = goalSteps && mode === "mind" ? goalMinutes(goalSteps) * 60_000 : null;
+
+  return { phase, mode, goalSteps, targetMs, elapsed, moving, cadence, steps, prompt, distance, start, end, dismissPrompt };
 }

@@ -44,7 +44,7 @@ export interface CheckIn {
 export const ACTIVITIES: Record<ActivityId, { lane: Lane; label: string; emoji: string; href?: string }> = {
   breathe: { lane: "LIGHT", label: "1분 호흡", emoji: "🫁", href: "/?do=breathe" },
   stretch: { lane: "LIGHT", label: "2분 몸 풀기", emoji: "🙆" },
-  walk: { lane: "LIGHT", label: "5분 산책", emoji: "🌿", href: "/walk" },
+  walk: { lane: "LIGHT", label: "가벼운 산책", emoji: "🌿", href: "/walk" },
   garden: { lane: "LIGHT", label: "정원에서 셀리와 놀기", emoji: "🌷", href: "/" },
   rest: { lane: "REST", label: "셀리랑 같이 쉬기", emoji: "☁️", href: "/?do=rest" },
   quiet: { lane: "REST", label: "조용한 온실", emoji: "🕯️", href: "/?do=quiet" },

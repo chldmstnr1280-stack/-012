@@ -27,7 +27,9 @@ export interface GameData {
   /** everything found on walks, in order (kept to the last 60) */
   finds: FindKind[];
   /** set when a walk ends; the greenhouse plays a small "welcome back" and clears it */
-  pendingReturn: { finds: FindKind[]; minutes: number } | null;
+  pendingReturn: { finds: FindKind[]; minutes: number; /** 햇빛 조각: added this walk, jars filled (journey stop numbers) */ sun?: { added: number; stops: number[] } } | null;
+  /** 햇빛 조각 모으기: all pieces ever (jar = total % size), and today's count for the daily cap */
+  sun?: { total: number; today: { date: string; n: number } };
   walkIntroSeen: boolean;
   /** local date of the last walk that granted growth (once a day, never required) */
   lastWalkGrowth: string | null;
