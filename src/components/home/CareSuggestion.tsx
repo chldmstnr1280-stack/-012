@@ -26,6 +26,7 @@ export function CareSuggestion({ rule, onAction, onDismiss }: { rule: PickedSugg
             </button>
           </div>
           <p className="mt-1.5 whitespace-pre-line break-keep text-[16px] font-bold leading-[1.45] text-ink-700">{rule.line}</p>
+          {rule.personalised && <p className="mt-1 text-[11.5px] text-sage-700">💡 지난번에 도움이 됐다고 한 걸 먼저 골랐어</p>}
           <div className="mt-3 flex flex-wrap gap-2">
             {rule.actions.map((a, i) => (
               <button

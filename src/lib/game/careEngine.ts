@@ -1,3 +1,5 @@
+import { snapshot } from "@/lib/jitai/snapshot";
+import { actionFeedback } from "@/lib/jitai/feedback";
 import { answerFor } from "@/lib/pms/late";
 import { analyzeCycle, currentPhase } from "@/lib/cycle";
 import { addDays, type DateKey } from "@/lib/date";
@@ -10,7 +12,10 @@ import type { TimeOfDay } from "./behaviorEngine";
 import { readGame, updateGame } from "./gameStore";
 
 /** Build the context from the on-device record and pick today's suggestion (or null). */
-export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): PickedSuggestion | null {
+export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay, now = new Date()): PickedSuggestion | null {
+  const game = readGame();
+  // 상태 스냅샷: the one place that gathers the record (used here, and by the rules to come)
+  const snap = snapshot(data, game, now);
   const info = analyzeCycle(data.periodDays, today);
   const pms = analysePms(data.periodDays, data.symptoms, today, info.nextStart);
   const todaySym = data.symptoms[today];
@@ -22,8 +27,8 @@ export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): Pi
     today: data.entries[today],
     period: data.periodDays.includes(today) || phase.kind === "period",
     periodSoon: soon,
-    breathedToday: !!data.daily[today]?.done.breath,
-    walkedToday: readGame().lastWalkGrowth === today,
+    breathedToday: snap.recentMissions.breath.includes(today),
+    walkedToday: game.lastWalkGrowth === today,
     symptoms: hasSymptomRecord(todaySym) ? todaySym : undefined,
     pmsWindow: fc.window.has(today),
     pastSymptom: fc.symptoms[0]?.id,
@@ -31,8 +36,10 @@ export function suggestionFor(data: AppData, today: DateKey, tod: TimeOfDay): Pi
     needs: (data.dayTags[today]?.tags ?? []).filter((id) => TAGS[id].dimension === "need" && TAGS[id].action),
     lateUnanswered: info.overdue > 0 && !!info.expectedStart && answerFor(data.lateChecks ?? [], info.expectedStart, today) == null,
     pmsSoon: !fc.window.has(today) && [1, 2, 3].some((n) => fc.window.has(addDays(today, n))),
+    snapshot: snap,
   };
-  return pickSuggestion(ctx);
+  // several rules may fit: what helped her before can come first (pinned rules stay first)
+  return pickSuggestion(ctx, actionFeedback(data));
 }
 
 /**

@@ -70,6 +70,8 @@ export interface CareContext {
   lateUnanswered?: boolean;
   /** the expected pre-period window starts within 3 days (reference only) */
   pmsSoon?: boolean;
+  /** 상태 스냅샷 (lib/jitai/snapshot.ts): everything gathered in one object; rules may read it */
+  snapshot?: import("@/lib/jitai/snapshot").StateSnapshot;
 }
 
 export interface CareRule {
@@ -220,14 +222,48 @@ export interface PickedSuggestion {
   id: string;
   line: string;
   actions: CareAction[];
+  /** true when the user's own feedback moved this rule ahead of the first match */
+  personalised?: boolean;
 }
 
-export function pickSuggestion(c: CareContext): PickedSuggestion | null {
-  const r = CARE_RULES.find((x) => x.when(c));
-  if (!r) return null;
+/**
+ * 도움이 됐던 행동 먼저 — when several rules match, the user's own feedback
+ * (돌봄 모드 ‘도움이 되었나요’, 호흡 전후 점수) can put the action that helped
+ * her before the usual order. Only her own records; nothing leaves the device.
+ */
+/** rules that always stay first when they match: heavy symptoms (safety), her own stated want, the late-period question */
+export const PINNED_FIRST = ["pms-low", "need", "late"] as const;
+/** feedback answers needed before the order changes at all */
+export const MIN_FEEDBACK = 5;
+/** an action nobody has rated yet counts as this (0 = didn't help … 1 = helped) */
+export const NEUTRAL_SCORE = 0.5;
+export interface Feedback {
+  /** per action: mean of her answers (0–1) and how many */
+  scores: Partial<Record<CareAction, { score: number; n: number }>>;
+  total: number;
+}
+
+const ruleOut = (r: CareRule, c: CareContext): PickedSuggestion => {
   if (r.id === "need") {
     const t = TAGS[c.needs![0]];
     return { id: `need-${t.id}`, line: t.selly!, actions: [t.action!] };
   }
   return { id: r.id, line: typeof r.line === "function" ? r.line(c) : r.line, actions: r.actions };
+};
+
+export function pickSuggestion(c: CareContext, fb?: Feedback): PickedSuggestion | null {
+  const matches = CARE_RULES.filter((x) => x.when(c));
+  if (!matches.length) return null;
+  const first = matches[0];
+  // too little feedback, or a pinned rule matched (pinned rules sit at the top of CARE_RULES): the usual order
+  if (!fb || fb.total < MIN_FEEDBACK || (PINNED_FIRST as readonly string[]).includes(first.id)) return ruleOut(first, c);
+  const score = (a: CareAction) => fb.scores[a]?.score ?? NEUTRAL_SCORE;
+  const ruleScore = (r: CareRule) => (r.actions.length ? Math.max(...r.actions.map(score)) : NEUTRAL_SCORE);
+  const ranked = matches.map((r, i) => ({ r, i, s: ruleScore(r) })).sort((x, y) => y.s - x.s || x.i - y.i);
+  const best = ranked[0].r;
+  const out = ruleOut(best, c);
+  // the buttons, too: what helped her first (ties keep the rule's own order)
+  out.actions = out.actions.map((a, i) => ({ a, i, s: score(a) })).sort((x, y) => y.s - x.s || x.i - y.i).map((x) => x.a);
+  if (best !== first) out.personalised = true;
+  return out;
 }
