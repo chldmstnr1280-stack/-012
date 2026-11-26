@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "build:toss": "NEXT_PUBLIC_PLATFORM=toss next build && ait build"
+    "build:toss": "NEXT_PUBLIC_PLATFORM=toss next build && ait build",
+    "test": "node tests/run.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",

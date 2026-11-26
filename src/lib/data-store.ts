@@ -145,6 +145,8 @@ export interface AppData {
   plan?: Record<DateKey, import("@/lib/rhythm").DayPlan>;
   /** 나에게 와닿는 자기자비 연습: choices and 0–3 ratings only (no typed text) */
   kindLog?: import("@/lib/kindness/journey").KindSession[];
+  /** 호흡 전후 마음 점수 (0–10, optional) and recoveryDelta (device + backup file) */
+  breathLog?: import("@/lib/jitai/breathLog").BreathSession[];
   /** 셀리의 편지 (this device and the backup file only; chosen on the device) */
   letterBox?: import("@/lib/letters/engine").LetterBox;
   /** 오늘, 몸의 날씨 check-ins (this device and the backup file; their tags also join dayTags) */

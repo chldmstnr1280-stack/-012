@@ -1,0 +1,26 @@
+import { autoWeather, seasonOf, resolveWeather, dailySource, WEATHERS } from "../src/lib/garden/weather";
+import { chooseActivity } from "../src/lib/game/behaviorEngine";
+import { weatherTouchLine, TOUCH_WEATHER } from "../src/data/weatherLines";
+import { storyMoodFor } from "../src/lib/garden/scene";
+let fail = 0; const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log("FAIL", m); } };
+ok(seasonOf(new Date("2026-04-01")) === "spring" && seasonOf(new Date("2026-07-01")) === "summer" && seasonOf(new Date("2026-10-01")) === "autumn" && seasonOf(new Date("2026-01-10")) === "winter", "seasons");
+ok(autoWeather(new Date("2026-11-08T09:00")) === autoWeather(new Date("2026-11-08T22:00")), "same day same weather");
+const counts: Record<string, number> = {};
+for (let i = 0; i < 365; i++) { const d = new Date(2026, 0, 1 + i); const w = autoWeather(d); counts[w] = (counts[w] ?? 0) + 1; if (w === "snow") ok(seasonOf(d) === "winter", "snow only winter " + d.toDateString()); }
+console.log("year of auto weather", counts);
+ok(WEATHERS.every((w) => (counts[w] ?? 0) > 0), "all weathers occur");
+ok(resolveWeather("rain", new Date(), "summer") === "rain" && resolveWeather("auto", new Date("2026-11-08"), "autumn") === dailySource.weatherFor("2026-11-08", "autumn"), "resolve");
+const tally = (w: any, tod: any) => { const c: Record<string, number> = {}; for (let i = 0; i < 3000; i++) { const a = chooseActivity([], tod, { canMove: true }, w); c[a.kind] = (c[a.kind] ?? 0) + 1; } return c; };
+const rain = tally("rain", "day"), clear = tally("clear", "day"), rb = tally("rainbow", "night"), snow = tally("snow", "day");
+console.log("rain day", rain); console.log("clear day", clear);
+ok((rain.watch_window ?? 0) > (clear.watch_window ?? 0) * 3 && !rain.sunbathe, "rain → window, no sunbathing");
+ok(!clear.blanket && !clear.rainbow_joy && !rain.rainbow_joy && !rb.rainbow_joy && (tally("rainbow","day").rainbow_joy ?? 0) > 300 && (snow.blanket ?? 0) > 200, "blanket/rainbow rules");
+const still = tally("snow", "day"); void still;
+const calm = (() => { const c: Record<string, number> = {}; for (let i = 0; i < 500; i++) { const a = chooseActivity([], "day", { canMove: false }, "snow"); c[a.kind] = (c[a.kind] ?? 0) + 1; } return c; })();
+ok(Object.keys(calm).every((k) => ["sit", "nap", "look_at_user", "blanket"].includes(k)), "reduced motion stays put");
+const l1 = weatherTouchLine("rain", "day", 100000); const l2 = weatherTouchLine("rain", "day", 105000);
+ok(!!l1 && TOUCH_WEATHER.rain.includes(l1) && l2 === null, "cooldown");
+const seen = [l1]; for (let i = 1; i <= 3; i++) seen.push(weatherTouchLine("rain", "day", 100000 + i * 21000));
+ok(seen[1] !== seen[0] && seen[2] !== seen[1] && seen[2] !== seen[0], "no quick repeat");
+ok(storyMoodFor({ weather: "rain", tod: "night", season: "autumn" }).id === "bedtime" && storyMoodFor({ weather: "snow", tod: "day", season: "winter" }).id === "snowy", "story mood");
+console.log(fail ? fail + " failures" : "weather unit ok");

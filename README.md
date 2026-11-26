@@ -642,3 +642,9 @@ npm run build:toss   # 정적 export(out/) → dearselly0.ait
 
 - `src/components/layout/SiteAnalytics.tsx`: Vercel Web Analytics(`@vercel/analytics`), 웹 빌드에서만(`!IS_TOSS`). 화면 주소만 보내고 주소 뒤의 값(`?…`, `#…`)은 지움. 쿠키 없음, 기록·감정·건강 정보 없음. 개인정보 처리방침 3-2항.
 - 보는 곳: Vercel 대시보드 › 프로젝트 › **Analytics** (처음 한 번 Enable 필요). 화면별 방문 수로 `/kind`(다정해지는 연습), `/walk`(산책), `/calendar`(리듬 포함), `/checkin`, `/whine` 등을 확인.
+
+## 43. JITAI 1단계 — 상태 스냅샷 · 호흡 전후 마음 점수 · 테스트
+
+- **상태 스냅샷** (`src/lib/jitai/snapshot.ts`, `snapshot(data, game, now)`): 기록을 한 객체로 — `mood`(최근 기분 1~5, 날짜·저장 시각·며칠 전), `condition`(최근 컨디션 1~5), `cycle`(주기 일차, 다음 예정일까지 남은 날 · 예상일이 지나면 null, overdue, basis, 생리 중), `timeOfDay`(실제 시계: 아침 5–11·낮 11–17·저녁 17–21·밤), `recentMissions`(최근 7일: 호흡·산책·하늘 사진·산책 미션·체크인·자기자비·징징대기 날짜), `missingDays`(오늘부터 거꾸로 연속 미기록 일수, 기록이 하나도 없으면 null), `lastBreath`. 항목마다 실패해도 null로 — 함수는 멈추지 않음. 기분 척도는 앱 그대로 1~5.
+- **호흡 전후 마음 점수** (`src/components/breathing/MoodCheck.tsx`, `src/lib/jitai/breathLog.ts`): 1분 호흡 시작 전 “지금 마음은 몇 점쯤이야?”(0~10, ‘건너뛰고 바로 시작’), 끝난 뒤 한 번 더(‘건너뛰기’). `breathLog`에 시작 시각·분·완료 여부·before·after·`recoveryDelta`(둘 다 답했을 때만 after−before). 중간에 그만두면 after는 묻지 않고, before를 답했을 때만 ‘완료 안 됨’으로 남김. 이 기기·백업 파일에만.
+- **테스트**: `npm test` — `tests/*.test.ts` 12개(기존 기능 11 + 스냅샷)를 차례로 실행(`tests/run.mjs`, tsx는 npx로 받아 씀).

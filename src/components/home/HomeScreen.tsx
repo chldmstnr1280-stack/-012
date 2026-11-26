@@ -1,5 +1,7 @@
 "use client";
 
+import { MoodCheck } from "@/components/breathing/MoodCheck";
+import { saveBreath } from "@/lib/jitai/breathLog";
 import { stopOf } from "@/lib/walk/sunlight";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useTransform } from "motion/react";
@@ -94,6 +96,9 @@ export function HomeScreen() {
   const moodDays = Object.values(entries).filter((e) => e.mood != null || e.emotion != null).length;
   const pendingAction = useRef<string | null | undefined>(undefined);
   const breathingRef = useRef(false);
+  /** 호흡 전후 마음 점수: "before" = asking before the breath starts, "after" = asking once it ended */
+  const [breathAsk, setBreathAsk] = useState<null | "before" | "after">(null);
+  const breathRun = useRef<{ at: number; before?: number; minutes: number; finished?: boolean }>({ at: 0, minutes: 1 });
   const started = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -433,9 +438,12 @@ export function HomeScreen() {
   const startBreathing = useCallback(() => {
     setCareOpen(false);
     breathingRef.current = true;
+    breathRun.current = { at: Date.now(), minutes: 1 };
+    setBreathAsk("before");
     setMode("breathing");
     setImmersive(true);
-    setCaption("어떤 호흡으로\n쉬어갈까요?");
+    // the breathing panel sets "어떤 호흡으로 쉬어갈까요?" once it opens
+    setCaption("잠깐,\n지금 마음부터 볼까?");
     const L = layoutRef.current;
     if (L) brainRef.current.setBreathing(true, { x: L.w / 2, y: L.h * 0.6 });
   }, [setImmersive]);
@@ -492,7 +500,15 @@ export function HomeScreen() {
   }, [layout, react, startBreathing]);
 
   const endBreathing = useCallback(
-    (completed: boolean, minutes = 1) => {
+    (done: boolean, mins = 1) => {
+      // keep what was answered (and an unanswered "after" only for a finished breath)
+      const run = breathRun.current;
+      // closed while the "after" question was showing: the breath itself was finished (after = skipped)
+      const completed = done || !!run.finished;
+      const minutes = run.finished ? run.minutes : mins;
+      if (run.at && (completed || run.before != null)) saveBreath({ at: run.at, minutes, completed, before: run.before });
+      breathRun.current = { at: 0, minutes: 1 };
+      setBreathAsk(null);
       breathingRef.current = false;
       setMode("home");
       setImmersive(false);
@@ -508,6 +524,14 @@ export function HomeScreen() {
     },
     [completeTask, breath, react, setImmersive, showToast],
   );
+
+  /** the "after" answer (or skip) → save before/after/recoveryDelta, then the usual celebration */
+  const finishBreath = (after?: number) => {
+    const run = breathRun.current;
+    saveBreath({ at: run.at || Date.now(), minutes: run.minutes, completed: true, before: run.before, after });
+    breathRun.current = { at: 0, minutes: 1 };
+    endBreathing(true, run.minutes);
+  };
 
   const onPhase = useCallback((p: PhaseKind | "ready", running: boolean) => {
     // a late phase report after the session ended must not overwrite anything
@@ -737,7 +761,31 @@ export function HomeScreen() {
           <AnimatePresence mode="wait" initial={false}>
             {talking || decorating || quiet ? null : breathing ? (
               <motion.div key="breath" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
-                <BreathingPanel onStop={() => endBreathing(false)} onComplete={(m) => endBreathing(true, m)} onPhase={onPhase} />
+                {breathAsk ? (
+                  <MoodCheck
+                    key={breathAsk}
+                    stage={breathAsk}
+                    onAnswer={(v) => {
+                      if (breathAsk === "before") {
+                        breathRun.current.before = v;
+                        setBreathAsk(null);
+                      } else finishBreath(v);
+                    }}
+                    onSkip={() => (breathAsk === "before" ? setBreathAsk(null) : finishBreath())}
+                  />
+                ) : (
+                  <BreathingPanel
+                    onStop={() => endBreathing(false)}
+                    onComplete={(m) => {
+                      // one more question before the breath is saved and celebrated
+                      breathRun.current.minutes = m;
+                      breathRun.current.finished = true;
+                      setBreathAsk("after");
+                      setCaption("수고했어.\n지금 마음은 어때?");
+                    }}
+                    onPhase={onPhase}
+                  />
+                )}
               </motion.div>
             ) : (
               <motion.div key="dock" className="relative" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
