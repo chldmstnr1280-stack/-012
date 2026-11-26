@@ -673,3 +673,8 @@ npm run build:toss   # 정적 export(out/) → dearselly0.ait
 
 - `src/lib/share/paperExport.ts`: 화면에 그려진 요약 문서를 캔버스로 옮김(라이브러리·foreignObject 없이 배경·테두리·글자를 브라우저가 배치한 자리에 그대로) → PNG, 또는 A4 PDF(JPEG 페이지, 빈 줄에서 페이지를 나눠 글줄이 잘리지 않게; 최소 PDF 작성기 직접 구현).
 - `/report/clinical` 위쪽: **이미지** · **PDF로 저장** (웹은 인쇄 버튼도). 토스는 `File.saveBase64`로 기기에 저장, 웹은 내려받기. 이 기기에서만 만들고 어디에도 보내지 않음.
+
+## 48. 진료 신호등 · 홈 “생리 시작했어”
+
+- **진료 신호등** (`src/lib/pms/careSignal.ts`, `src/components/report/CareSignalCard.tsx`): 리포트 맨 위(모든 탭). 🟢 “지금은 기록하며 지켜봐도 괜찮아요” / 🟡 “상담을 고려해 볼 만한 기록이 있어요” + 이유 목록 + 상담받을 곳(산부인과 · 기분 증상 중심이면 정신건강의학과 함께) + 진료용 요약 링크. 🟡 이유는 앱에 원문이 보관된 NHS ‘이럴 땐 진료를’ 기준만: 일상생활 영향 ‘심함’ 2주기(nhs-pms) · 심한 생리통+생활 영향 2주기(nhs-pain) · 마지막 시작 뒤 평소 주기 3배+7일 동안 새 기록 없음(nhs-missed) · 주기 길이 3개 이상 기록에서 불규칙(nhs-irregular) · 최근 생리 7일 초과(nhs-irregular). 🔴는 기록으로 판단하지 않고 “이럴 땐 기록과 상관없이 바로 진료” 목록(심한 통증+진통제 무효, 임신 가능성+급성 통증·실신 → 119)과 109 안내. 기준값 `SIGNAL`. ⚠️ 전문가 검토 전.
+- **생리 시작했어** (`showStartPrompt` in `src/lib/pms/late.ts`): 홈 아래 버튼 — 예상 시작 2일 전부터 또는 예상일이 지났을 때만, 오늘·어제·그제 생리일이면 숨김. 누르면 오늘을 시작일로(예측 오차 기록도 자동). ‘아직이야’는 그날 하루 숨김(`startPromptDismissed`).

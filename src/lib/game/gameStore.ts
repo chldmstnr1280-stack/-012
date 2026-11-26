@@ -53,6 +53,8 @@ export interface GameData {
   checkinLights?: { date: string; n: number };
   /** days a 징징대기 ended (only the date — never what was said), for Selly's next-day letter */
   whineDates?: string[];
+  /** the day "생리 시작했어 › 아직이야" was tapped (the home button stays away that day) */
+  startPromptDismissed?: string;
   /** period starts whose "지난 주기 돌아보기" card was closed */
   recapClosed?: string[];
 }

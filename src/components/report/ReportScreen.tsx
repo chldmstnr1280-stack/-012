@@ -18,6 +18,7 @@ import { useSelly } from "@/lib/selly-store";
 import { BalanceRadar } from "./BalanceRadar";
 import { MoodFlow, rangeLabel } from "./MoodFlow";
 import { DemoBanner } from "./DemoBanner";
+import { CareSignalCard } from "./CareSignalCard";
 import { PmsReport } from "@/components/pms/PmsReport";
 import { DayPatterns } from "./DayPatterns";
 import { dayPatterns } from "@/lib/dayPatterns";
@@ -48,6 +49,7 @@ export function ReportScreen() {
           ]}
         />
         {data.demo && <DemoBanner />}
+        {today && <CareSignalCard data={data} today={today} />}
 
         {kind === "pms" && today ? (
           <motion.div key="pms" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>

@@ -1,5 +1,5 @@
 import { analyzeCycle, groupPeriods } from "@/lib/cycle";
-import { diffDays, toKey, type DateKey } from "@/lib/date";
+import { addDays, diffDays, toKey, type DateKey } from "@/lib/date";
 
 /**
  * 생리 지연 돌봄 — when the expected start has passed with no new period logged.
@@ -66,4 +66,20 @@ export function daysSinceLastStart(periodDays: DateKey[], today: DateKey): numbe
 export function estimateAccuracy(log: PredictionEntry[]): { n: number; meanAbs: number | null } {
   const d = log.filter((e) => e.diff != null).slice(-6).map((e) => Math.abs(e.diff!));
   return { n: d.length, meanAbs: d.length ? Math.round((d.reduce((a, b) => a + b, 0) / d.length) * 10) / 10 : null };
+}
+
+/**
+ * Home's "생리 시작했어" button: only around an expected start (from 2 days before,
+ * or once it has passed), never on a day already marked, nor right after a
+ * period day (the period is going on), nor when she said "아직이야" today.
+ */
+export const START_PROMPT_DAYS_BEFORE = 2;
+export function showStartPrompt(periodDays: DateKey[], today: DateKey, dismissed?: string | null): boolean {
+  if (dismissed === today) return false;
+  const days = periodDays.filter((d) => d <= today);
+  if (!days.length) return false;
+  if (days.includes(today) || days.includes(addDays(today, -1)) || days.includes(addDays(today, -2))) return false;
+  const info = analyzeCycle(days, today);
+  if (info.overdue > 0) return true;
+  return !!info.nextStart && diffDays(today, info.nextStart) <= START_PROMPT_DAYS_BEFORE;
 }

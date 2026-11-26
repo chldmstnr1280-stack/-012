@@ -33,7 +33,8 @@ import { GIFT_INFO, GIFT_MESSAGES } from "@/data/gifts";
 import { CareSuggestion } from "./CareSuggestion";
 import { markShown, shouldShow, suggestionFor } from "@/lib/game/careEngine";
 import type { CareAction, PickedSuggestion } from "@/data/careSuggestions";
-import { getData, setPrefs } from "@/lib/data-store";
+import { getData, setPeriodDays, setPrefs } from "@/lib/data-store";
+import { showStartPrompt } from "@/lib/pms/late";
 import { currentTimeOfDay } from "@/lib/game/ambience";
 import { playSfx } from "@/lib/sound/sfx";
 import type { TalkAction } from "@/data/sellyConversations";
@@ -542,6 +543,21 @@ export function HomeScreen() {
   }, []);
 
   const breathing = mode === "breathing";
+  // "생리 시작했어": one tap around the expected start (from 2 days before, or once it passed)
+  const [startDismissed, setStartDismissed] = useState<string | null>(null);
+  const startPrompt = !!today && mode === "home" && showStartPrompt(appData.periodDays, today, startDismissed ?? readGame().startPromptDismissed);
+  const markStart = () => {
+    if (!today) return;
+    setPeriodDays([today], true);
+    playSfx("tap");
+    showToast("오늘을 생리 시작일로 표시했어요. 끝나면 캘린더에서 끝난 날을 눌러 주세요");
+    brainRef.current.say("알려 줘서 고마워.\n오늘은 몸을 조금 더 챙기자 ♡", 4200);
+  };
+  const notYet = () => {
+    if (!today) return;
+    updateGame(() => ({ startPromptDismissed: today }));
+    setStartDismissed(today);
+  };
   const talking = mode === "talk" || mode === "kindness";
   const decorating = mode === "decorate";
   const quiet = mode === "quiet";
@@ -758,6 +774,24 @@ export function HomeScreen() {
           ref={dockRef}
           className={`relative shrink-0 transition-[padding] duration-500 ${breathing ? "pb-[calc(env(safe-area-inset-bottom)+28px)] pt-4" : "pb-[calc(env(safe-area-inset-bottom)+86px)] pt-1"}`}
         >
+          <AnimatePresence>
+            {startPrompt && !talking && !decorating && !quiet && (
+              <motion.div
+                key="period-start"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="absolute -top-14 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full bg-[rgba(255,253,249,0.95)] p-1 shadow-[0_8px_22px_-12px_rgba(110,60,70,0.6)]"
+              >
+                <button type="button" onClick={markStart} className="flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full bg-[#e3707e] px-4 text-[13.5px] font-bold text-white active:scale-95">
+                  <span aria-hidden>🩸</span> 생리 시작했어
+                </button>
+                <button type="button" onClick={notYet} className="h-10 whitespace-nowrap rounded-full px-3 text-[12.5px] text-ink-500">
+                  아직이야
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <AnimatePresence mode="wait" initial={false}>
             {talking || decorating || quiet ? null : breathing ? (
               <motion.div key="breath" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
