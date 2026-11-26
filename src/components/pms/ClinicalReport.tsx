@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
+import { Fragment, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, Printer } from "lucide-react";
+import { ChevronLeft, FileDown, ImageDown, Printer } from "lucide-react";
 import { IMPACT_ITEMS, ONSET_OPTIONS, SYMPTOM_IDS, SYMPTOM_LABEL, type ImpactId, type SymptomId } from "@/data/pmsSymptoms";
 import { addDays, formatMonthDay, toKey, useToday, type DateKey } from "@/lib/date";
 import { setConsult, useAppData, type AppData, type Supplement } from "@/lib/data-store";
@@ -12,6 +12,8 @@ import { FOCUS_LABEL, symptomFocus, buildClinical, markFor, type ClinicalSummary
 import { CONSULT_QUESTIONS, findOverlaps, overlapText } from "@/lib/nutrition/overlap";
 import { NUTRIENT_LABEL, SUPP_TIME_LABEL } from "@/data/nutrition";
 import { IS_TOSS } from "@/lib/platform";
+import { pdfBase64, pngBase64, rasterize } from "@/lib/share/paperExport";
+import { useSelly } from "@/lib/selly-store";
 
 /**
  * Printable summary of the user's own PMS records to show a clinician.
@@ -34,7 +36,38 @@ export function ClinicalReport() {
   const data = useAppData();
   const [count, setCount] = useState(3);
   const s = useMemo(() => (today ? buildClinical(data, today, count) : null), [data, today, count]);
+  const paperRef = useRef<HTMLElement>(null);
+  const [saving, setSaving] = useState<null | "pdf" | "png">(null);
+  const { showToast } = useSelly();
   if (!mounted || !today || !s) return null;
+
+  /** the summary as a file on this device (Toss: the app's file save; web: a download) */
+  const save = async (kind: "pdf" | "png") => {
+    const el = paperRef.current;
+    if (!el || saving) return;
+    setSaving(kind);
+    await new Promise((r) => setTimeout(r, 30));
+    try {
+      const canvas = rasterize(el, 2);
+      const fileName = `dear-selly-summary-${today}.${kind}`;
+      const b64 = kind === "pdf" ? pdfBase64(canvas) : pngBase64(canvas);
+      const mimeType = kind === "pdf" ? "application/pdf" : "image/png";
+      if (IS_TOSS) {
+        const { File: TossFile } = await import("@apps-in-toss/web-framework");
+        await TossFile.saveBase64({ data: b64, fileName, mimeType });
+      } else {
+        const a = document.createElement("a");
+        a.href = `data:${mimeType};base64,${b64}`;
+        a.download = fileName;
+        a.click();
+      }
+      showToast(kind === "pdf" ? "PDF로 저장했어요" : "이미지로 저장했어요");
+    } catch {
+      showToast("파일을 만들지 못했어요. 이 화면을 보여 주세요.");
+    } finally {
+      setSaving(null);
+    }
+  };
   const zoom = Math.min(1, (width - 24) / PAPER);
 
   return createPortal(
@@ -53,23 +86,28 @@ export function ClinicalReport() {
             ))}
           </select>
         </label>
-        {!IS_TOSS && (
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="ml-auto flex h-10 items-center gap-1.5 rounded-full bg-gradient-to-b from-[#9cc095] to-[#7ea47a] px-4 text-[13.5px] font-bold text-white"
-        >
-          <Printer size={16} /> PDF로 저장·인쇄
-        </button>
-        )}
+        <div className="ml-auto flex items-center gap-1.5">
+          <button type="button" disabled={!!saving} onClick={() => save("png")} className="flex h-10 items-center gap-1 rounded-full bg-white px-3 text-[13px] font-bold text-sage-700 disabled:opacity-50">
+            <ImageDown size={16} /> {saving === "png" ? "만드는 중…" : "이미지"}
+          </button>
+          <button type="button" disabled={!!saving} onClick={() => save("pdf")} className="flex h-10 items-center gap-1.5 rounded-full bg-gradient-to-b from-[#9cc095] to-[#7ea47a] px-4 text-[13.5px] font-bold text-white disabled:opacity-60">
+            <FileDown size={16} /> {saving === "pdf" ? "만드는 중…" : "PDF로 저장"}
+          </button>
+          {!IS_TOSS && (
+            <button type="button" aria-label="인쇄" onClick={() => window.print()} className="grid h-10 w-10 place-items-center rounded-full bg-white text-ink-500">
+              <Printer size={17} />
+            </button>
+          )}
+        </div>
       </div>
       <p className="no-print mx-auto mt-2 max-w-[420px] px-4 text-center text-[11.5px] leading-relaxed text-ink-500">
         {IS_TOSS
-          ? "토스 앱에서는 PDF 저장을 준비 중이에요. 진료 때 이 화면을 보여 주세요. 이 문서는 이 기기에서만 만들어져요."
-          : "인쇄 창에서 ‘PDF로 저장’을 고르면 파일로 저장돼요. 이 문서는 이 기기에서만 만들어져요."}
+          ? "PDF나 이미지로 저장해 진료 때 보여 주세요. 이 문서는 이 기기에서만 만들어지고 어디에도 전송되지 않아요."
+          : "PDF나 이미지로 저장하거나 인쇄할 수 있어요. 이 문서는 이 기기에서만 만들어지고 어디에도 전송되지 않아요."}
       </p>
       <ConsultPicker />
       <article
+        ref={paperRef}
         className="paper mx-auto mt-3 bg-white p-[28px] text-[11px] leading-snug text-[#2c2620] shadow-[0_10px_30px_-12px_rgba(60,40,20,0.4)]"
         style={{ width: PAPER, zoom, fontFamily: '"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif' }}
       >
