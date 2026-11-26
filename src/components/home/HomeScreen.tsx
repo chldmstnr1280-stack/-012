@@ -291,7 +291,7 @@ export function HomeScreen() {
       startBreathing();
     } else if (a === "walk") setInviteOpen(true);
     else if (a === "talk") startTalk();
-    else if (a === "record") router.push("/record");
+    else if (a === "record") router.push("/today");
     else if (a === "record-pms") router.push("/record?tab=pms");
     else if (a === "kindness") startKindness();
     else if (a === "care-mode") router.push("/pms/care?from=pms");
@@ -377,7 +377,7 @@ export function HomeScreen() {
       setTimeout(() => startKindness(), 200);
     } else if (a === "record" || a === "recordPms") {
       endTalk();
-      setTimeout(() => router.push(a === "record" ? "/record" : "/record?tab=pms"), 250);
+      setTimeout(() => router.push(a === "record" ? "/today" : "/record?tab=pms"), 250);
     }
   };
 
@@ -433,7 +433,7 @@ export function HomeScreen() {
     }
     // a short word from Selly, then open the page
     b.interact(id === "calendar" ? "달력 같이 볼까?" : "오늘 마음은\n어떤 색이야?", 1200);
-    setTimeout(() => router.push(id === "calendar" ? "/calendar" : "/record"), 550);
+    setTimeout(() => router.push(id === "calendar" ? "/calendar" : "/today"), 550);
   };
 
   const startBreathing = useCallback(() => {

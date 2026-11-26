@@ -81,7 +81,15 @@ export function RecordScreen() {
             />
           </div>
           {tab === "day" && date === today && (
-            // the 30-second body check-in comes first; the full record stays below
+            // the 30-second record and the body check-in come first; the full record stays below
+            <>
+            <Link href="/today" className="mb-2 flex items-center justify-between rounded-[22px] bg-white/85 px-4 py-3 shadow-[0_6px_18px_-12px_rgba(110,88,60,0.5)] active:scale-[0.99]">
+              <span>
+                <span className="block text-[14.5px] font-bold text-ink-700">📝 오늘 기록 30초</span>
+                <span className="text-[11.5px] text-ink-500">생리 · 기분 · 증상 · 잠과 스트레스를 한 번에</span>
+              </span>
+              <span className="text-[13px] font-bold text-sage-700">시작</span>
+            </Link>
             <div className="mb-3 flex gap-2">
               <Link href="/checkin" className="flex flex-1 items-center justify-between rounded-[22px] bg-[linear-gradient(90deg,#eef5e6,#fbeef0)] px-4 py-3 shadow-[0_6px_18px_-12px_rgba(110,88,60,0.5)] active:scale-[0.99]">
                 <span>
@@ -94,6 +102,7 @@ export function RecordScreen() {
                 🔍
               </Link>
             </div>
+            </>
           )}
           {tab === "day" ? (
             <RecordForm key={date} date={date} isToday={date === today} />

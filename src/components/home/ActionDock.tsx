@@ -10,7 +10,7 @@ const sideCls =
 export function ActionDock({ onBreathe, onCare }: { onBreathe: () => void; onCare: () => void }) {
   return (
     <div className="relative flex items-center justify-between px-6">
-      <Link href="/record" className={sideCls}>
+      <Link href="/today" className={sideCls}>
         <JournalIcon size={24} />
         기록하기
       </Link>
