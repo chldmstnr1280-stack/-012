@@ -42,3 +42,40 @@ export function buildClinical(data: AppData, today: DateKey, count: number): Cli
 export function heavyImpactCycles(p: PmsPattern) {
   return p.cycles.filter((c) => c.impactMax >= IMPACT_NUDGE.score).length;
 }
+
+/**
+ * 기분 증상 중심 / 몸 증상 중심 — which group stands out in the analysed cycles.
+ * Per cycle, each group's score is its highest symptom average (0–4, days
+ * scored ≥1); the two are then averaged over cycles. Only a description of the
+ * user's own records, to help choose where to ask — never a diagnosis.
+ * ⚠️ 전문가 검토 전 — groups and thresholds await review.
+ */
+export const MOOD_SYMPTOMS: SymptomId[] = ["low_mood", "anxiety", "irritability", "mood_swings", "tearful", "sensitivity"];
+export const BODY_SYMPTOMS: SymptomId[] = ["cramps", "headache", "bloating", "breast_tenderness", "fatigue"];
+export const FOCUS = {
+  /** |mood − body| below this = "비슷함" */
+  tie: 0.5,
+  /** both group scores below this = nothing stands out */
+  minScore: 1,
+};
+export type SymptomFocus = "mood" | "body" | "both";
+
+export function symptomFocus(cycles: CycleMemory[]): { focus: SymptomFocus | null; mood: number; body: number; n: number } {
+  const groupScore = (c: CycleMemory, ids: SymptomId[]) => Math.max(0, ...c.symptoms.filter((s) => ids.includes(s.id)).map((s) => s.avg));
+  const n = cycles.length;
+  if (!n) return { focus: null, mood: 0, body: 0, n };
+  const round = (x: number) => Math.round(x * 10) / 10;
+  const mood = round(cycles.reduce((a, c) => a + groupScore(c, MOOD_SYMPTOMS), 0) / n);
+  const body = round(cycles.reduce((a, c) => a + groupScore(c, BODY_SYMPTOMS), 0) / n);
+  if (mood < FOCUS.minScore && body < FOCUS.minScore) return { focus: null, mood, body, n };
+  const focus: SymptomFocus = Math.abs(mood - body) < FOCUS.tie ? "both" : mood > body ? "mood" : "body";
+  return { focus, mood, body, n };
+}
+
+/** the one line added to the doctor-visit card */
+export const DEPARTMENT_LINE: Record<SymptomFocus, string> = {
+  mood: "이런 패턴은 정신건강의학과에서도 상담받을 수 있어요.",
+  body: "이런 패턴은 보통 산부인과에서 상담받아요.",
+  both: "기분 증상과 몸 증상이 비슷하게 기록됐어요. 산부인과와 정신건강의학과 어느 쪽에서든 상담받을 수 있어요.",
+};
+export const FOCUS_LABEL: Record<SymptomFocus, string> = { mood: "기분 증상 중심", body: "몸 증상 중심", both: "기분·몸 증상이 비슷함" };

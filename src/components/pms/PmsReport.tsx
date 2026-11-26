@@ -20,7 +20,7 @@ import { groupPeriods } from "@/lib/cycle";
 import { TagReport } from "./TagReport";
 import { compareTags } from "@/lib/pms/tags";
 import { HelpCard } from "./HelpCard";
-import { heavyImpactCycles } from "@/lib/pms/clinical";
+import { DEPARTMENT_LINE, heavyImpactCycles, symptomFocus, type SymptomFocus } from "@/lib/pms/clinical";
 import { IMPACT_NUDGE } from "@/data/safety";
 import { FileText } from "lucide-react";
 import { INTENSITY_FILL, INTENSITY_INK, MISSING_EDGE } from "./colors";
@@ -134,7 +134,7 @@ export function PmsReport({ data, today }: { data: AppData; today: DateKey }) {
 
       <CareCards picks={care} />
 
-      <CareBridge cycles={p.cycles.length} heavy={heavyImpactCycles(p)} />
+      <CareBridge cycles={p.cycles.length} heavy={heavyImpactCycles(p)} focus={symptomFocus(p.cycles).focus} />
 
       <Link
         href="/record?tab=pms"
@@ -340,7 +340,7 @@ function ImpactAndAfter({ chrono }: { chrono: CycleMemory[] }) {
 }
 
 /** Phase D: bridge to a clinician — a printable summary of the user's own records. */
-function CareBridge({ cycles, heavy }: { cycles: number; heavy: number }) {
+function CareBridge({ cycles, heavy, focus }: { cycles: number; heavy: number; focus: SymptomFocus | null }) {
   const nudge = heavy >= IMPACT_NUDGE.cycles;
   return (
     <SectionCard icon={<FileText size={20} className="text-sage-700" />} title="진료 준비">
@@ -348,6 +348,11 @@ function CareBridge({ cycles, heavy }: { cycles: number; heavy: number }) {
         <p className="mb-2.5 break-keep rounded-2xl bg-[#fdf3f4] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-ink-700">
           최근 {cycles}번의 주기 중 {heavy}번, 생활 영향을 ‘심함’ 이상으로 기록했어요. NHS·ACOG 안내에서는 증상이 일상생활에 영향을 줄 때 진료를
           고려해 보라고 해요.
+          {focus && (
+            <span className="mt-1.5 block font-bold text-ink-700">
+              {DEPARTMENT_LINE[focus]} <span className="text-[10.5px] font-normal text-ink-500">(내 기록 기준 · ⚠️ 전문가 검토 전)</span>
+            </span>
+          )}
         </p>
       )}
       <p className="break-keep text-[12.5px] leading-relaxed text-ink-500">

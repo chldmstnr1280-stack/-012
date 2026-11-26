@@ -8,7 +8,7 @@ import { IMPACT_ITEMS, ONSET_OPTIONS, SYMPTOM_IDS, SYMPTOM_LABEL, type ImpactId,
 import { addDays, formatMonthDay, toKey, useToday, type DateKey } from "@/lib/date";
 import { setConsult, useAppData, type AppData, type Supplement } from "@/lib/data-store";
 import { PRE_DAYS, type CycleMemory } from "@/lib/pms/analysis";
-import { buildClinical, markFor, type ClinicalSummary, type Mark } from "@/lib/pms/clinical";
+import { FOCUS_LABEL, symptomFocus, buildClinical, markFor, type ClinicalSummary, type Mark } from "@/lib/pms/clinical";
 import { CONSULT_QUESTIONS, findOverlaps, overlapText } from "@/lib/nutrition/overlap";
 import { NUTRIENT_LABEL, SUPP_TIME_LABEL } from "@/data/nutrition";
 import { IS_TOSS } from "@/lib/platform";
@@ -181,6 +181,14 @@ function Paper({ s, data, today }: { s: ClinicalSummary; data: AppData; today: D
                 ))}
               </tbody>
             </table>
+            {(() => {
+              const f = symptomFocus(s.cycles);
+              return (
+                <p className="mt-1.5 text-[10.5px]">
+                  증상 경향: <b>{f.focus ? FOCUS_LABEL[f.focus] : "두드러진 쪽 없음"}</b> (주기별 최고 평균 점수의 평균 — 기분 {f.mood} · 몸 {f.body}, 0–4, {f.n}주기)
+                </p>
+              );
+            })()}
             {s.pattern.enough && s.pattern.repeated.length > 0 && (
               <p className="mt-1.5 text-[10.5px]">
                 2주기 이상 반복 기록된 증상:{" "}
@@ -215,6 +223,7 @@ function Paper({ s, data, today }: { s: ClinicalSummary; data: AppData; today: D
           <li>‘첫 증상’은 시작 전 기간에서 가장 이른 증상 기록일이 시작일로부터 며칠 전인지입니다.</li>
           <li>‘시작 후 2–6일’은 그 기간 하루 최고 점수의 평균을 시작 전과 비교했습니다(차이 0.5점 기준, 2일 이상 기록 시).</li>
           <li>시작 전 기간에 기록이 3일 미만인 주기는 제외했습니다.</li>
+          <li>‘증상 경향’은 기분 증상(우울감·불안·짜증·감정 기복·눈물이 남·예민함)과 몸 증상(복통·생리통·두통·복부 팽만·가슴 통증·피로) 각각에서 주기별 가장 높은 평균 점수를 구해 주기들끼리 평균 낸 값입니다. 차이가 0.5점 미만이면 ‘비슷함’, 둘 다 1점 미만이면 ‘두드러진 쪽 없음’으로 표시했습니다. 진단이 아닌 기록 정리입니다.</li>
         </ul>
         <footer className="mt-3 border-t border-[#d8d0c4] pt-1.5 text-[9.5px] text-[#6b6157]">
         Dear Selly에서 사용자가 직접 만든 문서 · 이 기기의 기록으로 만들어졌으며 서버로 전송되지 않았습니다 · 생성 {toKey(new Date())}
