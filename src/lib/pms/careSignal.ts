@@ -1,6 +1,6 @@
 import { analyzeCycle, groupPeriods } from "@/lib/cycle";
 import type { AppData } from "@/lib/data-store";
-import { diffDays, type DateKey } from "@/lib/date";
+import { addDays, diffDays, type DateKey } from "@/lib/date";
 import { IMPACT_NUDGE } from "@/data/safety";
 import { analysePms } from "./analysis";
 import { heavyImpactCycles, symptomFocus, type SymptomFocus } from "./clinical";
@@ -20,10 +20,10 @@ export type SignalLevel = "watch" | "consult";
 export type Department = "gyn" | "psy";
 
 export interface SignalReason {
-  id: "impact" | "pain" | "missed" | "irregular" | "long";
+  id: "impact" | "pain" | "missed" | "irregular" | "long" | "heavy";
   text: string;
   /** which source line it rests on (LATE_SOURCES id) */
-  source: "nhs-pms" | "nhs-pain" | "nhs-missed" | "nhs-irregular";
+  source: "nhs-pms" | "nhs-pain" | "nhs-missed" | "nhs-irregular" | "nhs-heavy";
   departments: Department[];
 }
 
@@ -47,6 +47,8 @@ export const SIGNAL = {
   irregularMinLengths: 3,
   /** cycles where cramps ≥ 3 and life impact ≥ 3 */
   painCycles: 2,
+  /** periods (of the last 3) with any NHS heavy-period sign recorded */
+  heavyPeriods: 2,
 };
 
 export function careSignal(data: AppData, today: DateKey): CareSignal {
@@ -76,6 +78,14 @@ export function careSignal(data: AppData, today: DateKey): CareSignal {
 
   const long = periods.slice(-3).filter((p) => p.end < today && p.length > SIGNAL.longPeriod);
   if (long.length) reasons.push({ id: "long", text: `최근 생리 중 ${long.length}번이 ${SIGNAL.longPeriod}일보다 길게 기록됐어요.`, source: "nhs-irregular", departments: ["gyn"] });
+
+  // NHS heavy-period signs (pad every 1–2 h, clots > 2.5 cm, bleeding through) in 2 of the last 3 periods
+  const heavyIn = periods.slice(-3).filter((p) => {
+    for (let d = p.start; d <= p.end; d = addDays(d, 1)) if (data.symptoms?.[d]?.flow?.signs?.length) return true;
+    return false;
+  }).length;
+  if (heavyIn >= SIGNAL.heavyPeriods)
+    reasons.push({ id: "heavy", text: `최근 생리 ${Math.min(3, periods.length)}번 중 ${heavyIn}번, 생리량이 많을 때의 신호(1~2시간마다 교체, 큰 핏덩어리, 옷에 샘)를 기록했어요.`, source: "nhs-heavy", departments: ["gyn"] });
 
   const departments = [...new Set(reasons.flatMap((r) => r.departments))];
   return {

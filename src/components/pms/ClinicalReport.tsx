@@ -8,6 +8,7 @@ import { IMPACT_ITEMS, ONSET_OPTIONS, SYMPTOM_IDS, SYMPTOM_LABEL, type ImpactId,
 import { addDays, formatMonthDay, toKey, useToday, type DateKey } from "@/lib/date";
 import { setConsult, useAppData, type AppData, type Supplement } from "@/lib/data-store";
 import { PRE_DAYS, type CycleMemory } from "@/lib/pms/analysis";
+import { DRSP_AREA_OF } from "@/data/drspAreas";
 import { FOCUS_LABEL, symptomFocus, buildClinical, markFor, type ClinicalSummary, type Mark } from "@/lib/pms/clinical";
 import { CONSULT_QUESTIONS, findOverlaps, overlapText } from "@/lib/nutrition/overlap";
 import { NUTRIENT_LABEL, SUPP_TIME_LABEL } from "@/data/nutrition";
@@ -147,7 +148,7 @@ function Paper({ s, data, today }: { s: ClinicalSummary; data: AppData; today: D
 
       <p className="print-block mt-3 rounded border border-[#d8d0c4] bg-[#faf7f2] px-3 py-2 text-[10.5px] leading-relaxed">
         이 문서는 사용자가 앱(Dear Selly)에 직접 입력한 <b>주관적 기록</b>을 정리한 것입니다. 증상 점수는 0(없음)~4(매우 심함)의 자가 평가이며{" "}
-        <b>검증된 임상 척도(예: DRSP)가 아니고, 진단을 의미하지 않습니다.</b> 기록하지 않은 날은 0점으로 간주하지 않았습니다.
+        <b>검증된 임상 척도(예: DRSP)가 아니고, 진단을 의미하지 않습니다.</b> 증상은 DRSP의 영역 순서로 정리했지만 문항과 점수는 앱 고유의 것입니다. 기록하지 않은 날은 0점으로 간주하지 않았습니다.
       </p>
 
       <Section title="1. 생리 기록">
@@ -182,6 +183,8 @@ function Paper({ s, data, today }: { s: ClinicalSummary; data: AppData; today: D
             <dd>{s.info.irregular ? "주기 길이 차이가 큼 (21–35일 밖이거나 차이 7일 초과)" : "큰 변동 없음"}</dd>
             <dt className="text-[#6b6157]">호르몬 피임</dt>
             <dd>{contra ? CONTRA[contra] : "응답 없음"}</dd>
+            <dt className="text-[#6b6157]">생리량 많음 신호</dt>
+            <dd>{heavyLine(data, recentPeriods.slice(0, 3))}</dd>
           </dl>
         </div>
       </Section>
@@ -261,6 +264,8 @@ function Paper({ s, data, today }: { s: ClinicalSummary; data: AppData; today: D
           <li>‘첫 증상’은 시작 전 기간에서 가장 이른 증상 기록일이 시작일로부터 며칠 전인지입니다.</li>
           <li>‘시작 후 2–6일’은 그 기간 하루 최고 점수의 평균을 시작 전과 비교했습니다(차이 0.5점 기준, 2일 이상 기록 시).</li>
           <li>시작 전 기간에 기록이 3일 미만인 주기는 제외했습니다.</li>
+          <li>증상 행은 DRSP(Endicott 외, 2006)의 영역(우울 · 불안 · 기분 기복 · 분노 · 흥미·집중·기운 · 식욕 · 수면 · 압도감 · 몸 증상 · 생활 지장) 순서로 묶었습니다. 문항 문장과 0–4점 척도는 DRSP가 아니며, DRSP 점수와 직접 비교할 수 없습니다.</li>
+          <li>‘생리량 많음 신호’는 생리일에 NHS가 소개하는 세 가지(1~2시간마다 교체, 약 2.5cm보다 큰 핏덩어리, 옷·이불에 샘) 중 하나 이상을 기록한 생리 횟수입니다.</li>
           <li>‘증상 경향’은 기분 증상(우울감·불안·짜증·감정 기복·눈물이 남·예민함)과 몸 증상(복통·생리통·두통·복부 팽만·가슴 통증·피로) 각각에서 주기별 가장 높은 평균 점수를 구해 주기들끼리 평균 낸 값입니다. 차이가 0.5점 미만이면 ‘비슷함’, 둘 다 1점 미만이면 ‘두드러진 쪽 없음’으로 표시했습니다. 진단이 아닌 기록 정리입니다.</li>
         </ul>
         <footer className="mt-3 border-t border-[#d8d0c4] pt-1.5 text-[9.5px] text-[#6b6157]">
@@ -326,6 +331,13 @@ function DayTable({ c, s, data }: { c: CycleMemory; s: ClinicalSummary; data: Ap
         <tbody>
           {rows.map((r, i) => (
             <Fragment key={`${r.kind}-${r.id}`}>
+              {r.kind === "symptom" && (i === 0 || DRSP_AREA_OF[r.id] !== DRSP_AREA_OF[(rows[i - 1] as { id: SymptomId }).id]) && (
+                <tr>
+                  <td colSpan={OFFSETS.length + 1} className="pt-1 text-left text-[9px] text-[#6b6157]">
+                    {DRSP_AREA_OF[r.id] ?? "그 밖의 증상"}
+                  </td>
+                </tr>
+              )}
               {r.kind === "impact" && (i === 0 || rows[i - 1].kind === "symptom") && (
                 <tr>
                   <td colSpan={OFFSETS.length + 1} className="pt-1 text-left text-[9px] text-[#6b6157]">
@@ -504,4 +516,23 @@ function SupplementSection({ data, today }: { data: AppData; today: DateKey }) {
       <p className="mt-1 text-[9.5px] text-[#6b6157]">영양제 이름·성분은 사용자가 직접 입력·선택한 것이며, 앱은 영양제를 추천하지 않습니다.</p>
     </Section>
   );
+}
+
+/** 생리량 많음 신호: in how many of these periods any NHS heavy-period sign was recorded */
+function heavyLine(data: AppData, periods: { start: DateKey; end: DateKey }[]): string {
+  if (!periods.length) return "–";
+  let n = 0;
+  let recorded = 0;
+  for (const p of periods) {
+    let any = false;
+    let rec = false;
+    for (let d = p.start; d <= p.end; d = addDays(d, 1)) {
+      const f = data.symptoms[d]?.flow;
+      if (f) rec = true;
+      if (f?.signs?.length) any = true;
+    }
+    if (any) n++;
+    if (rec) recorded++;
+  }
+  return recorded ? `최근 ${periods.length}번 중 ${n}번 (생리 양 기록 ${recorded}번)` : "생리 양 기록 없음";
 }

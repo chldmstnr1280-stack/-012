@@ -4,6 +4,7 @@ import type { AppData } from "@/lib/data-store";
 import type { DateKey } from "@/lib/date";
 import { analysePms, hasSymptomRecord, type CycleMemory, type PmsPattern } from "./analysis";
 import { IMPACT_NUDGE } from "@/data/safety";
+import { DRSP_ORDER } from "@/data/drspAreas";
 
 /** Cell in the printed table: a score, "not rated that day" or "no record that day". */
 export type Mark = number | "unrated" | "none";
@@ -32,7 +33,8 @@ export function buildClinical(data: AppData, today: DateKey, count: number): Cli
   const pattern = analysePms(data.periodDays, data.symptoms, today, info.nextStart);
   const cycles = pattern.cycles.slice(0, count);
   const seen = new Set(cycles.flatMap((c) => c.symptoms.map((s) => s.id)));
-  const rows = SYMPTOM_IDS.filter((id) => seen.has(id));
+  // DRSP area order (data/drspAreas.ts); anything else after
+  const rows = [...DRSP_ORDER, ...SYMPTOM_IDS.filter((id) => !DRSP_ORDER.includes(id))].filter((id) => seen.has(id));
   const impactRows = IMPACT_IDS.filter((id) => cycles.some((c) => c.cells.some((x) => data.symptoms[x.date]?.impact[id] != null)));
   const dates = cycles.flatMap((c) => c.cells.map((x) => x.date)).sort();
   return { cycles, rows, impactRows, info, pattern, from: dates[0] ?? null, to: dates[dates.length - 1] ?? null };
@@ -50,8 +52,8 @@ export function heavyImpactCycles(p: PmsPattern) {
  * user's own records, to help choose where to ask — never a diagnosis.
  * ⚠️ 전문가 검토 전 — groups and thresholds await review.
  */
-export const MOOD_SYMPTOMS: SymptomId[] = ["low_mood", "anxiety", "irritability", "mood_swings", "tearful", "sensitivity"];
-export const BODY_SYMPTOMS: SymptomId[] = ["cramps", "headache", "bloating", "breast_tenderness", "fatigue"];
+export const MOOD_SYMPTOMS: SymptomId[] = ["low_mood", "anxiety", "irritability", "mood_swings", "tearful", "sensitivity", "hopeless", "guilt", "overwhelmed", "out_of_control", "less_interest", "conflict"];
+export const BODY_SYMPTOMS: SymptomId[] = ["cramps", "headache", "bloating", "breast_tenderness", "fatigue", "joint_pain"];
 export const FOCUS = {
   /** |mood − body| below this = "비슷함" */
   tie: 0.5,

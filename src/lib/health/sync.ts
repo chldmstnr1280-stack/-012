@@ -104,7 +104,7 @@ async function uploadAll(uid: string) {
 
 /** A newer server copy replaces the day, but sleep hours and the note never go to the server: keep this device's copy. */
 export function mergeRemoteDay(local: SymptomDay | undefined, remote: SymptomDay): SymptomDay {
-  return { ...remote, ...(local?.sleepHours != null ? { sleepHours: local.sleepHours } : {}), ...(local?.note ? { note: local.note } : {}) };
+  return { ...remote, ...(local?.sleepHours != null ? { sleepHours: local.sleepHours } : {}), ...(local?.note ? { note: local.note } : {}), ...(local?.flow ? { flow: local.flow } : {}) };
 }
 
 /** Merge server records into the device: newer symptom day wins; period days are united. */

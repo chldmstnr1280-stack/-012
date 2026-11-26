@@ -12,7 +12,7 @@
  * before a public launch.
  */
 export interface LateSource {
-  id: "nhs-missed" | "nhs-test" | "nhs-ectopic" | "nhs-pain" | "nhs-irregular" | "nhs-pms";
+  id: "nhs-missed" | "nhs-test" | "nhs-ectopic" | "nhs-pain" | "nhs-irregular" | "nhs-pms" | "nhs-heavy";
   org: string;
   title: string;
   url: string;
@@ -26,6 +26,7 @@ export const LATE_SOURCES: Record<LateSource["id"], LateSource> = {
   "nhs-ectopic": { id: "nhs-ectopic", org: "NHS", title: "Ectopic pregnancy · Symptoms", url: "https://www.nhs.uk/conditions/ectopic-pregnancy/symptoms/", sourceReviewed: "2022-08-23 (다음 검토 예정일 2025-08-23 지남 — 재확인 필요)", accessed: "2026-11-17" },
   "nhs-pain": { id: "nhs-pain", org: "NHS", title: "Period pain", url: "https://www.nhs.uk/symptoms/period-pain/", sourceReviewed: "2026-03-18 (다음 검토 2029-03-18)", accessed: "2026-11-17" },
   "nhs-irregular": { id: "nhs-irregular", org: "NHS", title: "Irregular periods", url: "https://www.nhs.uk/symptoms/irregular-periods/", sourceReviewed: "2026-06-26", accessed: "2026-11-17" },
+  "nhs-heavy": { id: "nhs-heavy", org: "NHS", title: "Heavy periods", url: "https://www.nhs.uk/conditions/heavy-periods/", sourceReviewed: "2024-09-19", accessed: "2026-11-26" },
   "nhs-pms": { id: "nhs-pms", org: "NHS", title: "PMS (premenstrual syndrome)", url: "https://www.nhs.uk/conditions/pre-menstrual-syndrome/", sourceReviewed: "2024-06-18 (다음 검토 2027-06-18)", accessed: "2026-11-05" },
 };
 
@@ -127,3 +128,7 @@ export const LATE_LINES = {
   notYet: "아직 생리가 시작되지 않았다면, 지금의 몸과 마음 상태를 함께 살펴볼까요?",
   later: "알겠어요. 나중에 편할 때 기록해 주세요.",
 };
+
+/** NHS · Heavy periods (원문, 2026-11-26 열람) — used by 생리 양 and the 진료 신호등. ⚠️ 전문가 검토 전 */
+export const HEAVY_QUOTE =
+  "You may have heavy periods if you: need to change your pad or tampon every 1 to 2 hours, or empty your menstrual cup more often than is recommended · pass blood clots larger than about 2.5cm (the size of a 10p coin) · bleed through to your clothes or bedding … Non-urgent advice: See a GP if: heavy periods are affecting your life · you've had heavy periods for some time · you have heavy periods and other symptoms, such as pain when peeing, pooing or having sex";

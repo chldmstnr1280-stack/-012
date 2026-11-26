@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { LATE_CARDS, LATE_SOURCES } from "@/data/lateCycle";
+import { HEAVY_QUOTE, LATE_CARDS, LATE_SOURCES } from "@/data/lateCycle";
 import type { AppData } from "@/lib/data-store";
 import type { DateKey } from "@/lib/date";
 import { DEPARTMENT_NAME, URGENT_SIGNS, careSignal } from "@/lib/pms/careSignal";
@@ -84,6 +84,9 @@ export function CareSignalCard({ data, today }: { data: AppData; today: DateKey 
             {LATE_SOURCES[src.id].title} ({LATE_SOURCES[src.id].url}) — <i>{src.quote}</i>
           </p>
         ))}
+        <p className="mt-1">
+          {LATE_SOURCES["nhs-heavy"].title} ({LATE_SOURCES["nhs-heavy"].url}) — <i>{HEAVY_QUOTE}</i>
+        </p>
         <p className="mt-1">
           {LATE_SOURCES["nhs-ectopic"].title} ({LATE_SOURCES["nhs-ectopic"].url})
         </p>

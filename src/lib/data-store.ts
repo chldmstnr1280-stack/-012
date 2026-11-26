@@ -5,7 +5,7 @@ import type { Wish } from "@/lib/wish/wishes";
 import { useSyncExternalStore } from "react";
 import type { DateKey } from "./date";
 import type { Emotion } from "@/data/moodFlowers";
-import type { ImpactId, OnsetId, Score, SymptomId } from "@/data/pmsSymptoms";
+import type { FlowAmount, FlowSign, ImpactId, OnsetId, Score, SymptomId } from "@/data/pmsSymptoms";
 import type { ContextTagId } from "@/data/contextTags";
 import type { NutrientId, SuppTime } from "@/data/nutrition";
 import type { FoodId, MealSlot } from "@/data/foods";
@@ -47,6 +47,12 @@ export interface DailyLog {
  * One day of PMS symptom record. A day with no entry = NOT RECORDED (unknown),
  * never "no symptoms". "No symptoms" is an explicit `none: true` entry.
  */
+/** 생리 양: how it felt, and which of the NHS heavy-period signs happened that day */
+export interface Flow {
+  amount?: FlowAmount;
+  signs?: FlowSign[];
+}
+
 export interface SymptomDay {
   scores: Partial<Record<SymptomId, Score>>;
   impact: Partial<Record<ImpactId, Score>>;
@@ -56,6 +62,8 @@ export interface SymptomDay {
   sleepHours?: number;
   /** a short note (optional; this device and the backup file only — not sent to the server) */
   note?: string;
+  /** 생리 양 on a period day (optional; this device and the backup file only — not sent to the server) */
+  flow?: Flow;
   updatedAt: number;
 }
 

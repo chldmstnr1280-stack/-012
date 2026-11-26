@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 import { Check, Trash2 } from "lucide-react";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { DropIcon, SproutLeafIcon } from "@/components/ui/icons";
-import { IMPACT_ITEMS, SCORE_LABEL, SYMPTOM_GROUPS, type ImpactId, type Score, type SymptomId } from "@/data/pmsSymptoms";
+import { FLOW_AMOUNTS, FLOW_SIGNS, IMPACT_ITEMS, SCORE_LABEL, SYMPTOM_GROUPS, type FlowAmount, type FlowSign, type ImpactId, type Score, type SymptomId } from "@/data/pmsSymptoms";
 import { deleteSymptoms, saveSymptoms, setPeriodDays, useAppData, type SymptomDay } from "@/lib/data-store";
 import type { DateKey } from "@/lib/date";
 import { useSelly } from "@/lib/selly-store";
@@ -27,12 +27,12 @@ export function SymptomForm({ date, isFuture }: { date: DateKey; isFuture: boole
   const [openImpact, setOpenImpact] = useState(true);
 
   const write = (next: Omit<SymptomDay, "updatedAt">) => {
-    const hasAny = next.none || Object.keys(next.scores).length || Object.keys(next.impact).length || next.sleepHours != null || !!next.note;
+    const hasAny = next.none || Object.keys(next.scores).length || Object.keys(next.impact).length || next.sleepHours != null || !!next.note || !!next.flow;
     if (hasAny) saveSymptoms(date, next);
     else deleteSymptoms(date);
   };
   // sleep hours and the note travel with every write (they are separate from the symptoms)
-  const extras = () => ({ ...(day?.sleepHours != null ? { sleepHours: day.sleepHours } : {}), ...(day?.note ? { note: day.note } : {}) });
+  const extras = () => ({ ...(day?.sleepHours != null ? { sleepHours: day.sleepHours } : {}), ...(day?.note ? { note: day.note } : {}), ...(day?.flow ? { flow: day.flow } : {}) });
   const base = (): Omit<SymptomDay, "updatedAt"> => ({ scores: { ...(day?.scores ?? {}) }, impact: { ...(day?.impact ?? {}) }, ...extras() });
   /** quick record: tap = "보통(2)", tap again = not recorded */
   const quick = (id: SymptomId) => {
@@ -55,6 +55,22 @@ export function SymptomForm({ date, isFuture }: { date: DateKey; isFuture: boole
     if ((day?.note ?? "") !== t) write(next);
   };
   const [noteOpen, setNoteOpen] = useState(false);
+  /** 생리 양: tap again to clear */
+  const setFlow = (patch: { amount?: FlowAmount; sign?: FlowSign }) => {
+    const next = { ...base(), none: day?.none };
+    const cur = { ...(day?.flow ?? {}) };
+    if (patch.amount) cur.amount = cur.amount === patch.amount ? undefined : patch.amount;
+    if (patch.sign) {
+      const set = new Set(cur.signs ?? []);
+      if (set.has(patch.sign)) set.delete(patch.sign);
+      else set.add(patch.sign);
+      cur.signs = [...set];
+    }
+    const clean = { ...(cur.amount ? { amount: cur.amount } : {}), ...(cur.signs?.length ? { signs: cur.signs } : {}) };
+    if (Object.keys(clean).length) next.flow = clean;
+    else delete next.flow;
+    write(next);
+  };
 
   const setScore = (id: SymptomId, v: Score) => {
     const next = base();
@@ -124,6 +140,35 @@ export function SymptomForm({ date, isFuture }: { date: DateKey; isFuture: boole
           </button>
         </div>
       </section>
+
+      {/* 생리 양 — period days only (NHS: the three signs of heavy periods) */}
+      {(isPeriod || day?.flow) && (
+        <section className="glass rounded-[26px] p-4" aria-label="생리 양">
+          <p className="text-[14px] font-bold text-ink-700">생리 양</p>
+          <div className="mt-2 grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="오늘 생리 양">
+            {FLOW_AMOUNTS.map((a) => (
+              <button key={a.id} type="button" role="radio" aria-checked={day?.flow?.amount === a.id} onClick={() => setFlow({ amount: a.id })} className={`h-10 rounded-2xl text-[13px] font-bold ${day?.flow?.amount === a.id ? "bg-[#f3c6cd] text-[#8c3a47]" : "bg-white text-ink-700 shadow-[0_3px_10px_-7px_rgba(110,88,60,0.5)]"}`}>
+                {a.label}
+              </button>
+            ))}
+          </div>
+          <p className="mb-1 mt-2.5 text-[11.5px] text-ink-500">오늘 이런 일이 있었다면 골라 주세요 (선택)</p>
+          <div className="flex flex-col gap-1.5">
+            {FLOW_SIGNS.map((f) => {
+              const on = !!day?.flow?.signs?.includes(f.id);
+              return (
+                <button key={f.id} type="button" aria-pressed={on} onClick={() => setFlow({ sign: f.id })} className={`flex min-h-10 items-center gap-2 rounded-2xl px-3 text-left text-[12.5px] ${on ? "bg-[#fbe3e6] font-bold text-[#8c3a47]" : "bg-white text-ink-700 shadow-[0_3px_10px_-7px_rgba(110,88,60,0.5)]"}`}>
+                  <span className={`grid h-4 w-4 shrink-0 place-items-center rounded border ${on ? "border-[#c9636f] bg-[#c9636f] text-white" : "border-[#d8cfc2]"}`} aria-hidden>
+                    {on && <Check size={11} strokeWidth={3} />}
+                  </span>
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[10.5px] leading-relaxed text-ink-300">NHS가 ‘생리량이 많을 수 있는 경우’로 소개하는 세 가지예요. 진단이 아니에요. 이 기기에만 저장돼요. ⚠️ 전문가 검토 전</p>
+        </section>
+      )}
 
       {/* quick record: 10–20 seconds — tap what's there; everything else is optional */}
       <section className="glass rounded-[26px] p-4" aria-label="간편 기록">
@@ -225,7 +270,7 @@ export function SymptomForm({ date, isFuture }: { date: DateKey; isFuture: boole
       <p className="px-2 text-center text-[11.5px] leading-relaxed text-ink-300">
         점수는 내가 느낀 정도를 적는 거예요. 진단이 아니에요.
         <br />
-        기록은 이 기기에 저장돼요. 수면 시간과 메모는 서버 백업에도 보내지 않아요.
+        기록은 이 기기에 저장돼요. 수면 시간·메모·생리 양은 서버 백업에도 보내지 않아요.
       </p>
     </div>
   );

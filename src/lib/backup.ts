@@ -8,8 +8,8 @@ import type { LateCheck, PredictionEntry } from "@/lib/pms/late";
 import { cleanWish, mergeWishes, type Wish } from "@/lib/wish/wishes";
 import { cleanCheckIn, mergeCheckIns, type CheckIn } from "@/lib/checkin/checkin";
 import { EMOTIONS, type Emotion } from "@/data/moodFlowers";
-import { IMPACT_IDS, ONSET_IDS, SYMPTOM_IDS, type OnsetId, type Score } from "@/data/pmsSymptoms";
-import type { DayTags, MealDay, PmsProfile, Supplement, SymptomDay } from "./data-store";
+import { FLOW_AMOUNTS, FLOW_SIGNS, IMPACT_IDS, ONSET_IDS, SYMPTOM_IDS, type FlowAmount, type FlowSign, type OnsetId, type Score } from "@/data/pmsSymptoms";
+import type { DayTags, Flow, MealDay, PmsProfile, Supplement, SymptomDay } from "./data-store";
 import { FOOD_IDS, MEAL_SLOT_IDS, type FoodId } from "@/data/foods";
 import { CONSULT_QUESTIONS } from "@/lib/nutrition/overlap";
 import { NUTRIENT_IDS, SUPP_TIME_IDS, type NutrientId, type SuppTime } from "@/data/nutrition";
@@ -175,13 +175,23 @@ export function cleanSymptomDay(v: unknown): SymptomDay | null {
       ? Math.round(v.sleepHours * 2) / 2
       : undefined;
   const note = typeof v.note === "string" && v.note.trim() ? v.note.trim().slice(0, 300) : undefined;
-  if (!none && !Object.keys(scores).length && !Object.keys(impact).length && sleepHours == null && !note)
+  const flow = cleanFlow(v.flow);
+  if (!none && !Object.keys(scores).length && !Object.keys(impact).length && sleepHours == null && !note && !flow)
     return null;
   const updatedAt =
     typeof v.updatedAt === "number" && Number.isFinite(v.updatedAt)
       ? v.updatedAt
       : 0;
-  return { scores, impact, none, ...(sleepHours != null ? { sleepHours } : {}), ...(note ? { note } : {}), updatedAt };
+  return { scores, impact, none, ...(sleepHours != null ? { sleepHours } : {}), ...(note ? { note } : {}), ...(flow ? { flow } : {}), updatedAt };
+}
+
+/** 생리 양: a known amount and known signs only */
+export function cleanFlow(v: unknown): Flow | undefined {
+  if (!isObj(v)) return undefined;
+  const amount = FLOW_AMOUNTS.some((a) => a.id === v.amount) ? (v.amount as FlowAmount) : undefined;
+  const signs = Array.isArray(v.signs) ? [...new Set(v.signs.filter((x): x is FlowSign => FLOW_SIGNS.some((f) => f.id === x)))] : [];
+  if (!amount && !signs.length) return undefined;
+  return { ...(amount ? { amount } : {}), ...(signs.length ? { signs } : {}) };
 }
 
 export function parseBackup(
