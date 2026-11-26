@@ -1,3 +1,6 @@
+import { useMemo } from "react";
+import { LifestyleCard, MayBeLaterLine } from "./LifestyleCard";
+import { lifestyleLink } from "@/lib/pms/lifestyle";
 import { useAppData } from "@/lib/data-store";
 import { estimateAccuracy } from "@/lib/pms/late";
 import type { CycleInfo } from "@/lib/cycle";
@@ -25,6 +28,8 @@ export function CycleAnalysis({ info, today }: { info: CycleInfo; today: DateKey
   const estimated = info.cycleLengths.length === 0;
   const log = useAppData().predictionLog ?? [];
   const acc = estimateAccuracy(log);
+  const appData = useAppData();
+  const lifeLink = useMemo(() => lifestyleLink(appData, today), [appData, today]);
   const lastDiff = [...log].reverse().find((e) => e.diff != null);
 
   return (
@@ -42,6 +47,7 @@ export function CycleAnalysis({ info, today }: { info: CycleInfo; today: DateKey
           />
         )}
       </div>
+      <MayBeLaterLine link={lifeLink} />
 
       {/* how good the estimates have been — the user's own starts vs. what was expected */}
       <section className="glass rounded-[26px] p-4" aria-label="예측은 얼마나 맞았을까">
@@ -62,6 +68,8 @@ export function CycleAnalysis({ info, today }: { info: CycleInfo; today: DateKey
           </>
         )}
       </section>
+
+      <LifestyleCard today={today} />
 
       {info.irregular && (
         <p className="rounded-2xl border border-[#efd9a8] bg-[#fff8e7] px-4 py-3 text-[12.5px] leading-relaxed text-[#8a6a2c]">

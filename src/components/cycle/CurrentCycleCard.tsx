@@ -1,9 +1,11 @@
+import { MayBeLaterLine } from "./LifestyleCard";
+import type { LifestyleLink } from "@/lib/pms/lifestyle";
 import { currentPhase, type CycleInfo } from "@/lib/cycle";
 import { formatMonthDay, type DateKey } from "@/lib/date";
 import { DropIcon } from "@/components/ui/icons";
 import { Flower } from "@/components/greenhouse/svg-kit";
 
-export function CurrentCycleCard({ info, today }: { info: CycleInfo; today: DateKey }) {
+export function CurrentCycleCard({ info, today, link }: { info: CycleInfo; today: DateKey; link?: LifestyleLink }) {
   const p = currentPhase(info, today);
   let headline = "";
   let message = "";
@@ -47,6 +49,7 @@ export function CurrentCycleCard({ info, today }: { info: CycleInfo; today: Date
         </div>
       </div>
       <p className="mt-3 text-[13.5px] leading-relaxed text-ink-500">{message}</p>
+      {p.kind === "cycle" && link && <MayBeLaterLine link={link} />}
       {p.kind === "cycle" && info.overdue === 0 && (
         <p className="mt-1.5 text-[11px] leading-relaxed text-ink-300">
           {info.basis === 0 ? "아직 주기 길이 기록이 없어서 기본 28일 주기로 계산했어요. " : info.basis === 1 ? "주기 기록이 한 번뿐이라 덜 정확할 수 있어요. " : info.irregular ? "주기 길이 차이가 커서 날짜가 덜 정확할 수 있어요. " : ""}

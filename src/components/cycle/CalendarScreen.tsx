@@ -1,5 +1,6 @@
 "use client";
 
+import { lifestyleLink } from "@/lib/pms/lifestyle";
 import { RhythmView } from "./RhythmView";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -94,7 +95,7 @@ export function CalendarScreen() {
                       pmsWindow={pmsWindow}
                       onSelect={setSelected}
                     />
-                    <CurrentCycleCard info={info} today={today} />
+                    <CurrentCycleCard info={info} today={today} link={lifestyleLink(data, today)} />
                     <LateCycleCard info={info} today={today} />
                     <CareRecapCard today={today} />
                     <Link href={careNear ? "/pms/care?from=pms" : "/pms/care"} className="glass flex items-center gap-3 rounded-[22px] px-4 py-3.5">

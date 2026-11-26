@@ -648,3 +648,10 @@ npm run build:toss   # 정적 export(out/) → dearselly0.ait
 - **상태 스냅샷** (`src/lib/jitai/snapshot.ts`, `snapshot(data, game, now)`): 기록을 한 객체로 — `mood`(최근 기분 1~5, 날짜·저장 시각·며칠 전), `condition`(최근 컨디션 1~5), `cycle`(주기 일차, 다음 예정일까지 남은 날 · 예상일이 지나면 null, overdue, basis, 생리 중), `timeOfDay`(실제 시계: 아침 5–11·낮 11–17·저녁 17–21·밤), `recentMissions`(최근 7일: 호흡·산책·하늘 사진·산책 미션·체크인·자기자비·징징대기 날짜), `missingDays`(오늘부터 거꾸로 연속 미기록 일수, 기록이 하나도 없으면 null), `lastBreath`. 항목마다 실패해도 null로 — 함수는 멈추지 않음. 기분 척도는 앱 그대로 1~5.
 - **호흡 전후 마음 점수** (`src/components/breathing/MoodCheck.tsx`, `src/lib/jitai/breathLog.ts`): 1분 호흡 시작 전 “지금 마음은 몇 점쯤이야?”(0~10, ‘건너뛰고 바로 시작’), 끝난 뒤 한 번 더(‘건너뛰기’). `breathLog`에 시작 시각·분·완료 여부·before·after·`recoveryDelta`(둘 다 답했을 때만 after−before). 중간에 그만두면 after는 묻지 않고, before를 답했을 때만 ‘완료 안 됨’으로 남김. 이 기기·백업 파일에만.
 - **테스트**: `npm test` — `tests/*.test.ts` 12개(기존 기능 11 + 스냅샷)를 차례로 실행(`tests/run.mjs`, tsx는 npx로 받아 씀).
+
+## 44. 생활과 주기 (수면·스트레스·기분 × 예측 오차)
+
+- `src/lib/pms/lifestyle.ts` `lifestyleLink(data, today)`: 주기마다(한 시작일 → 다음 시작일 전날) 예측 오차(`predictionLog`의 diff, 없으면 같은 계산을 기록으로 다시) + 그 주기에 기록한 날의 수면·스트레스·에너지·기분 평균(1~5; 수면 평가가 없으면 PMS 기록의 수면 시간을 환산). 기록 4일 미만 주기는 빼고(빈칸 ≠ 괜찮음), 이런 주기가 3개 이상일 때만 “잠이 부족했던 주기 vs 그렇지 않았던 주기”의 평균 오차를 비교(스트레스·기분도 같은 방식).
+- 화면: 캘린더 › 주기 분석 › **생활과 주기** 카드(`src/components/cycle/LifestyleCard.tsx`) — “잠이 부족했던 주기(2번)에는 예상보다 평균 4.5일 늦게 시작했어요”, 주기별 표, 3주기 미만이면 “기록이 쌓이면 보여드릴게요”. 원인 단정 없음, ⚠️ 전문가 검토 전.
+- **이번 달은 평소보다 늦어질 수 있어요** (`MayBeLaterLine`): 이번 주기에 기록한 날 3일 이상, 평균 수면 ≤2.5 또는 스트레스 ≥3.5, 예상일이 아직 안 지났을 때 — 캘린더 ‘현재 주기’ 카드와 주기 분석에. NHS ‘Missed or late periods’ 원문(스트레스는 흔한 이유 중 하나) 출처 첨부.
+- 기준값은 `LIFESTYLE` 상수(최소 3주기 · 주기당 4일 · 수면 2.5 · 스트레스 3.5 · 기분 2.5 · 이번 주기 3일).
