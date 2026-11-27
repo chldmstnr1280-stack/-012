@@ -61,6 +61,11 @@ export interface GameData {
 
 const EMPTY: GameData = { version: 1, lastVisit: null, finds: [], pendingReturn: null, walkIntroSeen: false, lastWalkGrowth: null, deco: {}, careShown: [] };
 
+/** 모든 데이터 지우기: back to a first visit */
+export function resetGame() {
+  write({ ...EMPTY });
+}
+
 export function readGame(): GameData {
   return read();
 }

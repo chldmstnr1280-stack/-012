@@ -8,7 +8,10 @@ import { Download, Trash2 } from "lucide-react";
 import { SubPage } from "@/components/screens/SubPage";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { NoteIcon, SproutLeafIcon } from "@/components/ui/icons";
-import { getData, resetAll, useAppData } from "@/lib/data-store";
+import { getData, useAppData } from "@/lib/data-store";
+import { wipeDevice } from "@/lib/wipe";
+import { WhereIsMyData } from "./WhereIsMyData";
+import { syncWanted, withdrawConsent } from "@/lib/health/sync";
 import { groupPeriods } from "@/lib/cycle";
 import { toKey } from "@/lib/date";
 import { useSelly } from "@/lib/selly-store";
@@ -24,6 +27,10 @@ export function SettingsScreen() {
   const { showToast } = useSelly();
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
+  const [wiping, setWiping] = useState(false);
+  const [alsoServer, setAlsoServer] = useState(true);
+  // read when the dialog opens (localStorage), not during server rendering
+  const serverSync = confirming && !IS_TOSS && syncWanted();
 
   const recordDays = Object.keys(data.entries).length;
   const periods = groupPeriods(data.periodDays).length;
@@ -119,6 +126,8 @@ export function SettingsScreen() {
             </div>
           </SectionCard>
 
+          <WhereIsMyData />
+
           {!IS_TOSS && <HealthSyncCard />}
 
           <SectionCard icon={<SproutLeafIcon />} title="Dear Selly">
@@ -152,19 +161,43 @@ export function SettingsScreen() {
               <p id="reset-title" className="text-[17px] font-bold text-ink-700">
                 모든 데이터를 지울까요?
               </p>
-              <p className="mt-2 text-[13px] leading-relaxed text-ink-500">
-                기록, 생리주기, 셀리의 성장이 모두 처음으로 돌아가요. 지운 뒤에는 되돌릴 수 없어요.
-              </p>
+              <p className="mt-2 text-[13px] leading-relaxed text-ink-500">이 기기에 있는 디어셀리의 모든 것이 처음으로 돌아가요. 지운 뒤에는 되돌릴 수 없어요.</p>
+              <ul className="mt-2 rounded-2xl bg-white/70 px-4 py-2.5 text-left text-[12px] leading-relaxed text-ink-500">
+                <li>· 기분·컨디션·생리·증상·생리 양 기록, 몸의 날씨, 메모</li>
+                <li>· 소망, 편지, 다정해지는 연습, 나의 리듬, 호흡 점수</li>
+                <li>· 셀리 성장, 온실 꾸미기, 산책 기록·사진, 햇빛 조각</li>
+                <li>· 이 기기의 설정{IS_TOSS ? " (토스 앱 안에 저장된 복사본도 함께)" : ""}</li>
+              </ul>
+              {!IS_TOSS && (
+                <div className="mt-2 text-left text-[11.5px] leading-relaxed text-ink-500">
+                  {serverSync ? (
+                    <label className="flex items-start gap-2 rounded-2xl bg-[#fdf3f4] px-3 py-2.5">
+                      <input type="checkbox" checked={alsoServer} onChange={(e) => setAlsoServer(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#e3707e]" />
+                      <span>
+                        <b className="text-ink-700">서버에 백업한 건강 기록도 지우기</b> (동의 철회). 끄면 다음에 앱을 열 때 서버 기록이 다시 내려와요.
+                      </span>
+                    </label>
+                  ) : (
+                    <p>서버로 백업한 건강 기록은 없어요.</p>
+                  )}
+                  <p className="mt-1">친구 기능 계정(닉네임·친구·선물)은 친구 화면의 ‘계정 삭제’로 지울 수 있어요.</p>
+                </div>
+              )}
               <div className="mt-5 grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => setConfirming(false)} className="h-12 rounded-2xl bg-white text-[14px] font-bold text-ink-700 shadow-sm">
                   취소
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    resetAll();
+                  disabled={wiping}
+                  onClick={async () => {
+                    setWiping(true);
+                    let serverOk = true;
+                    if (!IS_TOSS && serverSync && alsoServer) serverOk = await withdrawConsent();
+                    await wipeDevice();
+                    setWiping(false);
                     setConfirming(false);
-                    showToast("모든 데이터를 지웠어요");
+                    showToast(serverOk ? "모든 데이터를 지웠어요" : "이 기기의 데이터는 지웠어요. 서버 기록은 지우지 못했어요 — 설정에서 다시 시도해 주세요");
                     router.push("/");
                   }}
                   className="h-12 rounded-2xl bg-[#e3707e] text-[14px] font-bold text-white"
