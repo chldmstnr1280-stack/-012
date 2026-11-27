@@ -13,6 +13,7 @@ import { toScreen, toWorld, type WorldLayout } from "@/lib/game/world";
 import { DOOR_RECT } from "@/data/greenhouseWorld";
 import { TimeLighting } from "./TimeLighting";
 import { ChristmasTree } from "./ChristmasTree";
+import { PhotoFrame } from "./PhotoFrame";
 import { WeatherGlass, WeatherGrade, WeatherNight, WeatherOutside } from "./weather/WeatherScene";
 import type { Season, Weather } from "@/lib/garden/weather";
 import { EMOTION_INFO, FLOWER_ASPECT, FLOWER_STAGE_NAMES, flowerArt, type Emotion } from "@/data/moodFlowers";
@@ -81,9 +82,12 @@ interface Props {
   /** 크리스마스 온실: show the tree */
   christmas?: boolean;
   onTree?: () => void;
+  /** the latest walk photo hung on the wall (→ 산책 기록실) */
+  framePhoto?: { src: string; count: number } | null;
+  onFrame?: () => void;
 }
 
-export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers, deco, decorating, activeSlot, onSlot, weather, season, lights = 0, christmas = false, onTree }: Props) {
+export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers, deco, decorating, activeSlot, onSlot, weather, season, lights = 0, christmas = false, onTree, framePhoto, onFrame }: Props) {
   const { body, state, facing, spot } = brain;
   const reduceMotion = useReducedMotion();
   // watching the rain/snow: her eyes follow the drops, slowly left and right
@@ -136,6 +140,7 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
       <MoodGarden layout={L} flowers={flowers} />
       <Decorations layout={L} deco={deco} decorating={decorating} activeSlot={activeSlot} onSlot={onSlot} />
       {christmas && <ChristmasTree layout={L} disabled={breathing || decorating} onTap={() => onTree?.()} />}
+      {framePhoto && <PhotoFrame layout={L} src={framePhoto.src} count={framePhoto.count} disabled={breathing || decorating} onTap={() => onFrame?.()} />}
       {petals && <FallingPetals />}
       <CheckinLights layout={L} n={lights} />
 

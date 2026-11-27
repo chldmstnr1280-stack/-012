@@ -157,10 +157,18 @@ export function CollectionScreen() {
         </SectionCard>
 
         {/* walk album */}
-        <SectionCard icon={<SproutLeafIcon />} title="산책 앨범" aside={photos ? <span className="text-[11.5px] text-ink-500">{photos.length}장</span> : undefined}>
+        <SectionCard
+          icon={<SproutLeafIcon />}
+          title="산책 기록실"
+          aside={
+            <Link href="/album" className="text-[12px] font-bold text-sage-700">
+              {photos ? `${photos.length}장 · ` : ""}전체 보기 →
+            </Link>
+          }
+        >
           {photos && photos.length ? (
             <ul className="grid grid-cols-3 gap-1.5">
-              {photos.map((p) => (
+              {photos.slice(0, 6).map((p) => (
                 <li key={p.id}>
                   <button type="button" onClick={() => setOpen(p)} className="relative block aspect-square w-full overflow-hidden rounded-xl" aria-label={`${MISSION_BY_ID[p.mission]?.title ?? "산책 사진"}, ${formatShort(p.date)}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}

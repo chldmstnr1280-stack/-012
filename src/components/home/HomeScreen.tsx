@@ -36,6 +36,7 @@ import type { CareAction, PickedSuggestion } from "@/data/careSuggestions";
 import { getData, setPeriodDays, setPrefs } from "@/lib/data-store";
 import { showStartPrompt } from "@/lib/pms/late";
 import { TREE_LINES, christmasOn } from "@/lib/garden/christmas";
+import { listPhotos } from "@/lib/walk/photos";
 import { currentTimeOfDay } from "@/lib/game/ambience";
 import { playSfx } from "@/lib/sound/sfx";
 import type { TalkAction } from "@/data/sellyConversations";
@@ -110,6 +111,18 @@ export function HomeScreen() {
   /** small lights from today's 몸의 날씨 check-ins */
   const [lights, setLights] = useState(0);
   const [petals, setPetals] = useState(false);
+  /** 셀리가 걸어 둔 사진: the latest sky photo (or any walk photo) */
+  const [framePhoto, setFramePhoto] = useState<{ src: string; count: number } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    listPhotos().then((ps) => {
+      const pick = ps.find((x) => x.mission === "sky") ?? ps[0];
+      if (alive) setFramePhoto(pick ? { src: pick.dataUrl, count: ps.length } : null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   /** 햇빛 병이 꽉 차서 돌아온 날: sunlight pours through the glass */
   const [sunburst, setSunburst] = useState<string | null>(null);
   const [deco, setDeco] = useState<Record<string, string>>({});
@@ -613,6 +626,11 @@ export function HomeScreen() {
             finds={finds}
             lights={lights}
             christmas={christmasOn(appData.prefs, today)}
+            framePhoto={framePhoto}
+            onFrame={() => {
+              playSfx("tap");
+              router.push("/album");
+            }}
             onTree={() => {
               playSfx("cheer");
               react("cheer");

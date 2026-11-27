@@ -372,6 +372,7 @@ export function WalkScreen() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {photoUrl && <img src={photoUrl} alt={`${activeMission.title} 사진`} className="max-h-48 rounded-2xl object-cover shadow-sm" />}
                 <p className="text-[13px] font-bold text-sage-700">미션 완료! 🎉</p>
+                {photoUrl && <p className="text-[11.5px] text-ink-500">사진은 ‘산책 기록실’에 담아 뒀어요. 산책이 끝나면 볼 수 있어요.</p>}
               </div>
             ) : activeMission.kind === "photo" ? (
               <div className="mt-3 flex flex-col gap-1.5">
@@ -555,6 +556,11 @@ export function WalkScreen() {
                 </span>
                 <span className="shrink-0 text-[12px] font-bold text-ink-500">{missionResult ? (missionResult.found ? "완료 ✓" : "완료 · 다음에 또!") : "다음 산책에서"}</span>
               </div>
+            )}
+            {photoUrl && (
+              <button type="button" onClick={() => router.push("/album")} className="mt-2 w-full rounded-2xl bg-white px-3 py-2.5 text-[13px] font-bold text-sage-700 shadow-[0_3px_10px_-7px_rgba(110,88,60,0.5)]">
+                📷 산책 기록실에 담았어요 · 보러 가기
+              </button>
             )}
             <button
               type="button"

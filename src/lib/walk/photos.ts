@@ -5,6 +5,8 @@ import { IS_TOSS } from "@/lib/platform";
 /**
  * Walk-mission photos: taken with the camera, shrunk on the device and kept in
  * this device's IndexedDB only (never uploaded, not in the server backup).
+ * In the Toss app the WebView's storage may not survive a restart, so each photo
+ * is also copied into the Toss app's own storage and restored from there.
  */
 const DB = "dear-selly-photos";
 const STORE = "photos";
@@ -37,13 +39,78 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
   });
 }
 
-export async function listPhotos(): Promise<WalkPhoto[]> {
+/* ---------- Toss app copy ---------- */
+const INDEX_KEY = "dear-selly:photos-index";
+const photoKey = (id: string) => `dear-selly:photo:${id}`;
+async function tossStorage() {
+  if (!IS_TOSS) return null;
   try {
-    const all = await tx<WalkPhoto[]>("readonly", (s) => s.getAll() as IDBRequest<WalkPhoto[]>);
-    return all.sort((a, b) => b.at - a.at);
+    return (await import("@apps-in-toss/web-framework")).Storage;
+  } catch {
+    return null;
+  }
+}
+async function tossIndex(): Promise<string[]> {
+  const S = await tossStorage();
+  if (!S) return [];
+  try {
+    const raw = await S.getItem(INDEX_KEY);
+    const ids = raw ? JSON.parse(raw) : [];
+    return Array.isArray(ids) ? ids.filter((x): x is string => typeof x === "string") : [];
   } catch {
     return [];
   }
+}
+async function tossPut(p: WalkPhoto) {
+  const S = await tossStorage();
+  if (!S) return;
+  try {
+    await S.setItem(photoKey(p.id), JSON.stringify(p));
+    const ids = [p.id, ...(await tossIndex()).filter((x) => x !== p.id)];
+    for (const old of ids.slice(MAX_PHOTOS)) await S.removeItem(photoKey(old));
+    await S.setItem(INDEX_KEY, JSON.stringify(ids.slice(0, MAX_PHOTOS)));
+  } catch {
+    // storage full or no bridge: the device copy is still there
+  }
+}
+async function tossRemove(id: string | null) {
+  const S = await tossStorage();
+  if (!S) return;
+  try {
+    const ids = await tossIndex();
+    for (const x of id ? [id] : ids) await S.removeItem(photoKey(x));
+    await S.setItem(INDEX_KEY, JSON.stringify(id ? ids.filter((x) => x !== id) : []));
+  } catch {
+    // ignore
+  }
+}
+
+export async function listPhotos(): Promise<WalkPhoto[]> {
+  let all: WalkPhoto[] = [];
+  try {
+    all = await tx<WalkPhoto[]>("readonly", (s) => s.getAll() as IDBRequest<WalkPhoto[]>);
+  } catch {
+    all = [];
+  }
+  // Toss: bring back photos the WebView lost
+  if (IS_TOSS) {
+    const have = new Set(all.map((p) => p.id));
+    const missing = (await tossIndex()).filter((id) => !have.has(id));
+    const S = missing.length ? await tossStorage() : null;
+    for (const id of missing) {
+      try {
+        const raw = S ? await S.getItem(photoKey(id)) : null;
+        const p = raw ? (JSON.parse(raw) as WalkPhoto) : null;
+        if (p && typeof p.dataUrl === "string" && p.dataUrl.startsWith("data:image/")) {
+          all.push(p);
+          await tx("readwrite", (s) => s.put(p)).catch(() => {});
+        }
+      } catch {
+        // skip a broken copy
+      }
+    }
+  }
+  return all.sort((a, b) => b.at - a.at);
 }
 
 export async function getPhoto(id: string): Promise<WalkPhoto | null> {
@@ -56,12 +123,14 @@ export async function getPhoto(id: string): Promise<WalkPhoto | null> {
 
 export async function savePhoto(p: WalkPhoto) {
   await tx("readwrite", (s) => s.put(p));
+  await tossPut(p);
   const all = await listPhotos();
   for (const old of all.slice(MAX_PHOTOS)) await tx("readwrite", (s) => s.delete(old.id));
 }
 
 export async function deletePhoto(id: string) {
   await tx("readwrite", (s) => s.delete(id));
+  await tossRemove(id);
 }
 
 /** Shrink any image source to a JPEG data URL (max 720 px wide). */
@@ -108,7 +177,8 @@ export async function takePhoto(): Promise<string | null> {
 }
 
 /** 모든 데이터 지우기: remove every walk photo (the whole on-device photo store) */
-export function deleteAllPhotos(): Promise<void> {
+export async function deleteAllPhotos(): Promise<void> {
+  await tossRemove(null);
   return new Promise((resolve) => {
     try {
       const r = indexedDB.deleteDatabase(DB);
