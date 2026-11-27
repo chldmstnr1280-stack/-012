@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { toScreen, type WorldLayout } from "@/lib/game/world";
 
 /** where the polaroid hangs (world px, top-centre of the string) */
-export const FRAME_AT = { x: 352, y: 665 };
+export const FRAME_AT = { x: 352, y: 735 };
 const FRAME_W = 86;
 
 /**

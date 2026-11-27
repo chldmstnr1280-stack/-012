@@ -12,6 +12,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { EnergyIcon, FocusIcon, NoteIcon, SleepIcon, SmileIcon, SneakerIcon, SproutLeafIcon, StressIcon } from "@/components/ui/icons";
 import { MoodFace, MOODS } from "@/components/ui/MoodFace";
 import { SubPage } from "./SubPage";
+import { PmsMoodNote } from "@/components/body/PmsMoodNote";
 import { SymptomForm } from "@/components/pms/SymptomForm";
 import { NutritionForm } from "@/components/nutrition/NutritionForm";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
@@ -189,6 +190,7 @@ function RecordForm({ date, isToday }: { date: DateKey; isToday: boolean }) {
           ))}
         </div>
         <p className="mt-1.5 h-5 text-center text-[13px] text-ink-500">{mood ? MOODS[mood - 1].label : "오늘 마음은 어땠나요?"}</p>
+        <PmsMoodNote date={date} mood={mood} />
       </SectionCard>
 
       <SectionCard icon={<SproutLeafIcon />} title="마음의 색" aside={<span className="text-[11.5px] text-ink-300">고르면 정원에 꽃이 피어요</span>}>

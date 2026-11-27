@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Check, ChevronRight } from "lucide-react";
 import { SubPage } from "@/components/screens/SubPage";
+import { PmsMoodNote } from "@/components/body/PmsMoodNote";
 import { MoodFace, MOODS } from "@/components/ui/MoodFace";
 import { DRSP_AREA_OF } from "@/data/drspAreas";
 import { FLOW_AMOUNTS, FLOW_SIGNS, SCORE_LABEL, SYMPTOM_LABEL, type Score } from "@/data/pmsSymptoms";
@@ -124,6 +125,7 @@ export function TodayRecord() {
             ))}
           </div>
           <p className="mt-1 h-5 text-center text-[12.5px] text-ink-500">{entry?.mood ? MOODS[entry.mood - 1].label : "오늘 마음은 어땠어?"}</p>
+          <PmsMoodNote date={today} mood={entry?.mood} />
         </Card>
 
         {/* 3. symptoms */}

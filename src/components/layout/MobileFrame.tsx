@@ -3,6 +3,7 @@
 import { BottomNav } from "./BottomNav";
 import { Toast } from "@/components/ui/Toast";
 import { LevelUpOverlay } from "@/components/growth/LevelUpOverlay";
+import { BodySheetHost } from "@/components/body/BodySheetHost";
 import { SoundInit } from "./SoundInit";
 import { HealthSync } from "./HealthSync";
 import { PlatformGate } from "./PlatformGate";
@@ -26,6 +27,7 @@ export function MobileFrame({ children }: { children: React.ReactNode }) {
           <BottomNav />
           <Toast />
           <LevelUpOverlay />
+          <BodySheetHost />
           <SoundInit />
           {/* Toss build: no Kakao login, so no server sync */}
           {!IS_TOSS && <HealthSync />}

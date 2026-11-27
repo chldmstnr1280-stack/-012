@@ -41,7 +41,7 @@ setData((d) => ({ ...d, entries: { [T]: { emotion: "calm", condition: { focus: 4
 setMood(T, 2);
 setCondition(T, "sleep", 1);
 setCondition(T, "stress", 4);
-let e = getData().entries[T];
+const e = getData().entries[T];
 ok(e.mood === 2 && e.emotion === "calm" && e.steps === 3000 && e.memo === "메모" && e.condition.focus === 4 && e.condition.sleep === 1 && e.condition.stress === 4, "2 entry merged " + JSON.stringify(e));
 setCondition(T, "sleep", 1);
 ok(getData().entries[T].condition.sleep === undefined, "2 same value again clears");

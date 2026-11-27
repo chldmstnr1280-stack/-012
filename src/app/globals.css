@@ -163,3 +163,79 @@ button {
     break-inside: avoid;
   }
 }
+
+/* ---------- 오늘 몸속에서는: gentle motion on the phase pictures ---------- */
+.body-drop {
+  position: absolute;
+  left: 49.6%;
+  width: 1.9%;
+  aspect-ratio: 3 / 4;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: radial-gradient(circle at 40% 35%, #fbd3da, #e57f91 70%);
+  opacity: 0;
+  animation: body-drop 4.8s ease-in infinite;
+}
+@keyframes body-drop {
+  0% { top: 47.5%; opacity: 0; }
+  15% { opacity: 0.85; }
+  80% { opacity: 0.75; }
+  100% { top: 66%; opacity: 0; }
+}
+.body-glow {
+  position: absolute;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.body-glow--follicle {
+  left: 84.5%;
+  top: 44.6%;
+  width: 14%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(255, 246, 214, 0.85), rgba(255, 220, 200, 0.35) 45%, rgba(255, 220, 200, 0) 70%);
+  animation: body-follicle 4.5s ease-in-out infinite;
+}
+@keyframes body-follicle {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.86); opacity: 0.45; }
+  50% { transform: translate(-50%, -50%) scale(1.12); opacity: 0.95; }
+}
+.body-glow--egg {
+  width: 6%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(255, 252, 236, 0.95), rgba(255, 214, 150, 0.55) 45%, rgba(255, 214, 150, 0) 72%);
+  animation: body-egg 5.5s ease-in-out infinite;
+}
+@keyframes body-egg {
+  0% { left: 93.4%; top: 24.5%; opacity: 0; }
+  20% { opacity: 1; }
+  70% { opacity: 0.9; }
+  100% { left: 89.6%; top: 20.6%; opacity: 0; }
+}
+.body-glow--luteum {
+  left: 84.9%;
+  top: 42.7%;
+  width: 15%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(255, 228, 120, 0.85), rgba(255, 196, 90, 0.35) 45%, rgba(255, 196, 90, 0) 70%);
+  animation: body-luteum 5s ease-in-out infinite;
+}
+@keyframes body-luteum {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+}
+.body-dim {
+  animation: body-dim 9s ease-in-out infinite;
+}
+@keyframes body-dim {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(0.86) saturate(0.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .body-drop,
+  .body-glow {
+    display: none;
+  }
+  .body-dim {
+    animation: none;
+  }
+}

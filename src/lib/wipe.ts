@@ -9,7 +9,7 @@ import { deleteAllPhotos } from "@/lib/walk/photos";
  * own copy follows through the storage mirror (both stores write empty values).
  * Login (친구 기능) is kept; server copies are handled separately (see the dialog).
  */
-export const DEVICE_KEYS = ["dear-selly:whine-ai", "dear-selly:pending-invite", "dear-selly:health-sync", "dear-selly:health-sync-at", "dear-selly:health-sync-dirty"] as const;
+export const DEVICE_KEYS = ["dear-selly:whine-ai", "dear-selly:pending-invite", "dear-selly:health-sync", "dear-selly:health-sync-at", "dear-selly:health-sync-dirty", "dear-selly:events"] as const;
 
 export async function wipeDevice(): Promise<void> {
   resetAll();

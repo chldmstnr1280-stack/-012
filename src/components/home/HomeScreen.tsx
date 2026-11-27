@@ -37,6 +37,7 @@ import { getData, setPeriodDays, setPrefs } from "@/lib/data-store";
 import { showStartPrompt } from "@/lib/pms/late";
 import { TREE_LINES, christmasOn } from "@/lib/garden/christmas";
 import { listPhotos } from "@/lib/walk/photos";
+import { BodyCard } from "@/components/body/BodyCard";
 import { currentTimeOfDay } from "@/lib/game/ambience";
 import { playSfx } from "@/lib/sound/sfx";
 import type { TalkAction } from "@/data/sellyConversations";
@@ -710,6 +711,7 @@ export function HomeScreen() {
           <AnimatePresence>
             {mode === "home" && (
               <motion.div key="pills" className="pointer-events-none absolute left-4 top-1 flex flex-col items-start gap-1.5" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+                <BodyCard />
                 <button
                   type="button"
                   onClick={() => {
