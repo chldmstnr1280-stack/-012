@@ -4,9 +4,11 @@ import { motion, useReducedMotion } from "motion/react";
 import { toScreen, type WorldLayout } from "@/lib/game/world";
 
 /** where the tree stands (world px, bottom-centre) and how big it is */
-export const TREE_AT = { x: 802, y: 996 };
-const TREE_W = 150;
-const TREE_H = 214;
+export const TREE_AT = { x: 752, y: 992 };
+const TREE_W = 185;
+const TREE_H = 264;
+/** just behind the cushion's front edge, so Selly on her cushion stays in front of it */
+const TREE_Z = 955;
 
 const LIGHTS = [
   [52, 70], [70, 74], [44, 104], [64, 110], [86, 106], [36, 140], [58, 146], [80, 144], [100, 138],
@@ -39,7 +41,7 @@ export function ChristmasTree({ layout, onTap, disabled }: { layout: WorldLayout
       disabled={disabled}
       onClick={onTap}
       className="pointer-events-auto absolute disabled:pointer-events-none"
-      style={{ left: p.x - w / 2, top: p.y - h, width: w, height: h, zIndex: TREE_AT.y }}
+      style={{ left: p.x - w / 2, top: p.y - h, width: w, height: h, zIndex: TREE_Z }}
       initial={{ opacity: 0, scale: 0.8, originY: 1 }}
       animate={{ opacity: 1, scale: 1 }}
       whileTap={reduce ? undefined : { scale: 0.96, rotate: [-1, 1, 0] }}
@@ -65,6 +67,8 @@ export function ChristmasTree({ layout, onTap, disabled }: { layout: WorldLayout
           </radialGradient>
         </defs>
 
+        {/* a warm halo so the tree reads at a glance */}
+        <motion.ellipse cx="75" cy="140" rx="86" ry="118" fill="url(#xt-glow)" animate={reduce ? undefined : { opacity: [0.25, 0.45, 0.25] }} transition={{ duration: 3.2, repeat: Infinity }} />
         {/* shadow */}
         <ellipse cx="75" cy="244" rx="62" ry="7" fill="#6b5240" opacity="0.18" />
         {/* trunk + pot */}
