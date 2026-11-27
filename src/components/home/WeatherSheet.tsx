@@ -113,6 +113,31 @@ export function WeatherSheet({ open, onClose, onWeather }: { open: boolean; onCl
             </div>
             <p className="text-[10.5px] text-ink-500">맑음 새소리 · 흐림 바람 · 비 빗소리 · 눈 겨울바람 · 밤 귀뚜라미</p>
           </div>
+
+          <div className="mt-2 rounded-[18px] border border-white bg-white/70 px-3 py-2">
+            <p className="text-[12.5px] font-bold text-ink-700">🎄 크리스마스 온실</p>
+            <div className="mt-1 grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="크리스마스 온실">
+              {(
+                [
+                  ["auto", "자동"],
+                  ["on", "켜기"],
+                  ["off", "끄기"],
+                ] as const
+              ).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={(prefs.christmas ?? "auto") === v}
+                  onClick={() => setPrefs({ christmas: v })}
+                  className={`h-9 rounded-full text-[12.5px] font-bold ${(prefs.christmas ?? "auto") === v ? "bg-sage-500 text-white" : "bg-white text-ink-500"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[10.5px] text-ink-500">트리와 오르골 캐럴(고요한 밤 거룩한 밤 · 징글벨) · 자동은 11월 20일~12월 31일 · 캐럴은 배경음악이 켜져 있을 때 나와요</p>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

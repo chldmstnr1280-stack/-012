@@ -12,6 +12,7 @@ import { useSelly } from "@/lib/selly-store";
 import { toScreen, toWorld, type WorldLayout } from "@/lib/game/world";
 import { DOOR_RECT } from "@/data/greenhouseWorld";
 import { TimeLighting } from "./TimeLighting";
+import { ChristmasTree } from "./ChristmasTree";
 import { WeatherGlass, WeatherGrade, WeatherNight, WeatherOutside } from "./weather/WeatherScene";
 import type { Season, Weather } from "@/lib/garden/weather";
 import { EMOTION_INFO, FLOWER_ASPECT, FLOWER_STAGE_NAMES, flowerArt, type Emotion } from "@/data/moodFlowers";
@@ -77,9 +78,12 @@ interface Props {
   season: Season;
   /** today's 몸의 날씨 check-ins (0–3): one soft light each */
   lights?: number;
+  /** 크리스마스 온실: show the tree */
+  christmas?: boolean;
+  onTree?: () => void;
 }
 
-export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers, deco, decorating, activeSlot, onSlot, weather, season, lights = 0 }: Props) {
+export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, haloOpacity, onTouchSelly, onObject, moodDays, onDoor, doorGlow, finds, petals, tod, flowers, deco, decorating, activeSlot, onSlot, weather, season, lights = 0, christmas = false, onTree }: Props) {
   const { body, state, facing, spot } = brain;
   const reduceMotion = useReducedMotion();
   // watching the rain/snow: her eyes follow the drops, slowly left and right
@@ -131,6 +135,7 @@ export function GreenhouseWorld({ layout, brain, size, breathing, haloScale, hal
       <GardenFinds layout={L} finds={finds} />
       <MoodGarden layout={L} flowers={flowers} />
       <Decorations layout={L} deco={deco} decorating={decorating} activeSlot={activeSlot} onSlot={onSlot} />
+      {christmas && <ChristmasTree layout={L} disabled={breathing || decorating} onTap={() => onTree?.()} />}
       {petals && <FallingPetals />}
       <CheckinLights layout={L} n={lights} />
 

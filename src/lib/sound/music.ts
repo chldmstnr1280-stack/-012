@@ -1,6 +1,7 @@
 "use client";
 
 import { getEngine, midi, setBusVolume, tone } from "./engine";
+import { CAROLS, carolEvents, type CarolEvent } from "./carols";
 
 /**
  * "온실 오르골" — gentle generative music.
@@ -26,6 +27,46 @@ let step = 0; // eighth notes since start
 let melodyIdx = 4;
 let calm = false;
 let volume = 0.5;
+/** 오르골 캐럴 (Christmas): public-domain carols instead of the wandering melody */
+let carol = false;
+let carolIdx = 0;
+let carolStart = 0;
+let carolNext = 0;
+let carolSong: { events: CarolEvent[]; length: number } | null = null;
+const SONG_GAP = 3.5; // seconds between songs
+
+function carolTick(now: number) {
+  if (!carolSong) {
+    carolSong = carolEvents(CAROLS[carolIdx % CAROLS.length]);
+    carolStart = Math.max(now + 0.3, carolStart);
+    carolNext = 0;
+  }
+  const song = carolSong;
+  while (carolNext < song.events.length && carolStart + song.events[carolNext].t < now + 0.6) {
+    const e = song.events[carolNext];
+    const at = carolStart + e.t;
+    // notes whose moment passed (paused while breathing, app in background) are skipped, not bunched up
+    if (at < now - 0.05) {
+      carolNext++;
+      continue;
+    }
+    if (e.kind === "melody") {
+      // a music-box tine: bright attack, long ring, slightly detuned overtone
+      tone({ freq: midi(e.midi), at, dur: Math.max(1.4, e.dur * 1.6), gain: 0.085, bus: "music", partial: { ratio: 3.02, level: 0.14 }, reverb: 0.55 });
+      tone({ freq: midi(e.midi + 12), at, dur: 0.5, gain: 0.012, bus: "music", reverb: 0.4 });
+    } else if (e.kind === "bass") {
+      tone({ freq: midi(e.midi), at, dur: e.dur + 0.6, attack: 0.05, gain: 0.05, type: "sine", bus: "music", lowpass: 500 });
+    } else {
+      tone({ freq: midi(e.midi), at, dur: e.dur, gain: 0.025, bus: "music", partial: { ratio: 3.02, level: 0.08 }, reverb: 0.5 });
+    }
+    carolNext++;
+  }
+  if (carolNext >= song.events.length && now > carolStart + song.length) {
+    carolIdx++;
+    carolStart = carolStart + song.length + SONG_GAP;
+    carolSong = null;
+  }
+}
 
 function chordAt(s: number) {
   return CHORDS[Math.floor(s / (BEATS_PER_CHORD * 2)) % CHORDS.length];
@@ -95,6 +136,12 @@ function tick() {
   const e = getEngine();
   if (!e || e.ctx.state !== "running") return;
   const now = e.ctx.currentTime;
+  // carols play while it is Christmas — except while breathing, which stays calm
+  if (carol && !calm) {
+    carolTick(now);
+    nextTime = now + 0.1;
+    return;
+  }
   if (nextTime < now) nextTime = now + 0.1;
   while (nextTime < now + 0.6) {
     schedule(nextTime);
@@ -129,4 +176,12 @@ export function setMusicVolume(v: number) {
 
 export function setMusicCalm(v: boolean) {
   calm = v;
+}
+
+/** 오르골 캐럴 on/off (starts from the top of the next song) */
+export function setCarol(on: boolean) {
+  if (on === carol) return;
+  carol = on;
+  carolSong = null;
+  carolStart = 0;
 }

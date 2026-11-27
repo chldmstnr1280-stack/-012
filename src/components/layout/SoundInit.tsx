@@ -7,7 +7,9 @@ import { getEngine, onDuck, resume, setBusVolume, suspend, unlock } from "@/lib/
 import { activeNatureLayers, setNatureDuck, setNatureScene, setNatureVolume } from "@/lib/sound/nature";
 import { useAmbience } from "@/lib/game/ambience";
 import { natureOn, natureVolume, useGardenWeather } from "@/lib/garden/weather";
-import { setMusicCalm, setMusicVolume, startMusic, stopMusic } from "@/lib/sound/music";
+import { setCarol, setMusicCalm, setMusicVolume, startMusic, stopMusic } from "@/lib/sound/music";
+import { christmasOn } from "@/lib/garden/christmas";
+import { useToday } from "@/lib/date";
 import { playSfx, setSfxEnabled } from "@/lib/sound/sfx";
 
 /**
@@ -53,6 +55,13 @@ export function SoundInit() {
   useEffect(() => {
     setMusicCalm(immersive);
   }, [immersive]);
+
+  // 크리스마스: the music box plays carols (Silent Night, Jingle Bells)
+  const today = useToday();
+  const carol = christmasOn(prefs, today);
+  useEffect(() => {
+    setCarol(carol);
+  }, [carol]);
 
   // nature sounds follow the greenhouse weather and time — only after the first tap
   const natureWanted = natureOn(prefs);

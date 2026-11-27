@@ -186,6 +186,8 @@ export interface Prefs {
   natureVolume?: number;
   /** "셀리가 발견한 작은 패턴" — personal pattern notes from check-ins (default on; can be turned off) */
   patterns?: boolean;
+  /** 크리스마스 온실 (트리 · 오르골 캐럴): "auto" = 20 Nov – 31 Dec */
+  christmas?: import("@/lib/garden/christmas").ChristmasPref;
   /** 셀리의 편지: how often, from what hour, which topics */
   letters?: Partial<import("@/lib/letters/engine").LetterPrefs>;
 }

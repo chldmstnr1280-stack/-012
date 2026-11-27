@@ -35,6 +35,7 @@ import { markShown, shouldShow, suggestionFor } from "@/lib/game/careEngine";
 import type { CareAction, PickedSuggestion } from "@/data/careSuggestions";
 import { getData, setPeriodDays, setPrefs } from "@/lib/data-store";
 import { showStartPrompt } from "@/lib/pms/late";
+import { TREE_LINES, christmasOn } from "@/lib/garden/christmas";
 import { currentTimeOfDay } from "@/lib/game/ambience";
 import { playSfx } from "@/lib/sound/sfx";
 import type { TalkAction } from "@/data/sellyConversations";
@@ -611,6 +612,12 @@ export function HomeScreen() {
             doorGlow={doorGlow}
             finds={finds}
             lights={lights}
+            christmas={christmasOn(appData.prefs, today)}
+            onTree={() => {
+              playSfx("cheer");
+              react("cheer");
+              brainRef.current.say(TREE_LINES[Math.floor(Math.random() * TREE_LINES.length)], 4200);
+            }}
             petals={petals}
             tod={tod}
             weather={garden.weather}
