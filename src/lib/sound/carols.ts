@@ -2,6 +2,8 @@
  * 오르골 캐럴 — public-domain carols, arranged here as simple music-box parts:
  *  - "Stille Nacht" / 고요한 밤 거룩한 밤 — Franz Xaver Gruber, 1818
  *  - "Jingle Bells" (chorus) — James Lord Pierpont, 1857
+ *  - "O Tannenbaum" / 소나무야 (first phrase, twice) — German folk melody, words Ernst Anschütz 1824
+ *  - "Joy to the World" / 기쁘다 구주 오셨네 — tune "Antioch", arr. Lowell Mason 1839
  * Melodies are written out note by note in C (synthesized in the app — no
  * recordings), played an octave up by the music box.
  */
@@ -65,8 +67,39 @@ export const JINGLE_BELLS: Carol = {
   chords: ["C", "C", "C", "C", "F", "C", "D7", "G7", "C", "C", "C", "C", "F", "C", "G7", "C"],
 };
 
+const TANNE: Note[][] = [
+  [[72, 0.75], [72, 0.25], [72, 1.5], [74, 0.5]],
+  [[76, 0.75], [76, 0.25], [76, 1.5], [76, 0.5]],
+  [[74, 0.5], [76, 0.5], [77, 1], [71, 1]],
+];
+export const O_TANNENBAUM: Carol = {
+  id: "o-tannenbaum",
+  title: "오 탄넨바움",
+  beat: 0.55,
+  beatsPerBar: 3,
+  bars: [[[null, 2], [67, 1]], ...TANNE, [[74, 1], [72, 1], [67, 1]], ...TANNE, [[74, 1], [72, 1], [null, 1]]],
+  chords: ["C", "C", "C", "G7", "C", "C", "C", "G7", "C"],
+};
+
+const EVERY: Note[] = [[72, 0.5], [71, 0.5], [69, 0.5], [67, 0.5]];
+export const JOY_TO_THE_WORLD: Carol = {
+  id: "joy-to-the-world",
+  title: "기쁘다 구주 오셨네",
+  beat: 0.5,
+  beatsPerBar: 2,
+  bars: [
+    [[72, 1], [71, 0.75], [69, 0.25]], [[67, 1.5], [65, 0.5]], [[64, 1], [62, 1]], [[60, 1.5], [67, 0.5]],
+    [[69, 1.5], [69, 0.5]], [[71, 1.5], [71, 0.5]], [[72, 1.5], [72, 0.5]],
+    EVERY, [[67, 0.75], [65, 0.25], [64, 0.5], [72, 0.5]], EVERY, [[67, 0.75], [65, 0.25], [64, 1]],
+    [[64, 0.5], [64, 0.5], [64, 0.5], [64, 0.25], [65, 0.25]], [[67, 1.5], [65, 0.25], [64, 0.25]],
+    [[62, 0.5], [62, 0.5], [62, 0.5], [62, 0.25], [64, 0.25]], [[65, 1.5], [64, 0.25], [62, 0.25]],
+    [[60, 0.5], [72, 1], [69, 0.5]], [[67, 0.75], [65, 0.25], [64, 0.5], [65, 0.5]], [[64, 1], [62, 1]], [[60, 2]],
+  ],
+  chords: ["C", "F", "G7", "C", "F", "G", "C", "C", "C", "C", "C", "C", "C", "G7", "G7", "F", "C", "G7", "C"],
+};
+
 /** the order they play in, round and round */
-export const CAROLS: Carol[] = [SILENT_NIGHT, JINGLE_BELLS];
+export const CAROLS: Carol[] = [SILENT_NIGHT, JINGLE_BELLS, O_TANNENBAUM, JOY_TO_THE_WORLD];
 
 export interface CarolEvent {
   /** seconds from the start of the song */

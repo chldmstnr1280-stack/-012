@@ -29,6 +29,14 @@ ok(sn.slice(0, 4).join() === "67,69,67,64" && sn[sn.length - 1] === 60, "silent 
 const jb = carolEvents(CAROLS[1]).events.filter((e) => e.kind === "melody").map((e) => e.midi - 12);
 ok(jb.slice(0, 11).join() === "64,64,64,64,64,64,64,67,60,62,64", "jingle bells shape " + jb.slice(0, 11));
 
+// O Tannenbaum: sol | do do do re | mi mi mi mi | re mi fa ti
+const ot = carolEvents(CAROLS[2]).events.filter((e) => e.kind === "melody").map((e) => e.midi - 12);
+ok(ot.slice(0, 13).join() === "67,72,72,72,74,76,76,76,76,74,76,77,71", "o tannenbaum shape " + ot.slice(0, 13));
+// Joy to the World: do ti la sol fa mi re do (the descending opening), ends on do
+const jw = carolEvents(CAROLS[3]).events.filter((e) => e.kind === "melody").map((e) => e.midi - 12);
+ok(jw.slice(0, 8).join() === "72,71,69,67,65,64,62,60" && jw[jw.length - 1] === 60, "joy to the world shape " + jw.slice(0, 8));
+ok(CAROLS.length === 4, "four carols");
+
 ok(inChristmasSeason(new Date(2026, 10, 27)) && inChristmasSeason(new Date(2026, 11, 31)), "season: late Nov and December");
 ok(!inChristmasSeason(new Date(2026, 10, 19)) && !inChristmasSeason(new Date(2027, 0, 1)), "season ends with the year");
 ok(christmasOn({}, "2026-12-24") && !christmasOn({ christmas: "off" }, "2026-12-24") && christmasOn({ christmas: "on" }, "2026-07-01") && !christmasOn({ christmas: "on" }, null), "pref auto/on/off; nothing while prerendering");

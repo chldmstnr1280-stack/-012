@@ -136,7 +136,7 @@ export function WeatherSheet({ open, onClose, onWeather }: { open: boolean; onCl
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-[10.5px] text-ink-500">트리와 오르골 캐럴(고요한 밤 거룩한 밤 · 징글벨) · 자동은 11월 20일~12월 31일 · 캐럴은 배경음악이 켜져 있을 때 나와요</p>
+            <p className="mt-1 text-[10.5px] text-ink-500">트리와 오르골 캐럴(고요한 밤 거룩한 밤 · 징글벨 · 오 탄넨바움 · 기쁘다 구주 오셨네) · 자동은 11월 20일~12월 31일 · 캐럴은 배경음악이 켜져 있을 때 나와요</p>
           </div>
         </motion.div>
       )}
